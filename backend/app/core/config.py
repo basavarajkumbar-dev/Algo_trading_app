@@ -19,6 +19,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import TradingMode
+from app.market_data.schemas import Timeframe
 from app.market_data.universe import NIFTY_50_UNIVERSE, NIFTY_INDEX_SYMBOL
 
 
@@ -93,7 +94,7 @@ class Settings(BaseSettings):
 
     # --- Market intelligence (Phase 4) ----------------------------------
     # Timeframe the regime detector and engines analyse by default.
-    intelligence_timeframe: str = Field(default="5m", alias="INTELLIGENCE_TIMEFRAME")
+    intelligence_timeframe: Timeframe = Field(default=Timeframe.M5, alias="INTELLIGENCE_TIMEFRAME")
     # How often (seconds) the intelligence service recomputes results.
     intelligence_refresh_seconds: float = Field(
         default=5.0, gt=0, alias="INTELLIGENCE_REFRESH_SECONDS"

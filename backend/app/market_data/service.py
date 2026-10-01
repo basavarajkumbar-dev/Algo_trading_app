@@ -63,11 +63,13 @@ class MarketDataService:
         candle_builder: CandleBuilder | None = None,
         warmup_candles: int = 0,
         warmup_timeframes: tuple[Timeframe, ...] = tuple(Timeframe),
+        session_minutes: int = 375,
     ) -> None:
         self._provider = provider
         self._watchlist = list(watchlist)
         self._warmup_candles = warmup_candles
         self._warmup_timeframes = warmup_timeframes
+        self._session_minutes = session_minutes
         self._connection_manager = connection_manager or ConnectionManager()
         self._validator = validator or TickValidator()
         self._candle_builder = candle_builder or CandleBuilder()
@@ -120,6 +122,17 @@ class MarketDataService:
                     logger.warning("No warm-up history for %s %s", symbol, timeframe.value)
                     continue
                 seeded += self._candle_builder.seed_history(symbol, timeframe, history)
+
+            # With warm-up history available, measure change from a
+            # simulated session open (one NSE session, 375 minutes, ago)
+            # instead of from the moment the app started. The simulated
+            # feed has no real sessions; this keeps "change" and the
+            # session-anchored VWAP on the same reference window.
+            session = self._candle_builder.get_candles(
+                symbol, Timeframe.M5, max(1, self._session_minutes // 5)
+            )
+            if session:
+                self._day_open[symbol] = session[0].open
         logger.info("Seeded %d warm-up candles from provider history", seeded)
 
     async def stop(self) -> None:

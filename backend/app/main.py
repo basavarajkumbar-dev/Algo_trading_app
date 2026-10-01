@@ -22,8 +22,11 @@ from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX
 from app.core.logging import configure_logging, get_logger
+from app.market_data.mock_provider import MockMarketDataProvider
 from app.market_data.paper_provider import PaperMarketDataProvider
 from app.market_data.service import MarketDataService
+from app.market_data.universe import NIFTY_INDEX_SYMBOL
+from app.market_intelligence.service import MarketIntelligenceService
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -40,15 +43,33 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.trading_mode.value,
     )
 
+    rotation = settings.market_data_regime_rotation_seconds or None
+    provider = PaperMarketDataProvider(
+        delegate=MockMarketDataProvider(
+            tick_interval_seconds=settings.market_data_tick_interval_seconds,
+            regime_rotation_seconds=rotation,
+        )
+    )
     market_data_service = MarketDataService(
-        PaperMarketDataProvider(),
+        provider,
         watchlist=settings.market_data_default_watchlist,
+        warmup_candles=settings.market_data_warmup_candles,
     )
     await market_data_service.start()
     app.state.market_data_service = market_data_service
 
+    intelligence_service = MarketIntelligenceService(
+        market_data_service,
+        benchmark_symbol=NIFTY_INDEX_SYMBOL,
+        timeframe=settings.intelligence_timeframe,
+        refresh_seconds=settings.intelligence_refresh_seconds,
+    )
+    await intelligence_service.start()
+    app.state.market_intelligence_service = intelligence_service
+
     yield
 
+    await intelligence_service.stop()
     await market_data_service.stop()
     logger.info("Shutting down %s", settings.app_name)
 

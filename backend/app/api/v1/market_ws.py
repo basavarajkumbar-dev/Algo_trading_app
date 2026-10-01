@@ -56,7 +56,17 @@ async def market_websocket(websocket: WebSocket) -> None:
                     },
                 )
 
-        # This phase's WebSocket is broadcast-only (server -> client).
+        # Current market intelligence, if computed, so the client doesn't
+        # wait for the next refresh cycle to render the regime panel.
+        intelligence = getattr(websocket.app.state, "market_intelligence_service", None)
+        current = intelligence.get_intelligence() if intelligence is not None else None
+        if current is not None:
+            await manager.send_to(
+                websocket,
+                {"type": "market_intelligence", **current.model_dump(mode="json", exclude={"status"})},
+            )
+
+        # This WebSocket is broadcast-only (server -> client).
         # We still need to await incoming messages so the server notices
         # a client disconnect promptly; any inbound message is ignored.
         while True:
