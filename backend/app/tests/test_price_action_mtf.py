@@ -69,6 +69,8 @@ def test_aligned_uptrend_on_every_timeframe() -> None:
     assert [r.timeframe for r in roles] == list(TIMEFRAMES)
     assert all(r.available and r.direction == Trend.UP for r in roles)
     assert result.context_analysis.key_levels  # important levels on the context timeframe
+    limit = PriceActionConfig().multi_timeframe.key_level_max_distance_atr
+    assert all(abs(lvl.distance_atr) <= limit for lvl in result.context_analysis.key_levels)
     assert result.setup_analysis.retracement is not None
     assert result.setup_analysis.setup_state is not None
     assert result.entry_analysis.confirmation is not None

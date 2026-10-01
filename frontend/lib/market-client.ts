@@ -4,6 +4,7 @@ import type {
   RegimeResult,
   SymbolIntelligence,
 } from "@/types/intelligence";
+import type { PriceActionOverview, SymbolPriceAction } from "@/types/price-action";
 import type {
   CandleResponse,
   InstrumentResponse,
@@ -44,4 +45,12 @@ export function getSymbolIntelligenceRequest(symbol: string): Promise<SymbolInte
 export function getRegimeRequest(symbol?: string): Promise<RegimeResult> {
   const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : "";
   return apiGet<RegimeResult>(`/market/regime${query}`);
+}
+
+export function getPriceActionOverviewRequest(): Promise<PriceActionOverview> {
+  return apiGet<PriceActionOverview>("/market/price-action");
+}
+
+export function getSymbolPriceActionRequest(symbol: string): Promise<SymbolPriceAction> {
+  return apiGet<SymbolPriceAction>(`/market/price-action/${encodeURIComponent(symbol)}`);
 }

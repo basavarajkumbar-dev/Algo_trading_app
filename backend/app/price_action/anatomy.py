@@ -164,18 +164,24 @@ class PatternInputs:
                 label=closest.label, price=closest.price, distance_atr=round(gap(closest), 2)
             )
             near = [lvl for lvl in self.levels if gap(lvl) <= cfg.level_proximity_atr]
-            if near:
+            body_low = min(candle.open, candle.close)
+            body_high = max(candle.open, candle.close)
+            # A level inside the body was crossed by the candle, not tested:
+            # calling it support or resistance would overstate the context.
+            crossed = [lvl for lvl in near if body_low < lvl.price < body_high]
+            tested = [lvl for lvl in near if lvl not in crossed]
+            if tested:
                 # A level at or below the close acts as support, above it as
                 # resistance. Prefer the side that matters for the pattern's
                 # direction; otherwise take the closest.
-                supports = [lvl for lvl in near if lvl.price <= candle.close]
-                resistances = [lvl for lvl in near if lvl.price > candle.close]
+                supports = [lvl for lvl in tested if lvl.price <= candle.close]
+                resistances = [lvl for lvl in tested if lvl.price > candle.close]
                 if direction == PatternDirection.BULLISH and supports:
                     chosen, location = min(supports, key=gap), LevelLocation.AT_SUPPORT
                 elif direction == PatternDirection.BEARISH and resistances:
                     chosen, location = min(resistances, key=gap), LevelLocation.AT_RESISTANCE
                 else:
-                    chosen = min(near, key=gap)
+                    chosen = min(tested, key=gap)
                     location = (
                         LevelLocation.AT_SUPPORT
                         if chosen.price <= candle.close
@@ -184,6 +190,10 @@ class PatternInputs:
                 nearest = NearbyLevel(
                     label=chosen.label, price=chosen.price, distance_atr=round(gap(chosen), 2)
                 )
+            elif crossed:
+                chosen = min(crossed, key=lambda lvl: abs(lvl.price - candle.close))
+                location = LevelLocation.THROUGH_LEVEL
+                nearest = NearbyLevel(label=chosen.label, price=chosen.price, distance_atr=0.0)
             else:
                 location = LevelLocation.BETWEEN_LEVELS
 
@@ -243,6 +253,9 @@ def apply_context(
         else:
             confidence += config.support_bonus / 2
             reasons.append(f"Formed at a level ({level.label} {level.price:g})")
+
+    if context.location == LevelLocation.THROUGH_LEVEL and level is not None:
+        reasons.append(f"Body crossed {level.label} ({level.price:g}): no level bonus")
 
     if reversal_after is not None and context.prior_trend == reversal_after:
         confidence += config.reversal_context_bonus

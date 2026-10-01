@@ -306,6 +306,17 @@ def test_bullish_pattern_into_resistance_loses_confidence() -> None:
     assert capped.confidence == pytest.approx(free.confidence - 10)
 
 
+def test_level_crossed_by_the_body_is_not_support() -> None:
+    rows = [*base_rows(), (100.0, 101.7, 99.95, 101.6)]
+    free = last(detect_wide_range_body, rows)
+    crossed = last(
+        detect_wide_range_body, rows, levels=[ReferenceLevel(label="Range high", price=100.75)]
+    )
+    assert crossed.context.location == LevelLocation.THROUGH_LEVEL
+    assert crossed.confidence == free.confidence  # a breakout candle gets no support bonus
+    assert any("crossed Range high" in r for r in crossed.reasons)
+
+
 def test_apply_context_neutral_pattern_at_level_gets_half_bonus() -> None:
     candles = candles_from_ohlc([*base_rows(), (100.1, 100.3, 99.9, 100.2)])
     inputs = PatternInputs(candles, levels=[ReferenceLevel(label="VWAP", price=100.1)])

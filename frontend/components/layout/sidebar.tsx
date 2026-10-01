@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { NAV_ITEMS } from "@/components/layout/nav-items";
 import { cn } from "@/lib/utils";
 
-const ACTIVE_ROUTES = new Set(["/", "/settings", "/market"]);
+const ACTIVE_ROUTES = new Set(["/", "/settings", "/market", "/price-action"]);
 
 export function Sidebar() {
   return (

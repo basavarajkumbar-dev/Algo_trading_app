@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 4 — Market Intelligence + Regime Engine complete.**
+**Status: Phase 5 — Price Action Intelligence Engine complete.**
 
 See:
 
@@ -13,8 +13,7 @@ See:
 - [`docs/development-roadmap.md`](./docs/development-roadmap.md) —
   phase-by-phase build plan and this phase's full Definition of Done.
 - [`docs/api.md`](./docs/api.md) — full endpoint reference, including
-  the market intelligence endpoints and WebSocket events added in this
-  phase.
+  the price action endpoints added in this phase.
 
 ## What exists right now
 
@@ -31,7 +30,7 @@ See:
 - **Real-time layer**: `GET /api/v1/market/*` REST endpoints plus a
   `WS /api/v1/ws/market` WebSocket broadcasting live ticks and closed
   candles.
-- **Market intelligence + regime engine** (Phase 4, new): VWAP, moving
+- **Market intelligence + regime engine** (Phase 4): VWAP, moving
   averages (20 EMA / 50 EMA / 200 MA), ATR/volatility, momentum, volume,
   market structure (swings, HH/HL/LH/LL, break of structure, structure
   shift), range/compression, trend quality and relative strength vs
@@ -44,11 +43,22 @@ See:
   why, breadth, factor scores, a live regime-change feed, a sortable
   regime table for all 51 symbols and a per-symbol engine breakdown.
   The dashboard home shows a market regime card.
+- **Price action engine** (Phase 5, new): COG, NR, NRB, WRB, BT and TT
+  detectors (each with detected, direction, confidence, strength,
+  context and reasons), significant swings, a retracement engine with
+  40/50/60/80/100% zones, support/resistance (previous day, intraday,
+  swing, range/breakout, VWAP, EMA/MA and retracement levels) with a
+  configurable Level Strength Score, and a configurable 60m context /
+  15m setup / 5m entry multi-timeframe engine with an alignment score.
+- **Frontend `/price-action` page**: candle chart with level lines,
+  retracement levels and pattern markers; multi-timeframe panel; all six
+  detectors with their reasons; retracement gauge; full levels table.
 
 **Still no strategies, signals, or orders of any kind exist.** The
 engines only read and describe prices; nothing in this codebase can
-place a trade. A regime describes recent behaviour and is not a
-forecast: no regime guarantees future price movement. Every price shown is explicitly labeled
+place a trade. Patterns are contextual features, not trade signals;
+levels are reference zones, not guaranteed reversal points; and a
+regime describes recent behaviour, not a forecast. Every price shown is explicitly labeled
 simulated, never live — see `PROJECT_CONTRACT.md` section 9.
 
 ## Running with Docker (recommended)
@@ -65,8 +75,8 @@ docker compose up --build
 - Backend interactive API docs: http://localhost:8000/docs
 
 Seed a demo account (see the backend steps below), then visit
-http://localhost:3000/market after logging in to see Market
-Intelligence on the simulated feed. Simulated warm-up history is
+http://localhost:3000/market (Market Intelligence) and
+http://localhost:3000/price-action (Price Action) after logging in. Simulated warm-up history is
 generated at startup, so regimes are available within seconds.
 
 To stop:
@@ -140,10 +150,34 @@ npm run dev
   behaviours in tests. That shows the detector recognises the patterns
   it is designed for; it says nothing about predicting real markets.
 
+## How price action works (Phase 5 scope)
+
+- `backend/app/price_action/` holds one module per concern:
+  `candle_patterns.py` (runs every detector), `changing_guard.py`,
+  `narrow_range.py`, `wide_range.py`, `tails.py`, `swing_structure.py`,
+  `retracement.py`, `support_resistance.py`, `multi_timeframe.py`, plus
+  `config.py` with every threshold and weight.
+- Detectors use only candles up to the one they evaluate. Context
+  (prior trend, nearby support/resistance, volume) adjusts confidence:
+  for example a bottoming tail after a decline into support scores
+  higher than one mid-range. Historical chart markers are evaluated
+  without today's levels, so they never benefit from hindsight.
+- "ATR" means ATR(14) at the latest candle everywhere, so distances and
+  thresholds are comparable across engines.
+- Day levels use IST calendar days. The simulated feed trades around the
+  clock, so a simulated "day" is a full IST date, not the 09:15-15:30
+  NSE session.
+- Warm-up history for 5m/15m/30m/60m is aggregated from one simulated 5m
+  path per symbol, so the timeframes describe the same prices (startup
+  takes about 2 seconds).
+- "Entry" is the brief's name for the 5m role: it reports whether the
+  latest candle, momentum and volume agree with the higher-timeframe
+  bias. It never produces an order, price, stop or size.
+
 ## Environment variables
 
-See [`.env.example`](./.env.example) for the full list. New in this
-phase:
+See [`.env.example`](./.env.example) for the full list. New in Phases 4
+and 5:
 
 - `MARKET_DATA_WARMUP_CANDLES` — simulated closed candles per symbol and
   timeframe generated at startup (default `250`).
@@ -151,6 +185,11 @@ phase:
   symbol may switch behaviour (default `900`; `0` disables).
 - `INTELLIGENCE_TIMEFRAME` — timeframe analysed (default `5m`).
 - `INTELLIGENCE_REFRESH_SECONDS` — re-analysis interval (default `5.0`).
+- `PRICE_ACTION_CONTEXT_TIMEFRAME` / `PRICE_ACTION_SETUP_TIMEFRAME` /
+  `PRICE_ACTION_ENTRY_TIMEFRAME` — multi-timeframe roles (default
+  `60m` / `15m` / `5m`; must be in descending order).
+- `PRICE_ACTION_REFRESH_SECONDS` — price action re-analysis interval
+  (default `15.0`).
 
 `MARKET_DATA_TICK_INTERVAL_SECONDS` and everything from Phase 2
 (`TRADING_MODE`, `JWT_SECRET`, etc.) still apply unchanged.
@@ -158,7 +197,7 @@ phase:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 141 tests, all passing with a real Postgres;
+make test-backend    # pytest — 235 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
 make test-frontend   # tsc --noEmit + eslint + vitest
 make lint             # ruff + black (backend), eslint (frontend)
@@ -171,12 +210,15 @@ cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-Test coverage added this phase: every engine against synthetic candle
-fixtures (39 tests, including two real bugs they caught), the regime
-detector with one or more cases per regime plus `UNKNOWN` and
-insufficient data (18), the intelligence service, REST endpoints and
-WebSocket events (11 plus API/WS tests), and the frontend formatting
-helpers (11 vitest tests).
+Test coverage added in Phase 5 (94 backend tests, 11 frontend): every
+detector with positive, negative and context cases plus a no-look-ahead
+check (31); zig-zag swings, every retracement zone boundary, day levels
+across the IST midnight boundary, touch episodes, confluence, breakout
+levels and every Level Strength Score component (40); multi-timeframe
+bias, alignment, conflicts, every setup state, entry confirmation, the
+service and API, including a check that no response carries order,
+quantity, stop or target fields (23); and the frontend price action
+helpers (vitest).
 
 ## Project structure
 
@@ -196,13 +238,16 @@ gainzalgo-pro-max/
                         validation, candle builder, NIFTY 50 universe,
                         MarketDataService (Phase 3)
       market_intelligence/  engines, analyzer, factor scores,
-                        MarketIntelligenceService (Phase 4, new)
-      regime/          Market Regime Detector + RegimeConfig (Phase 4, new)
+                        MarketIntelligenceService (Phase 4)
+      regime/          Market Regime Detector + RegimeConfig (Phase 4)
+      price_action/    pattern detectors, swings, retracement,
+                        support/resistance, multi-timeframe,
+                        PriceActionService (Phase 5, new)
       websocket/       ConnectionManager (Phase 3)
       schemas/         Pydantic request/response models
       services/        auth_service, settings_service, system_health
       api/v1/          auth, settings, system, market, intelligence,
-                        market_ws routes
+                        price_action, market_ws routes
       seed.py          demo user seed script
     alembic/           migrations
   frontend/
@@ -211,9 +256,12 @@ gainzalgo-pro-max/
       (dashboard)/     protected route group (dashboard, settings, market)
     components/auth/   AuthProvider (session state/hydration)
     components/market/ regime badge/explainer/table, factor list,
-                        breadth, symbol detail (Phase 4, new)
+                        breadth, symbol detail (Phase 4)
+    components/price-action/ chart, pattern grid, retracement gauge,
+                        levels table, multi-timeframe panel (Phase 5, new)
     lib/               market-client, use-market-socket,
-                        intelligence-format (+ vitest tests)
+                        intelligence-format, price-action-format
+                        (+ vitest tests)
     middleware.ts       route-level auth redirect
   infrastructure/       Dockerfiles + backend entrypoint (runs migrations)
   scripts/               (reserved for future setup scripts)
@@ -221,8 +269,8 @@ gainzalgo-pro-max/
 
 ## What's next
 
-See `docs/development-roadmap.md`. Still open from the intelligence
-work: the multi-timeframe engine, retracement and support/resistance
-engines, and price action detectors. After that come the remaining
-trading-domain data models, strategies, signals, risk, and the paper
-trading engine, built one phase at a time.
+See `docs/development-roadmap.md`. The market intelligence and price
+action layers are complete; next come the remaining trading-domain data
+models, the strategy engine (which will consume these features),
+signals and scoring, risk, and the paper trading engine, built one
+phase at a time.

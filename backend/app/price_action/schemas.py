@@ -61,6 +61,7 @@ class CandleColor(str, Enum):
 class LevelLocation(str, Enum):
     AT_SUPPORT = "AT_SUPPORT"
     AT_RESISTANCE = "AT_RESISTANCE"
+    THROUGH_LEVEL = "THROUGH_LEVEL"  # the candle's body crossed the level (e.g. a breakout candle)
     BETWEEN_LEVELS = "BETWEEN_LEVELS"
     NO_LEVELS = "NO_LEVELS"
 

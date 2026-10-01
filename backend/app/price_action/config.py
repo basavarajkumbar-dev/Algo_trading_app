@@ -162,6 +162,7 @@ class MultiTimeframeConfig(BaseModel):
     bias_threshold: float = 20.0  # |bias| below this (of 100) reads as sideways
     full_agreement_bias: float = 40.0  # a timeframe this far on the overall side agrees fully
     min_candles: int = 60  # per timeframe
+    key_level_max_distance_atr: float = 6.0  # context key levels must be this close to price
     momentum_return_threshold: float = 55.0  # momentum score on the bias side
     volume_confirmation: float = 1.2  # relative volume on the latest entry candle
 

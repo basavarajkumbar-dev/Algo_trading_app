@@ -364,3 +364,116 @@ Every weight and threshold in use: `benchmark_symbol`, `analysis`
 (engine lookbacks/periods) and `regime` (`RegimeConfig` condition
 weights and thresholds). Useful for auditing why a regime was chosen.
 
+---
+
+## Price action
+
+Read-only, no authentication required. Computed by `PriceActionService`
+every `PRICE_ACTION_REFRESH_SECONDS` (default 15 s) from **closed**
+candles of the simulated feed. Patterns are contextual features, not
+trade signals, and levels are reference zones, not guaranteed reversal
+points. No endpoint returns orders, quantities, stops or targets.
+
+All endpoints return `503` if the service is not running.
+
+### `GET /market/price-action`
+
+One summary row per watched symbol plus service status.
+
+```json
+{
+  "symbols": [
+    {
+      "symbol": "BAJAJFINSV",
+      "name": "Bajaj Finserv Ltd.",
+      "price": 1852.5,
+      "data_as_of": "2026-10-01T15:45:00Z",
+      "patterns": [{ "pattern": "WRB", "direction": "BULLISH", "confidence": 95.0, "strength": 62.0 }],
+      "recent_pattern_count": 21,
+      "retracement_direction": "UP",
+      "retracement_percentage": 3.0,
+      "retracement_zone": "SHALLOW",
+      "nearest_support": { "label": "Breakout level", "price": 1852.44, "strength": 62.0, "distance_atr": -0.01 },
+      "nearest_resistance": { "label": "Day high", "price": 1853.33, "strength": 62.0, "distance_atr": 0.2 },
+      "overall_bias": "BULLISH",
+      "bias_score": 64.2,
+      "alignment_score": 100.0,
+      "setup_state": "WITH_TREND",
+      "entry_confirmations": 2
+    }
+  ],
+  "status": { "is_running": true, "context_timeframe": "60m", "setup_timeframe": "15m", "entry_timeframe": "5m", "refresh_seconds": 15.0, "refresh_count": 3, "last_refresh_at": "...", "last_compute_ms": 870.4, "last_error": null, "symbols_analyzed": 51 },
+  "note": "Price action patterns are contextual features, not trade signals. ..."
+}
+```
+
+### `GET /market/price-action/{symbol}`
+
+`{ "symbol", "name", "analysis", "candles" }` where `candles` are the
+latest 150 closed entry-timeframe candles the analysis used, and
+`analysis` contains:
+
+- `patterns`: every detector (COG, NR, NRB, WRB, BT, TT) on the latest
+  closed candle, detected or not:
+
+  ```json
+  {
+    "pattern": "BT",
+    "name": "Bottoming Tail",
+    "detected": true,
+    "direction": "BULLISH",
+    "confidence": 75.0,
+    "strength": 81.4,
+    "context": {
+      "prior_trend": "DOWN",
+      "prior_move_atr": -3.2,
+      "atr": 1.12,
+      "range_vs_average": 1.6,
+      "relative_volume": 1.1,
+      "location": "AT_SUPPORT",
+      "nearest_level": { "label": "Prev day low", "price": 98.95, "distance_atr": 0.0 },
+      "levels_considered": true
+    },
+    "reasons": ["Lower tail 88% of the range: lower prices rejected", "Formed at support (Prev day low 98.95)", "Follows a decline (-3.2 ATR)"],
+    "metrics": { "tail_ratio": 0.875, "close_position": 0.97 },
+    "candle_index": 299,
+    "timestamp": "..."
+  }
+  ```
+
+  `location` is `AT_SUPPORT`, `AT_RESISTANCE`, `THROUGH_LEVEL` (the
+  candle's body crossed the level, e.g. a breakout candle),
+  `BETWEEN_LEVELS` or `NO_LEVELS`.
+- `recent_patterns`: patterns detected on the last 60 candles (for chart
+  markers), evaluated without today's levels to avoid look-ahead.
+- `swing_structure`: significant ATR zig-zag pivots and legs, plus the
+  Phase 4 HH/HL/LH/LL structure.
+- `retracement`: `detected`, `direction` (of the impulse), `swing_high`,
+  `swing_low`, `impulse_size_atr`, `retracement_percentage` (now),
+  `max_retracement_percentage` (deepest since the impulse extreme),
+  `zone` (`SHALLOW`, `HEALTHY_PULLBACK`, `DEEP_PULLBACK`, `WEAKENING`,
+  `MAJOR_WEAKNESS`, `INVALIDATION_CONTEXT`), `quality`, `levels`
+  (40/50/60/80/100% prices), `strength`, `confidence`, `reasons`.
+- `support_resistance`: `levels` (highest first), each with `label`,
+  `type`, `price`, `role` (`SUPPORT`/`RESISTANCE`), `distance_atr`,
+  `strength` (Level Strength Score 0-100), `touch_count`, `timeframe`
+  (`1d` for day levels), `recency` (candles since the last touch),
+  `confluence` and `components` (score points by component); plus
+  `nearest_support`/`nearest_resistance` and
+  `strongest_support`/`strongest_resistance`.
+- `multi_timeframe`: `overall_bias`, `bias_score` (-100..+100),
+  `alignment_score` (0-100), `context_analysis`, `setup_analysis`,
+  `entry_analysis`, `conflicts`, `reasons`. Each timeframe analysis has
+  its bias, regime, structure, momentum and role-specific detail:
+  `key_levels` (context), `retracement` + `setup_state` + nearest levels
+  (setup), detected `patterns` + `confirmation` (entry: candle pattern,
+  momentum and volume agreeing with the higher-timeframe bias;
+  descriptive only).
+
+`404` for a symbol not on the watchlist.
+
+### `GET /market/price-action/config`
+
+Every threshold and weight in use (`patterns`, `swings`, `retracement`,
+`levels` including Level Strength Score weights, `multi_timeframe`).
+

@@ -360,9 +360,12 @@ def analyze_multi_timeframe(
     if context.available:
         levels = _levels(context_candles, cfg, None)
         if levels is not None:
-            context.key_levels = sorted(levels.levels, key=lambda lvl: lvl.strength, reverse=True)[
-                :4
+            nearby = [
+                lvl
+                for lvl in levels.levels
+                if abs(lvl.distance_atr) <= mtf.key_level_max_distance_atr
             ]
+            context.key_levels = sorted(nearby, key=lambda lvl: lvl.strength, reverse=True)[:4]
             if context.key_levels:
                 top = context.key_levels[0]
                 context.reasons.append(

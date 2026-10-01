@@ -302,7 +302,7 @@ under this phase number.
 
 ---
 
-## Phase 6 — Market Intelligence Core 🟡 *(core delivered as "Phase 4" per direct instruction)*
+## Phase 6 — Market Intelligence Core ✅ *(delivered as "Phase 4" and "Phase 5" per direct instruction)*
 
 > **Numbering note:** this work was directed and executed as "Phase 4 —
 > Market Intelligence + Regime Engine". It delivers most of this Phase 6
@@ -345,41 +345,71 @@ under this phase number.
   per-symbol engine breakdown with recent swings) and a regime card on
   the dashboard home.
 
-**Still open in this phase**
-- Multi-Timeframe Engine (60m context / 15m setup / 5m entry). Engines
-  already accept any timeframe; the cross-timeframe alignment layer is
-  not built.
-- Retracement Engine.
-- Support/Resistance Engine + Level Strength Score.
+**Completed in "Phase 5 — Price Action Intelligence Engine"**
+- `backend/app/price_action/`:
+  - `swing_structure.py`: significant swings via an ATR(14) zig-zag
+    (alternating pivots, legs, the leg in progress), alongside the
+    Phase 4 HH/HL/LH/LL structure.
+  - `retracement.py`: the impulse is the largest leg of at least 2.5 ATR
+    among the last four; returns retracement % now and at its deepest,
+    zone (< 40 shallow, 40-50 healthy, 50-60 deep, 60-80 weakening,
+    80-100 major weakness, >= 100 invalidation context), quality, the
+    40/50/60/80/100% level prices, swing high/low, strength, confidence.
+  - `support_resistance.py`: previous day high/low/close and intraday
+    high/low (IST calendar days), significant swing highs/lows, range
+    high/low (or breakout/breakdown level once broken), VWAP, EMA 20/50,
+    MA 200 and retracement levels. Each level carries price, type, role,
+    strength, touch_count, timeframe, recency and confluence; the 0-100
+    Level Strength Score blends type, touches, confluence, recency and
+    timeframe with configurable weights.
+  - `multi_timeframe.py`: configurable context/setup/entry timeframes
+    (default 60m/15m/5m) returning context_analysis, setup_analysis,
+    entry_analysis, overall_bias, alignment_score, conflicts and reasons.
+- Warm-up history for 5m/15m/30m/60m is aggregated from one simulated 5m
+  path per symbol, so timeframes and previous-day levels are consistent.
 
 **Definition of Done**
 - [x] Each delivered engine returns structured, explainable output.
 - [x] Regime detector and structure engine have unit tests covering
       every regime and every swing label/event (39 engine tests, 18
       detector tests, 11 service tests, plus API/WebSocket tests).
-- [ ] Retracement engine tests (engine not built yet).
+- [x] Retracement, swing, support/resistance and multi-timeframe engines
+      unit tested (every zone boundary, day boundaries in IST, touch
+      episodes, confluence, every strength component, every setup state).
 - [x] Lookbacks and thresholds are function parameters or fields on
       `AnalysisConfig` / `RegimeConfig`; none are buried in logic.
 - [x] Frontend formatting helpers unit-tested (vitest).
 
 ---
 
-## Phase 7 — Price Action, Volume, Momentum, Relative Strength 🟡
+## Phase 7 — Price Action, Volume, Momentum, Relative Strength ✅ *(price action delivered as "Phase 5")*
+
+> **Numbering note:** "Phase 5 — Price Action Intelligence Engine" was
+> directed after "Phase 4". It completes this Phase 7 entry and the
+> remainder of Phase 6 above. Roadmap Phase 4 (remaining domain tables)
+> is still open.
 
 **Scope**
-- Price action detectors: COG, NR/NRB, WRB, BT/TT — each returns
-  detected/confidence/context/direction/strength/reasons. No detector
-  creates a trade directly. **Not started.**
+- ~~Price action detectors: COG, NR/NRB, WRB, BT/TT.~~ Delivered:
+  `candle_patterns.py` runs `changing_guard.py` (COG), `narrow_range.py`
+  (NR, NRB), `wide_range.py` (WRB) and `tails.py` (BT, TT). Each returns
+  detected, direction, confidence, strength, context (prior trend,
+  location relative to support/resistance, relative volume, range vs
+  average) and reasons, including why a pattern was *not* detected.
+  Detection uses only candles up to the one evaluated; chart markers for
+  past candles are evaluated without today's levels (no look-ahead).
 - ~~Volume Engine + Relative Volume Score.~~ Delivered in Phase 6 work.
 - ~~Momentum Engine + Momentum Score.~~ Delivered in Phase 6 work.
 - ~~Relative Strength Engine (vs. NIFTY) + Relative Strength Score.~~
   Delivered in Phase 6 work.
 
 **Definition of Done**
-- [ ] Each price action detector unit tested against synthetic candle
-      fixtures (volume/momentum/RS engines already are).
+- [x] Each price action detector unit tested against synthetic candle
+      fixtures: positive, negative (with reason) and context cases, plus
+      a no-look-ahead test.
 - [x] Confirmed no engine output is wired to order creation; there is
-      no order code in the repository.
+      no order code in the repository, and an API test asserts price
+      action responses contain no order/quantity/stop/target fields.
 
 ---
 
