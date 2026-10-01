@@ -75,7 +75,7 @@ def analyze_range(
         distance = (range_low - close) / reference if reference else 0.0
 
     closes = [c.close for c in candles[-(efficiency_window + 1) :]]
-    path = sum(abs(b - a) for a, b in zip(closes, closes[1:]))
+    path = sum(abs(b - a) for a, b in zip(closes, closes[1:], strict=False))
     net = closes[-1] - closes[0]
     efficiency = abs(net) / path if path > 0 else 0.0
 

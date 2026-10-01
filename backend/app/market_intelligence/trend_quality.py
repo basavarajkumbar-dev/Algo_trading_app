@@ -65,8 +65,8 @@ def compute_trend_quality(
     sign = 1 if direction == Trend.UP else -1
     expected_alignment = MAAlignment.BULLISH if sign > 0 else MAAlignment.BEARISH
 
-    components["direction"] = w.direction if moving_averages.alignment == expected_alignment else (
-        w.direction * 0.5
+    components["direction"] = (
+        w.direction if moving_averages.alignment == expected_alignment else (w.direction * 0.5)
     )
 
     slope = (moving_averages.ema_fast_slope_percent or 0.0) * sign
@@ -99,12 +99,15 @@ def compute_trend_quality(
     if volatility is None:
         components["volatility"] = w.volatility * 0.5
     else:
-        components["volatility"] = w.volatility * {
-            VolatilityLevel.LOW: 1.0,
-            VolatilityLevel.NORMAL: 1.0,
-            VolatilityLevel.HIGH: 0.5,
-            VolatilityLevel.EXTREME: 0.0,
-        }[volatility.volatility_level]
+        components["volatility"] = (
+            w.volatility
+            * {
+                VolatilityLevel.LOW: 1.0,
+                VolatilityLevel.NORMAL: 1.0,
+                VolatilityLevel.HIGH: 0.5,
+                VolatilityLevel.EXTREME: 0.0,
+            }[volatility.volatility_level]
+        )
         if volatility.volatility_level == VolatilityLevel.EXTREME:
             reasons.append("Extreme volatility undermines trend quality")
 

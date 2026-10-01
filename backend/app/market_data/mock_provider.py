@@ -221,7 +221,12 @@ class MockMarketDataProvider(MarketDataProvider):
             # (drift, volatility, volume multiplier, wick factor) per candle.
             if regime == SimulatedRegime.BREAKOUT:
                 if i >= breakout_start:  # the breakout: big candles, heavy volume
-                    step = (drift_min * minutes * 6, candle_vol, volume_multiplier * 1.5, wick_factor)
+                    step = (
+                        drift_min * minutes * 6,
+                        candle_vol,
+                        volume_multiplier * 1.5,
+                        wick_factor,
+                    )
                 elif i >= compression_start:  # quiet compression, light volume
                     step = (mean_reverting, candle_vol * _COMPRESSION_VOL_FACTOR, 0.7, wick_factor)
                 else:  # ordinary two-way trade
@@ -242,9 +247,7 @@ class MockMarketDataProvider(MarketDataProvider):
             wick = vol * candle_wick_factor
             high_price = max(open_price, close_price) * (1 + abs(rng.gauss(0, wick)))
             low_price = min(open_price, close_price) * (1 - abs(rng.gauss(0, wick)))
-            volume = int(
-                _BASE_VOLUME_PER_MINUTE * minutes * vol_mult * rng.lognormvariate(0, 0.3)
-            )
+            volume = int(_BASE_VOLUME_PER_MINUTE * minutes * vol_mult * rng.lognormvariate(0, 0.3))
             raw.append((open_price, high_price, low_price, close_price, max(volume, 0)))
             price = close_price
 

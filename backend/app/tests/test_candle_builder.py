@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from app.market_data.candle_builder import CandleBuilder, floor_to_timeframe
-from app.market_data.schemas import Tick, Timeframe
+from app.market_data.schemas import Candle, Tick, Timeframe
 
 BASE = datetime(2026, 1, 5, 9, 15, 0, tzinfo=UTC)  # 09:15:00 UTC, arbitrary Monday
 
@@ -196,3 +196,62 @@ def test_unknown_symbol_returns_empty_history_and_no_current_candle() -> None:
     builder = CandleBuilder()
     assert builder.get_candles("UNKNOWN", Timeframe.M1) == []
     assert builder.get_current_candle("UNKNOWN", Timeframe.M1) is None
+
+
+# --- Phase 4: warm-up history seeding -----------------------------------------
+
+
+def _closed(symbol: str, minute: int, close: float) -> Candle:
+    from app.market_data.schemas import Candle
+
+    return Candle(
+        symbol=symbol,
+        timeframe=Timeframe.M1,
+        timestamp=BASE + timedelta(minutes=minute),
+        open=close,
+        high=close,
+        low=close,
+        close=close,
+        volume=10,
+        is_closed=True,
+    )
+
+
+def test_seed_history_preloads_closed_candles_in_order() -> None:
+    builder = CandleBuilder()
+    seeded = builder.seed_history(
+        "RELIANCE", Timeframe.M1, [_closed("RELIANCE", m, 100 + m) for m in (-3, -5, -4)]
+    )
+    assert seeded == 3
+    history = builder.get_candles("RELIANCE", Timeframe.M1, limit=10)
+    assert [c.close for c in history] == [95, 96, 97]
+
+
+def test_seed_history_never_overwrites_or_follows_live_data() -> None:
+    builder = CandleBuilder()
+    builder.process_tick(_tick("RELIANCE", 1200.0, 0))
+    builder.process_tick(_tick("RELIANCE", 1201.0, 65))  # closes the 09:15 candle
+
+    seeded = builder.seed_history(
+        "RELIANCE",
+        Timeframe.M1,
+        [
+            _closed("RELIANCE", -2, 1190.0),
+            _closed("RELIANCE", -1, 1195.0),
+            _closed("RELIANCE", 0, 999.0),  # same bucket as live data: rejected
+            _closed("RELIANCE", -1, 1195.0),  # duplicate: rejected
+        ],
+    )
+    assert seeded == 2
+    closes = [c.close for c in builder.get_candles("RELIANCE", Timeframe.M1, limit=10)]
+    assert closes == [1190.0, 1195.0, 1200.0]
+
+
+def test_seed_history_respects_history_length() -> None:
+    builder = CandleBuilder(history_length=5)
+    builder.seed_history(
+        "RELIANCE", Timeframe.M1, [_closed("RELIANCE", -m, 100.0 - m) for m in range(1, 20)]
+    )
+    history = builder.get_candles("RELIANCE", Timeframe.M1, limit=50)
+    assert len(history) == 5
+    assert history[-1].close == 99.0  # the most recent seeded candles are kept

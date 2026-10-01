@@ -49,7 +49,9 @@ def analyze_momentum(
 
     closes = [c.close for c in candles]
     tail = closes[-(volatility_window + 1) :]
-    returns = [r for a, b in zip(tail, tail[1:]) if (r := percent_change(b, a)) is not None]
+    returns = [
+        r for a, b in zip(tail, tail[1:], strict=False) if (r := percent_change(b, a)) is not None
+    ]
     sigma = stdev(returns)
     normalize = sigma > 0 and len(returns) >= 5
 

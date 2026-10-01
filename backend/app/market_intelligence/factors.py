@@ -39,7 +39,9 @@ def volatility_score(analysis: SymbolAnalysis) -> float | None:
     return round(clamp(analysis.volatility.atr_ratio / 2.5 * 100.0), 2)
 
 
-def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None) -> list[FactorScore]:
+def build_factors(
+    analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
+) -> list[FactorScore]:
     factors: list[FactorScore] = []
 
     tq = analysis.trend_quality
@@ -47,8 +49,12 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
         direction = {Trend.UP: "Uptrend", Trend.DOWN: "Downtrend"}.get(tq.direction, "No trend")
         factors.append(
             FactorScore(
-                key="trend", label="Trend", score=tq.score, scale=INTENSITY,
-                interpretation=direction, detail="Trend quality: direction, slope, structure, momentum, volume, volatility",
+                key="trend",
+                label="Trend",
+                score=tq.score,
+                scale=INTENSITY,
+                interpretation=direction,
+                detail="Trend quality: direction, slope, structure, momentum, volume, volatility",
             )
         )
 
@@ -56,7 +62,10 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
     if mom is not None:
         factors.append(
             FactorScore(
-                key="momentum", label="Momentum", score=mom.momentum_score, scale=DIRECTIONAL,
+                key="momentum",
+                label="Momentum",
+                score=mom.momentum_score,
+                scale=DIRECTIONAL,
                 interpretation=_direction_label(mom.momentum_score),
                 detail="Volatility-normalised rate of change over 3/10/20 candles",
             )
@@ -66,7 +75,10 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
     if vs is not None and analysis.vwap is not None:
         factors.append(
             FactorScore(
-                key="vwap", label="VWAP", score=vs, scale=DIRECTIONAL,
+                key="vwap",
+                label="VWAP",
+                score=vs,
+                scale=DIRECTIONAL,
                 interpretation=f"{analysis.vwap.price_vs_vwap.value.capitalize()} VWAP",
                 detail=f"{analysis.vwap.distance_from_vwap_percent:+.2f}% from VWAP",
             )
@@ -74,11 +86,19 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
 
     vol = analysis.volume
     if vol is not None:
-        label = "Heavy" if vol.relative_volume >= 1.5 else "Light" if vol.relative_volume < 0.7 else "Average"
+        label = (
+            "Heavy"
+            if vol.relative_volume >= 1.5
+            else "Light" if vol.relative_volume < 0.7 else "Average"
+        )
         factors.append(
             FactorScore(
-                key="volume", label="Volume", score=vol.relative_volume_score, scale=INTENSITY,
-                interpretation=label, detail=f"{vol.relative_volume:.2f}x the 20-candle average",
+                key="volume",
+                label="Volume",
+                score=vol.relative_volume_score,
+                scale=INTENSITY,
+                interpretation=label,
+                detail=f"{vol.relative_volume:.2f}x the 20-candle average",
             )
         )
 
@@ -86,7 +106,10 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
     if vls is not None and analysis.volatility is not None:
         factors.append(
             FactorScore(
-                key="volatility", label="Volatility", score=vls, scale=INTENSITY,
+                key="volatility",
+                label="Volatility",
+                score=vls,
+                scale=INTENSITY,
                 interpretation=analysis.volatility.volatility_level.value.capitalize(),
                 detail=f"ATR {analysis.volatility.atr_ratio:.2f}x baseline ({analysis.volatility.atr_percent:.2f}% of price)",
             )
@@ -97,7 +120,10 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
         trend_word = {Trend.UP: "Bullish", Trend.DOWN: "Bearish"}.get(st.trend, "Mixed")
         factors.append(
             FactorScore(
-                key="structure", label="Structure", score=st.confidence, scale=INTENSITY,
+                key="structure",
+                label="Structure",
+                score=st.confidence,
+                scale=INTENSITY,
                 interpretation=f"{trend_word} ({st.structure_state.value.replace('_', ' ').lower()})",
                 detail="Confidence in the swing-structure reading",
             )
@@ -107,7 +133,9 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
     if rs is not None:
         factors.append(
             FactorScore(
-                key="relative_strength", label="Relative strength", score=rs.relative_strength_score,
+                key="relative_strength",
+                label="Relative strength",
+                score=rs.relative_strength_score,
                 scale=DIRECTIONAL,
                 interpretation="Outperforming" if rs.is_outperforming else "Underperforming",
                 detail=f"{rs.relative_return_percent:+.2f}pp vs NIFTY50 over {rs.lookback} candles",
@@ -116,7 +144,10 @@ def build_factors(analysis: SymbolAnalysis, breadth: MarketBreadth | None = None
     elif breadth is not None and breadth.percent_above_vwap is not None:
         factors.append(
             FactorScore(
-                key="breadth", label="Breadth", score=breadth.percent_above_vwap, scale=DIRECTIONAL,
+                key="breadth",
+                label="Breadth",
+                score=breadth.percent_above_vwap,
+                scale=DIRECTIONAL,
                 interpretation=_direction_label(breadth.percent_above_vwap, 10.0),
                 detail=f"{breadth.above_vwap} of {breadth.symbols_counted} constituents above VWAP",
             )

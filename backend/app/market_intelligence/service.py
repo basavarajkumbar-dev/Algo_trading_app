@@ -227,7 +227,11 @@ class MarketIntelligenceService:
             )
         # Benchmark first, then by relative-strength rank.
         rows.sort(
-            key=lambda r: (r.symbol != self._benchmark, r.relative_strength_rank or 10_000, r.symbol)
+            key=lambda r: (
+                r.symbol != self._benchmark,
+                r.relative_strength_rank or 10_000,
+                r.symbol,
+            )
         )
         return rows
 
@@ -237,7 +241,9 @@ class MarketIntelligenceService:
         declining = sum(1 for s in constituents if (s.change_percent or 0) < 0)
         above = sum(1 for s in constituents if s.price_vs_vwap == Relationship.ABOVE)
         below = sum(1 for s in constituents if s.price_vs_vwap == Relationship.BELOW)
-        with_vwap = above + below + sum(1 for s in constituents if s.price_vs_vwap == Relationship.AT)
+        with_vwap = (
+            above + below + sum(1 for s in constituents if s.price_vs_vwap == Relationship.AT)
+        )
         return MarketBreadth(
             symbols_counted=len(constituents),
             advancing=advancing,
@@ -296,7 +302,10 @@ class MarketIntelligenceService:
             response = self.get_intelligence()
             if response is not None:
                 await manager.broadcast(
-                    {"type": "market_intelligence", **response.model_dump(mode="json", exclude={"status"})}
+                    {
+                        "type": "market_intelligence",
+                        **response.model_dump(mode="json", exclude={"status"}),
+                    }
                 )
             for symbol, regime in self._regimes.items():
                 changed = previous_regimes.get(symbol) != regime.regime
@@ -307,7 +316,9 @@ class MarketIntelligenceService:
                             "symbol": symbol,
                             "regime": regime.regime.value,
                             "previous_regime": (
-                                previous_regimes[symbol].value if symbol in previous_regimes else None
+                                previous_regimes[symbol].value
+                                if symbol in previous_regimes
+                                else None
                             ),
                             "changed": changed,
                             "confidence": regime.confidence,

@@ -1,8 +1,9 @@
 """Market structure engine.
 
-1. Swing detection: a candle is a swing high if its high is the single
-   highest high within `lookback` candles on both sides (fractal rule);
-   swing lows mirror this. `lookback` is configurable — a small value
+1. Swing detection: a candle is a swing high if its high is the
+   highest high within `lookback` candles on both sides (fractal rule;
+   on a tie the first candle of the tie takes the swing); swing lows
+   mirror this. `lookback` is configurable — a small value
    finds many minor swings, a larger one only major turns.
 2. Each swing is labelled against the previous swing of the same type:
    Higher High / Lower High, Higher Low / Lower Low.
@@ -79,19 +80,26 @@ def find_swing_points(
     if lookback < 1:
         raise ValueError("lookback must be >= 1")
 
+    # Ties (e.g. two adjacent candles with the same high) are common in
+    # real data. The swing is assigned to the *first* candle of the tie,
+    # so a flat-topped peak still counts once rather than not at all.
     swings: list[SwingPoint] = []
     for i in range(lookback, len(candles) - lookback):
         window = candles[i - lookback : i + lookback + 1]
         highs = [c.high for c in window]
         lows = [c.low for c in window]
         candle = candles[i]
-        if candle.high == max(highs) and highs.count(candle.high) == 1:
+        if candle.high == max(highs) and highs.index(candle.high) == lookback:
             swings.append(
-                SwingPoint(type=SwingType.HIGH, index=i, price=candle.high, timestamp=candle.timestamp)
+                SwingPoint(
+                    type=SwingType.HIGH, index=i, price=candle.high, timestamp=candle.timestamp
+                )
             )
-        if candle.low == min(lows) and lows.count(candle.low) == 1:
+        if candle.low == min(lows) and lows.index(candle.low) == lookback:
             swings.append(
-                SwingPoint(type=SwingType.LOW, index=i, price=candle.low, timestamp=candle.timestamp)
+                SwingPoint(
+                    type=SwingType.LOW, index=i, price=candle.low, timestamp=candle.timestamp
+                )
             )
     return swings  # already in index order
 
@@ -110,7 +118,9 @@ def classify_swings(swings: list[SwingPoint]) -> list[SwingPoint]:
         if swing.type == SwingType.HIGH:
             if last_high is not None:
                 updated.label = (
-                    SwingLabel.HIGHER_HIGH if swing.price > last_high.price else SwingLabel.LOWER_HIGH
+                    SwingLabel.HIGHER_HIGH
+                    if swing.price > last_high.price
+                    else SwingLabel.LOWER_HIGH
                 )
             last_high = swing
         else:
@@ -201,9 +211,11 @@ def analyze_structure(
     elif last_event == StructureEvent.BREAK_OF_STRUCTURE:
         state = StructureState.TREND_CONTINUATION
         reasons.append("Break of structure in the trend's direction")
-    elif trend != Trend.SIDEWAYS and contradicts:
+    elif trend != Trend.SIDEWAYS and contradicts and latest_label is not None:
         state = StructureState.TREND_WEAKNESS
-        reasons.append(f"Trend weakness: latest swing is a {latest_label.value.replace('_', ' ').lower()}")
+        reasons.append(
+            f"Trend weakness: latest swing is a {latest_label.value.replace('_', ' ').lower()}"
+        )
     elif trend != Trend.SIDEWAYS:
         state = StructureState.TRENDING
     else:

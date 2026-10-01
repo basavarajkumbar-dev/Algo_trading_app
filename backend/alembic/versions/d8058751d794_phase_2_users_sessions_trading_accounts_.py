@@ -1,7 +1,7 @@
 """phase 2: users, sessions, trading accounts, instruments, strategy configs, risk configs, audit logs, system events, trading settings
 
 Revision ID: d8058751d794
-Revises: 
+Revises:
 Create Date: 2026-09-16 20:43:30.742604
 
 """

@@ -165,10 +165,16 @@ def analyze_moving_averages(
         alignment = MAAlignment.MIXED
 
     slope = fast_slope or 0.0
-    if price_vs_fast == Relationship.ABOVE and slope > flat_slope_percent and (separation or 0) >= 0:
+    if (
+        price_vs_fast == Relationship.ABOVE
+        and slope > flat_slope_percent
+        and (separation or 0) >= 0
+    ):
         trend = Trend.UP
     elif (
-        price_vs_fast == Relationship.BELOW and slope < -flat_slope_percent and (separation or 0) <= 0
+        price_vs_fast == Relationship.BELOW
+        and slope < -flat_slope_percent
+        and (separation or 0) <= 0
     ):
         trend = Trend.DOWN
     else:
@@ -176,8 +182,14 @@ def analyze_moving_averages(
 
     distance_fast = dist(ema_fast)
     reasons = _reasons(
-        price_vs_fast, fast_slope, flat_slope_percent, alignment, separation_state, rel(ma),
-        distance_fast, extension_percent,
+        price_vs_fast,
+        fast_slope,
+        flat_slope_percent,
+        alignment,
+        separation_state,
+        rel(ma),
+        distance_fast,
+        extension_percent,
     )
 
     score = _ma_trend_score(
@@ -276,7 +288,11 @@ def _ma_trend_score(
     slope_component = min(abs(fast_slope or 0.0) / slope_full_scale, 1.0)
     separation_component = min(abs(separation or 0.0) / separation_full_scale, 1.0)
     distance = abs(distance_fast or 0.0)
-    extension_component = clamp(1.0 - max(0.0, distance - extension_percent) / extension_percent, 0, 1)
+    extension_component = clamp(
+        1.0 - max(0.0, distance - extension_percent) / extension_percent, 0, 1
+    )
 
-    score = 40 * agreement + 30 * slope_component + 20 * separation_component + 10 * extension_component
+    score = (
+        40 * agreement + 30 * slope_component + 20 * separation_component + 10 * extension_component
+    )
     return round(clamp(score), 2)

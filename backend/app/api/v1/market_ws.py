@@ -63,7 +63,10 @@ async def market_websocket(websocket: WebSocket) -> None:
         if current is not None:
             await manager.send_to(
                 websocket,
-                {"type": "market_intelligence", **current.model_dump(mode="json", exclude={"status"})},
+                {
+                    "type": "market_intelligence",
+                    **current.model_dump(mode="json", exclude={"status"}),
+                },
             )
 
         # This WebSocket is broadcast-only (server -> client).

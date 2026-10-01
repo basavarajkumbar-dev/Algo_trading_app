@@ -126,7 +126,7 @@ def analyze_volatility(
     average_wick_ratio = mean(wick_ratios)
 
     directions = [1 if c.close > c.open else -1 for c in window if c.close != c.open]
-    direction_changes = sum(1 for a, b in zip(directions, directions[1:]) if a != b)
+    direction_changes = sum(1 for a, b in zip(directions, directions[1:], strict=False) if a != b)
 
     previous_atr = atr_series[-2] or atr
     latest = candles[-1]
