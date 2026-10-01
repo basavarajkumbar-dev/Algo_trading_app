@@ -91,10 +91,17 @@ _REGIME_WEIGHTS: dict[SimulatedRegime, float] = {
 #: Simulated traded volume per symbol per minute (before regime multiplier).
 _BASE_VOLUME_PER_MINUTE = 8_000
 
-#: In a BREAKOUT history, how many final candles contain the breakout
-#: itself (everything before is a low-volatility compression phase).
-_BREAKOUT_CANDLES = 3
+#: Shape of a BREAKOUT history: ordinary two-way trade, then a
+#: low-volatility compression phase, then the breakout candles at the end.
+_BREAKOUT_CANDLES = 1
+_COMPRESSION_CANDLES = 40
 _COMPRESSION_VOL_FACTOR = 0.35
+
+#: A HIGH_VOLATILITY history is ordinary trade followed by a volatile
+#: episode of this many candles, so the volatility stands out against
+#: the symbol's own baseline.
+_HIGH_VOLATILITY_EPISODE_CANDLES = 25
+_CALM_VOL_PER_MINUTE = _REGIME_PARAMETERS_PER_MINUTE[SimulatedRegime.RANGE][1]
 
 
 class _SimulatedSymbolState:
@@ -201,31 +208,38 @@ class MockMarketDataProvider(MarketDataProvider):
         volume_multiplier = _REGIME_VOLUME_MULTIPLIER[regime]
         reversion = min(1.0, _RANGE_MEAN_REVERSION_PER_MINUTE * minutes)
 
+        breakout_start = limit - _BREAKOUT_CANDLES
+        compression_start = breakout_start - min(_COMPRESSION_CANDLES, limit // 3)
+        episode_start = limit - _HIGH_VOLATILITY_EPISODE_CANDLES
+        calm_vol = _CALM_VOL_PER_MINUTE * math.sqrt(minutes)
+        calm_wick = _REGIME_WICK_FACTOR[SimulatedRegime.RANGE]
+
         raw: list[tuple[float, float, float, float, int]] = []
         price = 1.0
         for i in range(limit):
-            in_breakout = regime == SimulatedRegime.BREAKOUT and i >= limit - _BREAKOUT_CANDLES
-            if regime == SimulatedRegime.BREAKOUT and not in_breakout:
-                # Compression phase: quiet, mean-reverting, below-average volume.
-                drift = -reversion * (price - 1.0)
-                vol = candle_vol * _COMPRESSION_VOL_FACTOR
-                vol_mult = 0.7
-            elif in_breakout:
-                drift = drift_min * minutes * 4
-                vol = candle_vol
-                vol_mult = volume_multiplier * 1.5
+            mean_reverting = -reversion * (price - 1.0)
+            # (drift, volatility, volume multiplier, wick factor) per candle.
+            if regime == SimulatedRegime.BREAKOUT:
+                if i >= breakout_start:  # the breakout: big candles, heavy volume
+                    step = (drift_min * minutes * 6, candle_vol, volume_multiplier * 1.5, wick_factor)
+                elif i >= compression_start:  # quiet compression, light volume
+                    step = (mean_reverting, candle_vol * _COMPRESSION_VOL_FACTOR, 0.7, wick_factor)
+                else:  # ordinary two-way trade
+                    step = (mean_reverting, calm_vol, 1.0, calm_wick)
+            elif regime == SimulatedRegime.HIGH_VOLATILITY:
+                if i >= episode_start:  # the volatile episode
+                    step = (0.0, candle_vol, volume_multiplier, wick_factor)
+                else:
+                    step = (mean_reverting, calm_vol, 1.0, calm_wick)
             elif regime == SimulatedRegime.RANGE:
-                drift = -reversion * (price - 1.0)
-                vol = candle_vol
-                vol_mult = volume_multiplier
-            else:
-                drift = drift_min * minutes
-                vol = candle_vol
-                vol_mult = volume_multiplier
+                step = (mean_reverting, candle_vol, volume_multiplier, wick_factor)
+            else:  # trending
+                step = (drift_min * minutes, candle_vol, volume_multiplier, wick_factor)
+            drift, vol, vol_mult, candle_wick_factor = step
 
             open_price = price
             close_price = max(1e-6, open_price * (1 + rng.gauss(drift, vol)))
-            wick = vol * wick_factor
+            wick = vol * candle_wick_factor
             high_price = max(open_price, close_price) * (1 + abs(rng.gauss(0, wick)))
             low_price = min(open_price, close_price) * (1 - abs(rng.gauss(0, wick)))
             volume = int(
