@@ -1,0 +1,110 @@
+"""GAINZALGO PRO MAX — backend application entrypoint.
+
+Application shell, configuration, structured logging, CORS, API
+versioning, auth, settings, and (as of Phase 3) the market data engine
+— a simulated NIFTY 50 feed with candle aggregation and a WebSocket
+broadcast, started/stopped via this module's lifespan. No trading
+orders or strategies exist yet — see docs/development-roadmap.md for
+what each later phase adds.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.api.v1.router import api_v1_router
+from app.core.config import get_settings
+from app.core.constants import API_V1_PREFIX
+from app.core.logging import configure_logging, get_logger
+from app.market_data.paper_provider import PaperMarketDataProvider
+from app.market_data.service import MarketDataService
+
+settings = get_settings()
+configure_logging(settings.log_level)
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info(
+        "Starting %s (env=%s, demo_mode=%s, trading_mode=%s)",
+        settings.app_name,
+        settings.app_env,
+        settings.demo_mode,
+        settings.trading_mode.value,
+    )
+
+    market_data_service = MarketDataService(
+        PaperMarketDataProvider(),
+        watchlist=settings.market_data_default_watchlist,
+    )
+    await market_data_service.start()
+    app.state.market_data_service = market_data_service
+
+    yield
+
+    await market_data_service.stop()
+    logger.info("Shutting down %s", settings.app_name)
+
+
+app = FastAPI(
+    title=settings.app_name,
+    description=(
+        "Modular, explainable, risk-controlled algorithmic intraday "
+        "trading platform. Runs in PAPER/demo mode by default with "
+        "simulated market data — see PROJECT_CONTRACT.md."
+    ),
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_v1_router, prefix=API_V1_PREFIX)
+
+
+def _error_body(code: str, message: str, details: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Structured error shape defined in PROJECT_CONTRACT.md
+    ("Error Handling")."""
+
+    return {"error": {"code": code, "message": message, "details": details or {}}}
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Global fallback so an unexpected error never leaks a raw traceback
+    or an unstructured response to the client."""
+
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content=_error_body(
+            code="INTERNAL_SERVER_ERROR",
+            message="An unexpected error occurred.",
+        ),
+    )
+
+
+@app.get("/", tags=["root"])
+async def root() -> dict[str, str]:
+    """Minimal root route so hitting the backend directly shows something
+    useful instead of a 404."""
+
+    return {
+        "name": settings.app_name,
+        "status": "running",
+        "docs": "/docs",
+        "health": f"{API_V1_PREFIX}/system/health",
+    }

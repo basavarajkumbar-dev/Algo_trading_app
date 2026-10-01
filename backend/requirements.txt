@@ -1,0 +1,23 @@
+fastapi==0.115.4
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+pydantic-settings==2.6.1
+email-validator==2.2.0
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+redis==5.2.0
+alembic==1.13.3
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+PyJWT==2.7.0
+
+# Testing / lint / type-check (also installed in the runtime image so
+# `make test-backend` and `make lint` work the same way locally and in
+# Docker during this early phase; may be split into a dev-only
+# requirements file in a later phase if image size becomes a concern).
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2
+ruff==0.7.4
+black==24.10.0
+mypy==1.13.0
