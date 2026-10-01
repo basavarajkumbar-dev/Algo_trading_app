@@ -173,7 +173,14 @@ async def test_warmup_seeds_history_and_session_open() -> None:
     await market_data.start()
     try:
         candles = market_data.get_candles("RELIANCE", Timeframe.M5, 500, include_current=False)
-        assert len(candles) == 120
+        # 5m feeds 15m/30m/60m: 120 hourly candles need 1440 5m candles,
+        # of which the builder keeps its 500-candle history.
+        assert len(candles) == 500
+        hourly = market_data.get_candles("RELIANCE", Timeframe.M60, 500, include_current=False)
+        assert 119 <= len(hourly) <= 120  # a partial first hour is dropped
+        last_hour = [c for c in candles if hourly[-1].timestamp <= c.timestamp][:12]
+        assert hourly[-1].high == max(c.high for c in last_hour)  # same simulated path
+        assert hourly[-1].close == last_hour[-1].close
         assert candles[-1].close == await provider.get_ltp(
             "RELIANCE"
         )  # history joins the live price

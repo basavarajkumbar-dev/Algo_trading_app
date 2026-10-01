@@ -8,7 +8,7 @@ minimal.
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, intelligence, market, market_ws, settings, system
+from app.api.v1 import auth, intelligence, market, market_ws, price_action, settings, system
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(system.router)
@@ -16,4 +16,5 @@ api_v1_router.include_router(auth.router)
 api_v1_router.include_router(settings.router)
 api_v1_router.include_router(market.router)
 api_v1_router.include_router(intelligence.router)
+api_v1_router.include_router(price_action.router)
 api_v1_router.include_router(market_ws.router)

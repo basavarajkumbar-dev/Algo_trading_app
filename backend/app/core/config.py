@@ -100,6 +100,22 @@ class Settings(BaseSettings):
         default=5.0, gt=0, alias="INTELLIGENCE_REFRESH_SECONDS"
     )
 
+    # --- Price action (Phase 5) ------------------------------------------
+    # Multi-timeframe roles. Must satisfy context > setup > entry.
+    price_action_context_timeframe: Timeframe = Field(
+        default=Timeframe.M60, alias="PRICE_ACTION_CONTEXT_TIMEFRAME"
+    )
+    price_action_setup_timeframe: Timeframe = Field(
+        default=Timeframe.M15, alias="PRICE_ACTION_SETUP_TIMEFRAME"
+    )
+    price_action_entry_timeframe: Timeframe = Field(
+        default=Timeframe.M5, alias="PRICE_ACTION_ENTRY_TIMEFRAME"
+    )
+    # How often (seconds) the price action service recomputes results.
+    price_action_refresh_seconds: float = Field(
+        default=15.0, gt=0, alias="PRICE_ACTION_REFRESH_SECONDS"
+    )
+
     # --- CORS -------------------------------------------------------------
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: [

@@ -19,7 +19,7 @@ from datetime import datetime
 
 from app.core.logging import get_logger
 from app.market_data.base import MarketDataProvider, MarketDataProviderError, utcnow
-from app.market_data.candle_builder import CandleBuilder
+from app.market_data.candle_builder import CandleBuilder, aggregate_candles
 from app.market_data.schemas import (
     Candle,
     InstrumentInfo,
@@ -111,9 +111,50 @@ class MarketDataService:
         logger.info("MarketDataService started, watching %d symbols", len(self._watchlist))
 
     async def _seed_warmup_history(self) -> None:
+        """Seed every timeframe with simulated closed-candle history.
+
+        Timeframes that are whole multiples of 5m (5m/15m/30m/60m) are
+        all aggregated from one 5m path per symbol, so they describe the
+        same simulated price history: a 60m trend, the 15m pullback inside
+        it and the 5m candles at the end are mutually consistent, and
+        previous-day levels agree with intraday ones. The 5m path is long
+        enough to give `warmup_candles` candles on the largest of those
+        timeframes. 1m and 3m cannot be built from 5m and get their own
+        shorter histories.
+        """
+
+        base = Timeframe.M5
+        aggregated = [
+            tf
+            for tf in self._warmup_timeframes
+            if tf.minutes >= base.minutes and tf.minutes % base.minutes == 0
+        ]
+        independent = [tf for tf in self._warmup_timeframes if tf not in aggregated]
+        base_count = (
+            self._warmup_candles * max(tf.minutes for tf in aggregated) // base.minutes
+            if aggregated
+            else 0
+        )
+
         seeded = 0
         for symbol in self._watchlist:
-            for timeframe in self._warmup_timeframes:
+            if aggregated:
+                try:
+                    base_history = await self._provider.get_historical_data(
+                        symbol, base, base_count
+                    )
+                except MarketDataProviderError:
+                    logger.warning("No warm-up history for %s", symbol)
+                    base_history = []
+                for timeframe in aggregated:
+                    history = (
+                        base_history
+                        if timeframe == base
+                        else aggregate_candles(base_history, timeframe)
+                    )
+                    seeded += self._candle_builder.seed_history(symbol, timeframe, history)
+
+            for timeframe in independent:
                 try:
                     history = await self._provider.get_historical_data(
                         symbol, timeframe, self._warmup_candles

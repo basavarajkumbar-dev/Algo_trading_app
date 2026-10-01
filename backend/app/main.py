@@ -27,6 +27,8 @@ from app.market_data.paper_provider import PaperMarketDataProvider
 from app.market_data.service import MarketDataService
 from app.market_data.universe import NIFTY_INDEX_SYMBOL
 from app.market_intelligence.service import MarketIntelligenceService
+from app.price_action.config import MultiTimeframeConfig, PriceActionConfig
+from app.price_action.service import PriceActionService
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -67,8 +69,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await intelligence_service.start()
     app.state.market_intelligence_service = intelligence_service
 
+    price_action_service = PriceActionService(
+        market_data_service,
+        config=PriceActionConfig(
+            multi_timeframe=MultiTimeframeConfig(
+                context_timeframe=settings.price_action_context_timeframe,
+                setup_timeframe=settings.price_action_setup_timeframe,
+                entry_timeframe=settings.price_action_entry_timeframe,
+            )
+        ),
+        refresh_seconds=settings.price_action_refresh_seconds,
+    )
+    await price_action_service.start()
+    app.state.price_action_service = price_action_service
+
     yield
 
+    await price_action_service.stop()
     await intelligence_service.stop()
     await market_data_service.stop()
     logger.info("Shutting down %s", settings.app_name)

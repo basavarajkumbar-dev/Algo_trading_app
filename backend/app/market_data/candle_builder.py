@@ -28,6 +28,56 @@ def floor_to_timeframe(timestamp: datetime, minutes: int) -> datetime:
     return ts.replace(minute=bucket_minute)
 
 
+def aggregate_candles(candles: list[Candle], timeframe: Timeframe) -> list[Candle]:
+    """Aggregate closed lower-timeframe candles into `timeframe` candles,
+    using the same bucket alignment as live aggregation.
+
+    Only complete buckets are returned: a bucket at either end of the
+    input that is missing some of its source candles (for example the
+    higher-timeframe candle still in progress) is dropped rather than
+    reported as a closed candle with a partial range.
+    """
+
+    if not candles:
+        return []
+    source_minutes = candles[0].timeframe.minutes
+    if timeframe.minutes % source_minutes != 0 or timeframe.minutes < source_minutes:
+        raise ValueError(
+            f"Cannot aggregate {candles[0].timeframe.value} candles into {timeframe.value}"
+        )
+    per_bucket = timeframe.minutes // source_minutes
+
+    # Integer epoch bucketing: equivalent to floor_to_timeframe for any
+    # timeframe that divides an hour or is a whole number of hours
+    # (the epoch is hour-aligned), and much faster on long histories.
+    bucket_seconds = timeframe.minutes * 60
+    buckets: dict[int, list[Candle]] = {}
+    for candle in sorted(candles, key=lambda c: c.timestamp):
+        if not candle.is_closed:
+            continue
+        key = int(candle.timestamp.timestamp()) // bucket_seconds
+        buckets.setdefault(key, []).append(candle)
+
+    result: list[Candle] = []
+    for key, group in buckets.items():
+        if len(group) != per_bucket:
+            continue
+        result.append(
+            Candle(
+                symbol=group[0].symbol,
+                timeframe=timeframe,
+                timestamp=datetime.fromtimestamp(key * bucket_seconds, tz=UTC),
+                open=group[0].open,
+                high=max(c.high for c in group),
+                low=min(c.low for c in group),
+                close=group[-1].close,
+                volume=sum(c.volume for c in group),
+                is_closed=True,
+            )
+        )
+    return result
+
+
 @dataclass
 class _SymbolCandleState:
     history_length: int = DEFAULT_HISTORY_LENGTH
