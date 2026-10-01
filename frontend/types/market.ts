@@ -1,3 +1,5 @@
+import type { WsMarketIntelligenceMessage, WsMarketRegimeMessage } from "@/types/intelligence";
+
 /**
  * Mirrors backend/app/schemas/market.py and app/market_data/schemas.py.
  * Hand-maintained mirror, same rationale as types/system.ts.
@@ -90,4 +92,6 @@ export type WsMessage =
   | WsConnectedMessage
   | WsMarketSnapshotMessage
   | WsMarketTickMessage
-  | WsCandleClosedMessage;
+  | WsCandleClosedMessage
+  | WsMarketIntelligenceMessage
+  | WsMarketRegimeMessage;

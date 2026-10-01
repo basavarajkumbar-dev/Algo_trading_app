@@ -3,16 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 
 import { WS_BASE_URL } from "@/lib/api";
-import type { MarketSnapshotResponse } from "@/types/market";
-import type { WsMessage } from "@/types/market";
+import type {
+  MarketIntelligenceResponse,
+  WsMarketRegimeMessage,
+} from "@/types/intelligence";
+import type { MarketSnapshotResponse, WsMessage } from "@/types/market";
 
 export type SocketStatus = "connecting" | "open" | "closed" | "reconnecting";
 
 const RECONNECT_DELAY_MS = 2000;
+const MAX_REGIME_CHANGES = 12;
 
 /**
  * Connects to /ws/market and keeps a live snapshot-per-symbol map
- * updated from `market_tick` / `market_snapshot` messages. Reconnects
+ * updated from `market_tick` / `market_snapshot` messages, plus the
+ * latest `market_intelligence` picture and a short feed of
+ * `market_regime` changes. Reconnects
  * automatically (with a fixed delay) if the connection drops, and
  * exposes the connection status so the UI can show it honestly rather
  * than silently going stale.
@@ -20,6 +26,8 @@ const RECONNECT_DELAY_MS = 2000;
 export function useMarketSocket() {
   const [status, setStatus] = useState<SocketStatus>("connecting");
   const [snapshots, setSnapshots] = useState<Record<string, MarketSnapshotResponse>>({});
+  const [intelligence, setIntelligence] = useState<MarketIntelligenceResponse | null>(null);
+  const [regimeChanges, setRegimeChanges] = useState<WsMarketRegimeMessage[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -77,6 +85,10 @@ export function useMarketSocket() {
               },
             };
           });
+        } else if (message.type === "market_intelligence") {
+          setIntelligence({ snapshot: message.snapshot, symbols: message.symbols });
+        } else if (message.type === "market_regime" && message.changed) {
+          setRegimeChanges((prev) => [message, ...prev].slice(0, MAX_REGIME_CHANGES));
         }
       };
 
@@ -101,5 +113,5 @@ export function useMarketSocket() {
     };
   }, []);
 
-  return { status, snapshots };
+  return { status, snapshots, intelligence, regimeChanges };
 }

@@ -6,11 +6,10 @@ import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
 
 /**
- * Phase 2 scope: market/algo status here are still fixed, honest
- * placeholders (see the Phase 1 note this replaces) — there is no
- * market data engine (Phase 5) or algo trading loop (Phase 11) yet.
- * The user section is now real: it reflects the authenticated user
- * from AuthProvider and offers a working logout.
+ * Market shows "Simulated": the only data source is the mock provider
+ * (no live feed, no broker). Algo stays "Stopped" until the paper
+ * trading loop exists. The user section reflects the authenticated
+ * user from AuthProvider and offers a working logout.
  */
 export function Header() {
   const { user, logout } = useAuth();
@@ -20,7 +19,9 @@ export function Header() {
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-muted">Market</span>
-          <Badge variant="neutral">No live feed</Badge>
+          <Badge variant="pending" title="Mock market data. No live feed or broker is connected.">
+            Simulated
+          </Badge>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-muted">Mode</span>

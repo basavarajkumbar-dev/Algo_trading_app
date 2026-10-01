@@ -1,5 +1,10 @@
 import { apiGet } from "@/lib/api";
 import type {
+  MarketIntelligenceResponse,
+  RegimeResult,
+  SymbolIntelligence,
+} from "@/types/intelligence";
+import type {
   CandleResponse,
   InstrumentResponse,
   MarketSnapshotResponse,
@@ -26,4 +31,17 @@ export function getCandlesRequest(
 ): Promise<CandleResponse[]> {
   const params = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
   return apiGet<CandleResponse[]>(`/market/candles?${params.toString()}`);
+}
+
+export function getMarketIntelligenceRequest(): Promise<MarketIntelligenceResponse> {
+  return apiGet<MarketIntelligenceResponse>("/market/intelligence");
+}
+
+export function getSymbolIntelligenceRequest(symbol: string): Promise<SymbolIntelligence> {
+  return apiGet<SymbolIntelligence>(`/market/intelligence/${encodeURIComponent(symbol)}`);
+}
+
+export function getRegimeRequest(symbol?: string): Promise<RegimeResult> {
+  const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : "";
+  return apiGet<RegimeResult>(`/market/regime${query}`);
 }

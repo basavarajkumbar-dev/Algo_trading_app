@@ -13,6 +13,7 @@ const badgeVariants = cva(
         pending: "border-warning/30 bg-warning/10 text-warning",
         disconnected: "border-loss/30 bg-loss/10 text-loss",
         accent: "border-accent/30 bg-accent/10 text-accent",
+        caution: "border-warning bg-warning text-accent-foreground",
       },
     },
     defaultVariants: {
