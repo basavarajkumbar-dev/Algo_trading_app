@@ -1,20 +1,38 @@
 """MockMarketDataProvider.
 
 A fully working, self-contained market data source requiring no
-external credentials or network access. Simulates realistic tick
-movement, volume, and configurable per-symbol regimes
-(trending/range/breakout/high-volatility) across the NIFTY 50 universe
-plus a synthetic NIFTY50 index composite.
+external credentials or network access. Simulates tick movement,
+volume, and per-symbol regimes (trending / range / breakout /
+high-volatility) across the NIFTY 50 universe plus a synthetic NIFTY50
+index.
+
+Calibration (Phase 4): regime parameters are defined per *minute* and
+scaled to per-tick and per-candle values, so ticks, live candles and
+generated history all share one volatility scale. The defaults put a
+typical large-cap at roughly 0.06-0.08% per-minute volatility, in the
+neighbourhood of real NSE large caps, rather than the per-tick values
+used in Phase 3, which were several times too volatile for realistic
+indicator and regime behaviour.
 
 This is simulated data. It is never presented to the user as a live
 market feed — see PROJECT_CONTRACT.md section 9 and the "notes" field
-on /system/health and /market/status.
+on /system/health and /market/status. Known simplifications:
+
+- The NIFTY50 index is its own simulated series, not computed from the
+  50 constituents, so index direction and constituent breadth can
+  disagree more often than in a real market.
+- Generated history for each timeframe is produced independently, so a
+  symbol's 5m and 60m histories are each internally consistent but
+  not aggregates of one another.
+- The feed runs 24/7; there are no session boundaries or market hours.
 """
 
 from __future__ import annotations
 
 import asyncio
+import math
 import random
+import zlib
 from collections.abc import AsyncIterator
 from datetime import timedelta
 
@@ -29,25 +47,64 @@ from app.market_data.schemas import (
 )
 from app.market_data.universe import NIFTY_50_UNIVERSE, NIFTY_INDEX_BASELINE, NIFTY_INDEX_SYMBOL
 
-#: Per-regime (drift, volatility) applied to each simulated tick step,
-#: expressed as a fraction of price. Drift is the average per-tick
-#: percentage move; volatility scales the random component around it.
-_REGIME_PARAMETERS: dict[SimulatedRegime, tuple[float, float]] = {
-    SimulatedRegime.TRENDING_UP: (0.0006, 0.0012),
-    SimulatedRegime.TRENDING_DOWN: (-0.0006, 0.0012),
-    SimulatedRegime.RANGE: (0.0, 0.0008),
-    SimulatedRegime.BREAKOUT: (0.0015, 0.0025),
-    SimulatedRegime.HIGH_VOLATILITY: (0.0, 0.006),
+#: Per-regime (drift, volatility) per MINUTE, as fractions of price.
+_REGIME_PARAMETERS_PER_MINUTE: dict[SimulatedRegime, tuple[float, float]] = {
+    SimulatedRegime.TRENDING_UP: (0.00012, 0.0007),
+    SimulatedRegime.TRENDING_DOWN: (-0.00012, 0.0007),
+    SimulatedRegime.RANGE: (0.0, 0.0007),
+    SimulatedRegime.BREAKOUT: (0.00035, 0.0011),
+    SimulatedRegime.HIGH_VOLATILITY: (0.0, 0.0028),
 }
+
+#: Fraction of the distance back to the range anchor recovered per
+#: minute while a symbol is in the RANGE regime (makes RANGE actually
+#: range-bound instead of a driftless random walk).
+_RANGE_MEAN_REVERSION_PER_MINUTE = 0.06
+
+#: Relative volume multiplier per regime.
+_REGIME_VOLUME_MULTIPLIER: dict[SimulatedRegime, float] = {
+    SimulatedRegime.TRENDING_UP: 1.1,
+    SimulatedRegime.TRENDING_DOWN: 1.1,
+    SimulatedRegime.RANGE: 0.9,
+    SimulatedRegime.BREAKOUT: 2.2,
+    SimulatedRegime.HIGH_VOLATILITY: 1.6,
+}
+
+#: Wick size relative to per-candle volatility, per regime.
+_REGIME_WICK_FACTOR: dict[SimulatedRegime, float] = {
+    SimulatedRegime.TRENDING_UP: 0.4,
+    SimulatedRegime.TRENDING_DOWN: 0.4,
+    SimulatedRegime.RANGE: 0.5,
+    SimulatedRegime.BREAKOUT: 0.4,
+    SimulatedRegime.HIGH_VOLATILITY: 1.2,
+}
+
+#: How often each regime is chosen when (re)assigning regimes.
+_REGIME_WEIGHTS: dict[SimulatedRegime, float] = {
+    SimulatedRegime.TRENDING_UP: 0.25,
+    SimulatedRegime.TRENDING_DOWN: 0.25,
+    SimulatedRegime.RANGE: 0.30,
+    SimulatedRegime.BREAKOUT: 0.10,
+    SimulatedRegime.HIGH_VOLATILITY: 0.10,
+}
+
+#: Simulated traded volume per symbol per minute (before regime multiplier).
+_BASE_VOLUME_PER_MINUTE = 8_000
+
+#: In a BREAKOUT history, how many final candles contain the breakout
+#: itself (everything before is a low-volatility compression phase).
+_BREAKOUT_CANDLES = 3
+_COMPRESSION_VOL_FACTOR = 0.35
 
 
 class _SimulatedSymbolState:
-    __slots__ = ("price", "regime", "day_open")
+    __slots__ = ("price", "regime", "day_open", "range_anchor")
 
     def __init__(self, price: float, regime: SimulatedRegime) -> None:
         self.price = price
         self.regime = regime
         self.day_open = price
+        self.range_anchor = price
 
 
 class MockMarketDataProvider(MarketDataProvider):
@@ -56,30 +113,43 @@ class MockMarketDataProvider(MarketDataProvider):
     Safe to instantiate and use with zero configuration. `connect()` /
     `disconnect()` toggle a simple internal flag — there is no real
     network resource to manage.
+
+    `regime_rotation_seconds` controls how often simulated regimes are
+    re-rolled while streaming (None disables rotation, e.g. for tests),
+    so the demo shows regimes changing over time.
     """
 
-    def __init__(self, *, tick_interval_seconds: float = 1.0, rng_seed: int | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        tick_interval_seconds: float = 1.0,
+        rng_seed: int | None = None,
+        regime_rotation_seconds: float | None = 900.0,
+        regime_rotation_probability: float = 0.35,
+    ) -> None:
         self._tick_interval_seconds = tick_interval_seconds
         self._rng = random.Random(rng_seed)
+        self._seed_salt = rng_seed if rng_seed is not None else self._rng.getrandbits(32)
         self._status = MarketDataProviderStatus.DISCONNECTED
         self._subscribed: set[str] = set()
+        self._regime_rotation_seconds = regime_rotation_seconds
+        self._regime_rotation_probability = regime_rotation_probability
+        self._ticks_per_minute = 20.0
 
         self._instruments: dict[str, InstrumentInfo] = {
             inst.symbol: InstrumentInfo(symbol=inst.symbol, name=inst.name, sector=inst.sector)
             for inst in NIFTY_50_UNIVERSE
         }
         self._instruments[NIFTY_INDEX_SYMBOL] = InstrumentInfo(
-            symbol=NIFTY_INDEX_SYMBOL, name="NIFTY 50 Index (simulated composite)", sector=None
+            symbol=NIFTY_INDEX_SYMBOL, name="NIFTY 50 Index (simulated)", sector=None
         )
 
         self._state: dict[str, _SimulatedSymbolState] = {
-            inst.symbol: _SimulatedSymbolState(
-                inst.reference_price, self._rng.choice(list(SimulatedRegime))
-            )
+            inst.symbol: _SimulatedSymbolState(inst.reference_price, self._random_regime())
             for inst in NIFTY_50_UNIVERSE
         }
         self._state[NIFTY_INDEX_SYMBOL] = _SimulatedSymbolState(
-            NIFTY_INDEX_BASELINE, SimulatedRegime.RANGE
+            NIFTY_INDEX_BASELINE, self._random_regime()
         )
 
     # --- MarketDataProvider interface -----------------------------------
@@ -100,60 +170,90 @@ class MockMarketDataProvider(MarketDataProvider):
         self._subscribed.difference_update(symbols)
 
     async def get_ltp(self, symbol: str) -> float:
-        state = self._state.get(symbol)
-        if state is None:
-            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
-        return round(state.price, 2)
+        return round(self._require_state(symbol).price, 2)
 
     async def get_historical_data(
         self, symbol: str, timeframe: Timeframe, limit: int = 100
     ) -> list[Candle]:
-        """Generate a deterministic-per-run synthetic candle history.
+        """Generate a synthetic closed-candle history ending at the
+        symbol's current price, shaped by its current simulated regime.
 
-        Deterministic for a given provider instance and symbol (same
-        seeded RNG stream reproduced from the symbol's current state),
-        which is enough for demo/UI purposes. This is NOT a substitute
-        for the real historical-data phase (backtesting, Phase 15) —
-        it exists so the Market page and future strategy prototyping
-        have *something* plausible to render without a live feed.
+        The series is generated forward from an arbitrary start and then
+        rescaled so its final close equals the current price, so the
+        history joins up with the live feed without a price gap.
+        Deterministic for a given provider seed, symbol and timeframe.
+
+        Synthetic warm-up data, not real history: the backtesting phase
+        will need genuine historical data.
         """
 
-        state = self._state.get(symbol)
-        if state is None:
-            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
+        state = self._require_state(symbol)
+        if limit <= 0:
+            return []
 
-        rng = random.Random(hash((symbol, timeframe.value)) & 0xFFFFFFFF)
+        seed = zlib.crc32(f"{symbol}:{timeframe.value}".encode()) ^ (self._seed_salt & 0xFFFFFFFF)
+        rng = random.Random(seed)
         minutes = timeframe.minutes
-        now = utcnow().replace(second=0, microsecond=0)
-        price = state.price
-        candles: list[Candle] = []
+        regime = state.regime
+        drift_min, vol_min = _REGIME_PARAMETERS_PER_MINUTE[regime]
+        candle_vol = vol_min * math.sqrt(minutes)
+        wick_factor = _REGIME_WICK_FACTOR[regime]
+        volume_multiplier = _REGIME_VOLUME_MULTIPLIER[regime]
+        reversion = min(1.0, _RANGE_MEAN_REVERSION_PER_MINUTE * minutes)
 
-        for i in range(limit, 0, -1):
-            bucket_start = now.replace(minute=(now.minute // minutes) * minutes) - timedelta(
-                minutes=minutes * i
-            )
-            drift, vol = _REGIME_PARAMETERS[state.regime]
+        raw: list[tuple[float, float, float, float, int]] = []
+        price = 1.0
+        for i in range(limit):
+            in_breakout = regime == SimulatedRegime.BREAKOUT and i >= limit - _BREAKOUT_CANDLES
+            if regime == SimulatedRegime.BREAKOUT and not in_breakout:
+                # Compression phase: quiet, mean-reverting, below-average volume.
+                drift = -reversion * (price - 1.0)
+                vol = candle_vol * _COMPRESSION_VOL_FACTOR
+                vol_mult = 0.7
+            elif in_breakout:
+                drift = drift_min * minutes * 4
+                vol = candle_vol
+                vol_mult = volume_multiplier * 1.5
+            elif regime == SimulatedRegime.RANGE:
+                drift = -reversion * (price - 1.0)
+                vol = candle_vol
+                vol_mult = volume_multiplier
+            else:
+                drift = drift_min * minutes
+                vol = candle_vol
+                vol_mult = volume_multiplier
+
             open_price = price
-            close_price = max(0.01, open_price * (1 + rng.gauss(drift, vol)))
-            high_price = max(open_price, close_price) * (1 + abs(rng.gauss(0, vol / 2)))
-            low_price = min(open_price, close_price) * (1 - abs(rng.gauss(0, vol / 2)))
-            volume = max(0, int(rng.gauss(50_000, 15_000)))
+            close_price = max(1e-6, open_price * (1 + rng.gauss(drift, vol)))
+            wick = vol * wick_factor
+            high_price = max(open_price, close_price) * (1 + abs(rng.gauss(0, wick)))
+            low_price = min(open_price, close_price) * (1 - abs(rng.gauss(0, wick)))
+            volume = int(
+                _BASE_VOLUME_PER_MINUTE * minutes * vol_mult * rng.lognormvariate(0, 0.3)
+            )
+            raw.append((open_price, high_price, low_price, close_price, max(volume, 0)))
+            price = close_price
 
+        scale = state.price / raw[-1][3]
+        now = utcnow().replace(second=0, microsecond=0)
+        current_bucket = now.replace(minute=(now.minute // minutes) * minutes)
+
+        candles: list[Candle] = []
+        for offset, (o, h, low, c, v) in enumerate(raw):
+            periods_back = limit - offset
             candles.append(
                 Candle(
                     symbol=symbol,
                     timeframe=timeframe,
-                    timestamp=bucket_start,
-                    open=round(open_price, 2),
-                    high=round(high_price, 2),
-                    low=round(low_price, 2),
-                    close=round(close_price, 2),
-                    volume=volume,
+                    timestamp=current_bucket - timedelta(minutes=minutes * periods_back),
+                    open=round(o * scale, 2),
+                    high=round(h * scale, 2),
+                    low=round(low * scale, 2),
+                    close=round(c * scale, 2),
+                    volume=v,
                     is_closed=True,
                 )
             )
-            price = close_price
-
         return candles
 
     async def get_instruments(self) -> list[InstrumentInfo]:
@@ -163,56 +263,87 @@ class MockMarketDataProvider(MarketDataProvider):
         return self._status
 
     async def stream_ticks(self) -> AsyncIterator[Tick]:
-        """Yield simulated ticks for subscribed symbols indefinitely.
+        """Yield simulated ticks for subscribed symbols until disconnected.
 
-        Each cycle ticks a random subset of subscribed symbols (rather
-        than all of them every cycle) to look like real, staggered
-        market activity, then sleeps `tick_interval_seconds`. The caller
-        is responsible for cancelling the task that drives this
-        generator (see app.market_data.service.MarketDataService).
+        Each cycle ticks a random subset (about a third) of subscribed
+        symbols, to mimic staggered real market activity, then sleeps
+        `tick_interval_seconds`. Regimes are periodically re-rolled if
+        rotation is enabled. The caller cancels the driving task (see
+        app.market_data.service.MarketDataService).
         """
+
+        loop = asyncio.get_running_loop()
+        last_rotation = loop.time()
 
         while self._status == MarketDataProviderStatus.CONNECTED:
             if not self._subscribed:
                 await asyncio.sleep(self._tick_interval_seconds)
                 continue
 
-            sample_size = max(1, len(self._subscribed) // 3)
-            symbols_this_cycle = self._rng.sample(list(self._subscribed), sample_size)
+            if (
+                self._regime_rotation_seconds is not None
+                and loop.time() - last_rotation >= self._regime_rotation_seconds
+            ):
+                self._rotate_regimes()
+                last_rotation = loop.time()
 
-            for symbol in symbols_this_cycle:
+            subscribed = list(self._subscribed)
+            sample_size = max(1, len(subscribed) // 3)
+            self._ticks_per_minute = max(
+                1.0, (60.0 / max(self._tick_interval_seconds, 1e-3)) * sample_size / len(subscribed)
+            )
+            for symbol in self._rng.sample(subscribed, sample_size):
                 yield self._generate_tick(symbol)
 
             await asyncio.sleep(self._tick_interval_seconds)
 
     # --- internal simulation helpers ------------------------------------
 
+    def _require_state(self, symbol: str) -> _SimulatedSymbolState:
+        state = self._state.get(symbol)
+        if state is None:
+            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
+        return state
+
+    def _random_regime(self) -> SimulatedRegime:
+        regimes = list(_REGIME_WEIGHTS)
+        return self._rng.choices(regimes, weights=[_REGIME_WEIGHTS[r] for r in regimes])[0]
+
+    def _rotate_regimes(self) -> None:
+        for state in self._state.values():
+            if self._rng.random() < self._regime_rotation_probability:
+                self._apply_regime(state, self._random_regime())
+
+    @staticmethod
+    def _apply_regime(state: _SimulatedSymbolState, regime: SimulatedRegime) -> None:
+        state.regime = regime
+        state.range_anchor = state.price
+
     def _generate_tick(self, symbol: str) -> Tick:
         state = self._state[symbol]
-        drift, vol = _REGIME_PARAMETERS[state.regime]
-        pct_change = self._rng.gauss(drift, vol)
-        new_price = max(0.01, state.price * (1 + pct_change))
+        tpm = self._ticks_per_minute
+        drift_min, vol_min = _REGIME_PARAMETERS_PER_MINUTE[state.regime]
+        drift = drift_min / tpm
+        if state.regime == SimulatedRegime.RANGE and state.range_anchor > 0:
+            drift -= (_RANGE_MEAN_REVERSION_PER_MINUTE / tpm) * (
+                state.price / state.range_anchor - 1.0
+            )
+        vol = vol_min / math.sqrt(tpm)
+
+        new_price = max(0.01, state.price * (1 + self._rng.gauss(drift, vol)))
         state.price = new_price
 
-        volume = max(0, int(self._rng.gauss(500, 200)))
+        mean_volume = _BASE_VOLUME_PER_MINUTE * _REGIME_VOLUME_MULTIPLIER[state.regime] / tpm
+        volume = max(0, int(mean_volume * self._rng.lognormvariate(0, 0.4)))
         return Tick(symbol=symbol, price=round(new_price, 2), volume=volume, timestamp=utcnow())
 
     def set_regime(self, symbol: str, regime: SimulatedRegime) -> None:
         """Testing/demo hook: force a symbol's simulated regime."""
 
-        state = self._state.get(symbol)
-        if state is None:
-            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
-        state.regime = regime
+        self._apply_regime(self._require_state(symbol), regime)
 
     def get_regime(self, symbol: str) -> SimulatedRegime:
-        state = self._state.get(symbol)
-        if state is None:
-            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
-        return state.regime
+        return self._require_state(symbol).regime
 
     def get_day_open(self, symbol: str) -> float:
-        state = self._state.get(symbol)
-        if state is None:
-            raise MarketDataProviderError(f"Unknown symbol: {symbol}")
-        return state.day_open
+        return self._require_state(symbol).day_open

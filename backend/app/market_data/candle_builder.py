@@ -142,16 +142,55 @@ class CandleBuilder:
         candle.close = tick.price
         candle.volume += tick.volume
 
+    def seed_history(self, symbol: str, timeframe: Timeframe, candles: list[Candle]) -> int:
+        """Preload closed candles (e.g. provider warm-up history) for one
+        symbol/timeframe so analysis engines have data immediately after
+        startup instead of waiting hours for live candles to accumulate.
+
+        Only closed candles strictly older than anything already in the
+        history (or the in-progress candle) are accepted, so seeding can
+        never overwrite or reorder live data. Returns the number seeded.
+        """
+
+        state = self._state[symbol]
+        history = state.history[timeframe]
+
+        earliest_existing = history[0].timestamp if history else None
+        current = self.get_current_candle(symbol, timeframe)
+        if current is not None and (
+            earliest_existing is None or current.timestamp < earliest_existing
+        ):
+            earliest_existing = current.timestamp
+
+        accepted = sorted(
+            (
+                c
+                for c in candles
+                if c.is_closed
+                and c.timeframe == timeframe
+                and (earliest_existing is None or c.timestamp < earliest_existing)
+            ),
+            key=lambda c: c.timestamp,
+        )
+        # Keep unique timestamps only.
+        unique: list[Candle] = []
+        for candle in accepted:
+            if not unique or candle.timestamp != unique[-1].timestamp:
+                unique.append(candle)
+
+        existing = list(history)
+        history.clear()
+        history.extend([*unique, *existing])
+        return len(unique)
+
     def get_candles(self, symbol: str, timeframe: Timeframe, limit: int = 100) -> list[Candle]:
-        """Return up to `limit` most recent CLOSED candles, oldest first,
-        optionally including the in-progress candle as the last entry."""
+        """Return up to `limit` most recent CLOSED candles, oldest first."""
 
         state = self._state.get(symbol)
         if state is None:
             return []
 
-        closed = list(state.history[timeframe])[-limit:]
-        return closed
+        return list(state.history[timeframe])[-limit:]
 
     def get_current_candle(self, symbol: str, timeframe: Timeframe) -> Candle | None:
         state = self._state.get(symbol)

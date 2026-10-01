@@ -61,9 +61,13 @@ class MarketDataService:
         connection_manager: ConnectionManager | None = None,
         validator: TickValidator | None = None,
         candle_builder: CandleBuilder | None = None,
+        warmup_candles: int = 0,
+        warmup_timeframes: tuple[Timeframe, ...] = tuple(Timeframe),
     ) -> None:
         self._provider = provider
         self._watchlist = list(watchlist)
+        self._warmup_candles = warmup_candles
+        self._warmup_timeframes = warmup_timeframes
         self._connection_manager = connection_manager or ConnectionManager()
         self._validator = validator or TickValidator()
         self._candle_builder = candle_builder or CandleBuilder()
@@ -82,15 +86,41 @@ class MarketDataService:
         await self._provider.connect()
         await self._provider.subscribe(self._watchlist)
 
+        started_at = utcnow()
         for symbol in self._watchlist:
             try:
-                self._day_open[symbol] = await self._provider.get_ltp(symbol)
+                ltp = await self._provider.get_ltp(symbol)
             except MarketDataProviderError:
-                logger.warning("Could not seed day-open price for %s", symbol)
+                logger.warning("Could not seed starting price for %s", symbol)
+                continue
+            self._day_open[symbol] = ltp
+            # Seed a starting snapshot from the provider's LTP so every
+            # watchlist symbol has a price immediately, rather than only
+            # after the (randomly sampled) first tick for it arrives.
+            self._latest_ticks.setdefault(
+                symbol, Tick(symbol=symbol, price=ltp, volume=0, timestamp=started_at)
+            )
 
-        self._stats = MarketDataServiceStats(started_at=utcnow())
+        if self._warmup_candles > 0:
+            await self._seed_warmup_history()
+
+        self._stats = MarketDataServiceStats(started_at=started_at)
         self._task = asyncio.create_task(self._run(), name="market-data-stream")
         logger.info("MarketDataService started, watching %d symbols", len(self._watchlist))
+
+    async def _seed_warmup_history(self) -> None:
+        seeded = 0
+        for symbol in self._watchlist:
+            for timeframe in self._warmup_timeframes:
+                try:
+                    history = await self._provider.get_historical_data(
+                        symbol, timeframe, self._warmup_candles
+                    )
+                except MarketDataProviderError:
+                    logger.warning("No warm-up history for %s %s", symbol, timeframe.value)
+                    continue
+                seeded += self._candle_builder.seed_history(symbol, timeframe, history)
+        logger.info("Seeded %d warm-up candles from provider history", seeded)
 
     async def stop(self) -> None:
         if self._task is not None:

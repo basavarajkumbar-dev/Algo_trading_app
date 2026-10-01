@@ -19,6 +19,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import TradingMode
+from app.market_data.universe import NIFTY_50_UNIVERSE, NIFTY_INDEX_SYMBOL
 
 
 class Settings(BaseSettings):
@@ -70,24 +71,32 @@ class Settings(BaseSettings):
     zerodha_api_secret: str | None = Field(default=None, alias="ZERODHA_API_SECRET")
     zerodha_access_token: str | None = Field(default=None, alias="ZERODHA_ACCESS_TOKEN")
 
-    # --- Market data (Phase 3) -------------------------------------------
+    # --- Market data (Phase 3, extended in Phase 4) ------------------------
     market_data_tick_interval_seconds: float = Field(
         default=1.0, alias="MARKET_DATA_TICK_INTERVAL_SECONDS"
     )
+    # Default: the simulated NIFTY50 index plus all 50 constituents, so
+    # breadth and relative strength cover the whole universe.
     market_data_default_watchlist: list[str] = Field(
-        default_factory=lambda: [
-            "NIFTY50",
-            "RELIANCE",
-            "TCS",
-            "HDFCBANK",
-            "ICICIBANK",
-            "INFY",
-            "ITC",
-            "SBIN",
-            "BHARTIARTL",
-            "LT",
-            "TATASTEEL",
-        ]
+        default_factory=lambda: [NIFTY_INDEX_SYMBOL, *(i.symbol for i in NIFTY_50_UNIVERSE)]
+    )
+    # Closed candles of simulated warm-up history seeded per symbol and
+    # timeframe at startup (0 disables). 250 covers the 200-period MA.
+    market_data_warmup_candles: int = Field(
+        default=250, ge=0, le=2000, alias="MARKET_DATA_WARMUP_CANDLES"
+    )
+    # How often the mock provider re-rolls simulated regimes (seconds).
+    # 0 disables rotation.
+    market_data_regime_rotation_seconds: float = Field(
+        default=900.0, ge=0, alias="MARKET_DATA_REGIME_ROTATION_SECONDS"
+    )
+
+    # --- Market intelligence (Phase 4) ----------------------------------
+    # Timeframe the regime detector and engines analyse by default.
+    intelligence_timeframe: str = Field(default="5m", alias="INTELLIGENCE_TIMEFRAME")
+    # How often (seconds) the intelligence service recomputes results.
+    intelligence_refresh_seconds: float = Field(
+        default=5.0, gt=0, alias="INTELLIGENCE_REFRESH_SECONDS"
     )
 
     # --- CORS -------------------------------------------------------------

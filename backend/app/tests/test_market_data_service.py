@@ -47,17 +47,17 @@ async def test_service_produces_snapshots_and_candles_for_watchlist_symbols() ->
 
     await service.start()
     try:
-        got_snapshot = await _wait_until(lambda: service.get_snapshot("RELIANCE") is not None)
-        assert got_snapshot, "expected a RELIANCE snapshot to appear once ticks start flowing"
-
+        # A starting snapshot is seeded from the provider's LTP at start().
         snapshot = service.get_snapshot("RELIANCE")
         assert snapshot is not None
         assert snapshot.price > 0
         assert isinstance(snapshot.change, float)
         assert isinstance(snapshot.change_percent, float)
 
-        current_1m = service.get_candles("RELIANCE", Timeframe.M1, limit=5)
-        assert len(current_1m) >= 1
+        got_candle = await _wait_until(
+            lambda: len(service.get_candles("RELIANCE", Timeframe.M1, limit=5)) >= 1
+        )
+        assert got_candle, "expected a RELIANCE 1m candle once live ticks start flowing"
     finally:
         await service.stop()
 

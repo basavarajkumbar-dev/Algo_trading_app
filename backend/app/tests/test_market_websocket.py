@@ -100,7 +100,9 @@ def test_websocket_endpoint_eventually_streams_a_market_tick() -> None:
         with client.websocket_connect("/api/v1/ws/market") as websocket:
             seen_types = []
             found_tick = False
-            for _ in range(30):  # bounded: ack + up to ~11 snapshots + several tick cycles
+            # Bounded: ack + one snapshot per watchlist symbol (51 by
+            # default) + several tick cycles.
+            for _ in range(150):
                 message = websocket.receive_json()
                 seen_types.append(message["type"])
                 if message["type"] == "market_tick":
