@@ -302,44 +302,84 @@ under this phase number.
 
 ---
 
-## Phase 6 — Market Intelligence Core
+## Phase 6 — Market Intelligence Core 🟡 *(core delivered as "Phase 4" per direct instruction)*
 
-**Scope**
-- Market Intelligence engine (`MarketSnapshot`).
-- Market Regime Detector (`STRONG_BULLISH`, `STRONG_BEARISH`, `RANGE`,
-  `BREAKOUT`, `HIGH_VOLATILITY`, `UNKNOWN`) returning regime + confidence
-  + reasons + features used.
-- Multi-Timeframe Engine (60m context / 15m setup / 5m entry).
-- Market Structure Engine (swings, HH/HL/LH/LL, break of structure).
-- Moving Average Engine + Trend Quality Score.
-- VWAP Engine.
+> **Numbering note:** this work was directed and executed as "Phase 4 —
+> Market Intelligence + Regime Engine". It delivers most of this Phase 6
+> entry plus the Volume, Momentum and Relative Strength engines from
+> Phase 7 below. Roadmap Phase 4 (remaining domain tables) is still open.
+
+**Delivered**
+- `backend/app/market_intelligence/`: pure engines over closed candles,
+  each returning structured output with human-readable `reasons`, and
+  raising `InsufficientDataError` instead of guessing on short history:
+  - VWAP (session-anchored; VWAP, slope, price relationship, distance,
+    recent crossings).
+  - Moving averages (configurable 20 EMA / 50 EMA / 200 MA; price
+    relationship, slope, distance, separation and its trend, alignment).
+  - Volatility (ATR, ATR vs its own baseline, level, expansion, wick
+    share, reversals).
+  - Momentum (volatility-normalised multi-lookback rate of change →
+    0-100 Momentum Score, configurable lookbacks/weights).
+  - Volume (relative volume, spike, volume trend, price confirmation).
+  - Market structure (fractal swing highs/lows, HH/HL/LH/LL, Break of
+    Structure, Structure Shift).
+  - Range/compression and Trend Quality Score.
+  - Relative strength vs NIFTY 50 (timestamp-aligned) and ranking.
+- `backend/app/regime/`: Market Regime Detector. Weighted, configurable
+  conditions per regime (`RegimeConfig`); returns `regime`, `confidence`,
+  `features`, `reasons`, `counter_reasons`, per-regime `scores` and a
+  `timestamp`, plus a fixed note that a regime is descriptive, not a
+  forecast. `HIGH_VOLATILITY` overrides directional reads; anything
+  below the minimum score is `UNKNOWN`.
+- `MarketIntelligenceService`: re-analyses every watchlist symbol from
+  closed 5m candles (no repainting) every few seconds, builds the
+  `MarketSnapshot` (index regime, breadth, regime distribution, factor
+  scores) and broadcasts `market_intelligence` / `market_regime` over
+  `/ws/market`. REST: `/market/intelligence`, `/market/intelligence/config`,
+  `/market/intelligence/{symbol}`, `/market/regime`.
+- Mock provider recalibrated so each simulated regime produces
+  recognisable behaviour, with warm-up history seeded at startup.
+- Frontend: Market Intelligence page (index regime + explanation,
+  breadth, factor scores, regime-change feed, sortable regime table,
+  per-symbol engine breakdown with recent swings) and a regime card on
+  the dashboard home.
+
+**Still open in this phase**
+- Multi-Timeframe Engine (60m context / 15m setup / 5m entry). Engines
+  already accept any timeframe; the cross-timeframe alignment layer is
+  not built.
 - Retracement Engine.
 - Support/Resistance Engine + Level Strength Score.
 
 **Definition of Done**
-- [ ] Each engine returns structured, explainable output as specified in
-      the contract.
-- [ ] Regime detector, structure engine, and retracement engine each have
-      unit tests covering at least one example per category/zone.
-- [ ] No fixed lookback or threshold is hardcoded without a configuration
-      path.
+- [x] Each delivered engine returns structured, explainable output.
+- [x] Regime detector and structure engine have unit tests covering
+      every regime and every swing label/event (39 engine tests, 18
+      detector tests, 11 service tests, plus API/WebSocket tests).
+- [ ] Retracement engine tests (engine not built yet).
+- [x] Lookbacks and thresholds are function parameters or fields on
+      `AnalysisConfig` / `RegimeConfig`; none are buried in logic.
+- [x] Frontend formatting helpers unit-tested (vitest).
 
 ---
 
-## Phase 7 — Price Action, Volume, Momentum, Relative Strength
+## Phase 7 — Price Action, Volume, Momentum, Relative Strength 🟡
 
 **Scope**
 - Price action detectors: COG, NR/NRB, WRB, BT/TT — each returns
   detected/confidence/context/direction/strength/reasons. No detector
-  creates a trade directly.
-- Volume Engine + Relative Volume Score.
-- Momentum Engine + Momentum Score.
-- Relative Strength Engine (vs. NIFTY) + Relative Strength Score.
+  creates a trade directly. **Not started.**
+- ~~Volume Engine + Relative Volume Score.~~ Delivered in Phase 6 work.
+- ~~Momentum Engine + Momentum Score.~~ Delivered in Phase 6 work.
+- ~~Relative Strength Engine (vs. NIFTY) + Relative Strength Score.~~
+  Delivered in Phase 6 work.
 
 **Definition of Done**
-- [ ] Each detector/engine unit tested against synthetic candle fixtures.
-- [ ] Confirmed no detector output is wired directly to order creation
-      (only into the signal/scoring layer, built in Phase 9).
+- [ ] Each price action detector unit tested against synthetic candle
+      fixtures (volume/momentum/RS engines already are).
+- [x] Confirmed no engine output is wired to order creation; there is
+      no order code in the repository.
 
 ---
 

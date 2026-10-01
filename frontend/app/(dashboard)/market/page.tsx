@@ -89,15 +89,15 @@ export default function MarketIntelligencePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Market Intelligence</h1>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 max-w-3xl text-sm text-muted">
             Regime and factor analysis of simulated NIFTY 50 data. No live feed or broker is
             connected. A regime describes recent behaviour; it is not a forecast.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
+        <div className="flex shrink-0 flex-col gap-1.5 md:items-end">
           <Badge variant={SOCKET_BADGE_VARIANT[socketStatus]}>{SOCKET_LABEL[socketStatus]}</Badge>
           <span className="text-[11px] text-muted">
             Analysis: {snapshot?.timeframe ?? "5m"} closed candles · updated{" "}
@@ -247,8 +247,8 @@ export default function MarketIntelligencePage() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-            <Card className="xl:col-span-3">
+          <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+            <Card className="min-w-0">
               <CardHeader>
                 <CardTitle>Regimes by symbol</CardTitle>
               </CardHeader>
@@ -257,7 +257,7 @@ export default function MarketIntelligencePage() {
               </CardContent>
             </Card>
 
-            <Card className="xl:col-span-2">
+            <Card className="xl:sticky xl:top-0">
               <CardHeader>
                 <CardTitle>Symbol detail</CardTitle>
               </CardHeader>

@@ -95,16 +95,16 @@ export function RegimeTable({
           <thead>
             <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
               <SortHeader label="Symbol" k="symbol" {...{ sortKey, descending, toggleSort }} />
-              <th className="px-3 py-2 text-right font-medium">Price</th>
+              <th className="px-2 py-2 text-right font-medium">Price</th>
               <SortHeader label="Change" k="change" align="right" {...{ sortKey, descending, toggleSort }} />
-              <th className="px-3 py-2 font-medium">Regime</th>
+              <th className="px-2 py-2 font-medium">Regime</th>
               <SortHeader label="Conf." k="confidence" align="right" {...{ sortKey, descending, toggleSort }} />
               <SortHeader label="Trend Q." k="trend" align="right" {...{ sortKey, descending, toggleSort }} />
               <SortHeader label="Mom." k="momentum" align="right" {...{ sortKey, descending, toggleSort }} />
               <SortHeader label="RS rank" k="rs" align="right" {...{ sortKey, descending, toggleSort }} />
-              <th className="px-3 py-2 font-medium">VWAP</th>
-              <th className="px-3 py-2 font-medium">Volatility</th>
-              <th className="px-3 py-2 text-right font-medium">Rel. vol</th>
+              <th className="px-2 py-2 font-medium">VWAP</th>
+              <th className="px-2 py-2 font-medium">Volatility</th>
+              <th className="px-2 py-2 text-right font-medium">Rel. vol</th>
             </tr>
           </thead>
           <tbody>
@@ -125,21 +125,21 @@ export function RegimeTable({
                 )}
                 title={s.top_reason ?? undefined}
               >
-                <td className="px-3 py-1.5">
+                <td className="px-2 py-1.5">
                   <div className="flex flex-col">
                     <span className="font-medium">{s.symbol}</span>
-                    {s.name && <span className="max-w-40 truncate text-[11px] text-muted">{s.name}</span>}
+                    {s.name && <span className="max-w-28 truncate text-[11px] text-muted">{s.name}</span>}
                   </div>
                 </td>
-                <td className="tabular px-3 py-1.5 text-right">{formatPrice(s.price)}</td>
-                <td className={cn("tabular px-3 py-1.5 text-right", changeTone(s.change_percent))}>
+                <td className="tabular px-2 py-1.5 text-right">{formatPrice(s.price)}</td>
+                <td className={cn("tabular px-2 py-1.5 text-right", changeTone(s.change_percent))}>
                   {formatPercent(s.change_percent)}
                 </td>
-                <td className="px-3 py-1.5">
+                <td className="px-2 py-1.5">
                   <RegimeBadge regime={s.regime} short />
                 </td>
-                <td className="tabular px-3 py-1.5 text-right">{formatScore(s.confidence)}</td>
-                <td className="tabular px-3 py-1.5 text-right">
+                <td className="tabular px-2 py-1.5 text-right">{formatScore(s.confidence)}</td>
+                <td className="tabular px-2 py-1.5 text-right">
                   {formatScore(s.trend_quality_score)}
                   {s.trend_direction && s.trend_direction !== "SIDEWAYS" && (
                     <span className={cn("ml-1", s.trend_direction === "UP" ? "text-profit" : "text-loss")}>
@@ -147,11 +147,11 @@ export function RegimeTable({
                     </span>
                   )}
                 </td>
-                <td className="tabular px-3 py-1.5 text-right">{formatScore(s.momentum_score)}</td>
-                <td className="tabular px-3 py-1.5 text-right">{s.relative_strength_rank ?? "—"}</td>
+                <td className="tabular px-2 py-1.5 text-right">{formatScore(s.momentum_score)}</td>
+                <td className="tabular px-2 py-1.5 text-right">{s.relative_strength_rank ?? "—"}</td>
                 <td
                   className={cn(
-                    "px-3 py-1.5 text-xs",
+                    "px-2 py-1.5 text-xs",
                     s.price_vs_vwap === "ABOVE" && "text-profit",
                     s.price_vs_vwap === "BELOW" && "text-loss",
                     (s.price_vs_vwap === "AT" || !s.price_vs_vwap) && "text-muted"
@@ -161,13 +161,13 @@ export function RegimeTable({
                 </td>
                 <td
                   className={cn(
-                    "px-3 py-1.5 text-xs",
+                    "px-2 py-1.5 text-xs",
                     s.volatility_level === "HIGH" || s.volatility_level === "EXTREME" ? "text-warning" : "text-muted"
                   )}
                 >
                   {humanize(s.volatility_level)}
                 </td>
-                <td className="tabular px-3 py-1.5 text-right text-muted">
+                <td className="tabular px-2 py-1.5 text-right text-muted">
                   {s.relative_volume === null ? "—" : `${s.relative_volume.toFixed(2)}×`}
                 </td>
               </tr>
@@ -226,7 +226,7 @@ function SortHeader({
   const active = sortKey === k;
   return (
     <th
-      className={cn("px-3 py-2 font-medium", align === "right" && "text-right")}
+      className={cn("px-2 py-2 font-medium", align === "right" && "text-right")}
       aria-sort={active ? (descending ? "descending" : "ascending") : "none"}
     >
       <button

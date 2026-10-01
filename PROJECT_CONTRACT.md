@@ -336,8 +336,13 @@ list with entry/exit criteria. Summary:
   note.)
 - **Phase 6** — Market intelligence: regime detector, multi-timeframe
   engine, market structure, VWAP, moving averages, retracement,
-  support/resistance.
-- **Phase 7** — Price action, volume, momentum, relative strength engines.
+  support/resistance. (Core delivered as "Phase 4 — Market Intelligence
+  + Regime Engine" per direct instruction: regime detector, structure,
+  VWAP, moving averages, volatility. Multi-timeframe, retracement and
+  support/resistance remain open — see the roadmap's Phase 6 note.)
+- **Phase 7** — Price action, volume, momentum, relative strength
+  engines. (Volume, momentum and relative strength delivered with the
+  Phase 6 work above; price action detectors remain open.)
 - **Phase 8** — Strategy engine: base strategy, concrete strategies,
   strategy router.
 - **Phase 9** — Signal engine, confidence scoring, candidate ranking,

@@ -258,12 +258,109 @@ sends:
 1. `{"type": "connected", "message": "...", "watchlist": [...]}`
 2. One `{"type": "market_snapshot", ...}` per watchlist symbol that has
    ticked at least once.
+3. The latest `{"type": "market_intelligence", ...}` picture, once the
+   first analysis has run.
 
 Then, as the simulated market moves:
 
 - `{"type": "market_tick", "symbol": "...", "price": ..., "volume": ..., "timestamp": "..."}`
 - `{"type": "candle_closed", "symbol": "...", "timeframe": "...", "timestamp": "...", "open": ..., "high": ..., "low": ..., "close": ..., "volume": ...}`
+- `{"type": "market_intelligence", "snapshot": {...}, "symbols": [...]}`:
+  same shape as `GET /market/intelligence` without `status`, sent on
+  every refresh (default every 5 s).
+- `{"type": "market_regime", "symbol": "...", "regime": "...", "previous_regime": "...", "changed": true, "confidence": 72.5, "reasons": [...], "timestamp": "..."}`:
+  sent for any symbol whose regime changed, and for the benchmark
+  (`NIFTY50`) on every refresh with `changed` set accordingly.
 
 The endpoint is broadcast-only in this phase — there is no per-client
 symbol filtering yet, and any inbound client message is ignored (it is
 still read, so the server notices disconnects promptly).
+
+---
+
+## Market intelligence
+
+Read-only, no authentication required. Everything below is computed
+from **closed** candles of the simulated feed (default timeframe `5m`),
+so a value never repaints mid-candle. A regime describes how price has
+been behaving; every regime result carries this note:
+
+> A regime describes recent price behaviour. It is not a forecast and
+> does not guarantee future price movement.
+
+All endpoints return `503` if the intelligence service is not running.
+
+### `GET /market/intelligence`
+
+```json
+{
+  "snapshot": {
+    "benchmark_symbol": "NIFTY50",
+    "timeframe": "5m",
+    "market_direction": "DOWN",
+    "market_regime": "STRONG_BEARISH",
+    "confidence": 75.0,
+    "volatility": "NORMAL",
+    "trend_strength": 68.0,
+    "momentum": 64.0,
+    "breadth": { "symbols_counted": 50, "advancing": 28, "declining": 22, "unchanged": 0, "above_vwap": 31, "below_vwap": 19, "percent_above_vwap": 62.0, "advance_decline_ratio": 1.27, "bullish_regimes": 17, "bearish_regimes": 15 },
+    "regime_distribution": { "STRONG_BULLISH": 17, "STRONG_BEARISH": 15, "RANGE": 11, "BREAKOUT": 4, "HIGH_VOLATILITY": 2, "UNKNOWN": 1 },
+    "factors": [{ "key": "trend", "label": "Trend", "score": 68.0, "scale": "intensity", "interpretation": "Downtrend", "detail": "..." }],
+    "regime": { "...": "RegimeResult, see below" },
+    "timestamp": "2026-10-01T15:11:44Z",
+    "note": "..."
+  },
+  "symbols": [
+    { "symbol": "NIFTY50", "name": "NIFTY 50", "price": 25008.59, "change_percent": -2.54, "regime": "STRONG_BEARISH", "confidence": 75.0, "top_reason": "Lower-high, lower-low structure", "trend_quality_score": 68.0, "trend_direction": "DOWN", "momentum_score": 64.0, "relative_strength_score": null, "relative_strength_rank": null, "price_vs_vwap": "BELOW", "volatility_level": "NORMAL", "relative_volume": 1.43, "data_as_of": "2026-10-01T15:05:00Z" }
+  ],
+  "status": { "is_running": true, "timeframe": "5m", "refresh_seconds": 5.0, "refresh_count": 2, "last_refresh_at": "...", "last_compute_ms": 60.1, "last_error": null, "symbols_analyzed": 51 }
+}
+```
+
+`symbols` lists the benchmark first, then constituents. Factor `scale`
+is `directional` (50 = neutral, above = bullish) or `intensity` (0-100
+strength with no direction, e.g. volatility or trend quality).
+
+### `GET /market/intelligence/{symbol}`
+
+Full engine output for one symbol: `regime` (a `RegimeResult`),
+`factors`, `relative_strength_rank`, and `analysis` with one block per
+engine (`vwap`, `moving_averages`, `volatility`, `momentum`, `volume`,
+`structure` including labelled swings, `range`, `relative_strength`,
+`trend_quality`). Engines that lacked enough history are `null` and
+listed in `analysis.unavailable` with the reason. `404` for a symbol
+not on the watchlist.
+
+### `GET /market/regime?symbol=`
+
+Just the `RegimeResult`; `symbol` defaults to the benchmark.
+
+```json
+{
+  "symbol": "NIFTY50",
+  "timeframe": "5m",
+  "regime": "STRONG_BEARISH",
+  "confidence": 75.0,
+  "reasons": ["Lower-high, lower-low structure", "Price below VWAP (-1.29%)", "Negative EMA slope (-0.024%/candle)"],
+  "counter_reasons": ["Momentum not bearish (score 64)"],
+  "features": { "price_vs_vwap": "BELOW", "ema_fast_slope_percent": -0.024, "atr_ratio": 0.87, "...": "..." },
+  "scores": { "STRONG_BULLISH": 20.0, "STRONG_BEARISH": 75.0, "BREAKOUT": 0.0, "RANGE": 35.0, "HIGH_VOLATILITY": 15.0 },
+  "candles_analyzed": 250,
+  "data_as_of": "2026-10-01T15:05:00Z",
+  "timestamp": "2026-10-01T15:11:44Z",
+  "note": "A regime describes recent price behaviour. It is not a forecast and does not guarantee future price movement."
+}
+```
+
+Regimes: `STRONG_BULLISH`, `STRONG_BEARISH`, `RANGE`, `BREAKOUT`,
+`HIGH_VOLATILITY`, `UNKNOWN`. `HIGH_VOLATILITY` wins outright when its
+score reaches the override threshold; when no regime reaches the
+minimum score the result is `UNKNOWN`. Confidence is the winning score,
+reduced when the runner-up is close behind.
+
+### `GET /market/intelligence/config`
+
+Every weight and threshold in use: `benchmark_symbol`, `analysis`
+(engine lookbacks/periods) and `regime` (`RegimeConfig` condition
+weights and thresholds). Useful for auditing why a regime was chosen.
+

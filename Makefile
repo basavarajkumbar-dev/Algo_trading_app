@@ -25,7 +25,7 @@ test-backend:
 	cd backend && python -m pytest -q
 
 test-frontend:
-	cd frontend && npm run typecheck && npm run lint
+	cd frontend && npm run typecheck && npm run lint && npm test
 
 # --- Lint / format ----------------------------------------------------------
 lint:

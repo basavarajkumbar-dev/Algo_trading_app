@@ -156,7 +156,7 @@ export function SymbolDetail({ symbol }: { symbol: string }) {
               <Row k="Structure trend" v={humanize(a.structure.trend)} />
               <Row k="State" v={humanize(a.structure.structure_state)} />
               <Row k="Last event" v={humanize(a.structure.last_event)} />
-              <Row k="Swing high / low" v={`${formatPrice(a.structure.latest_swing_high)} / ${formatPrice(a.structure.latest_swing_low)}`} />
+              <Row k="Swing H / L" v={`${formatPrice(a.structure.latest_swing_high)} / ${formatPrice(a.structure.latest_swing_low)}`} />
             </div>
             <SwingList swings={a.structure.swings.slice(-SWINGS_SHOWN).reverse()} />
           </div>

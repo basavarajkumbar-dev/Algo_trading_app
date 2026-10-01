@@ -8,6 +8,7 @@ numbers.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 from app.market_data.schemas import Candle, Timeframe
@@ -16,7 +17,7 @@ BASE_TIME = datetime(2026, 1, 5, 3, 45, tzinfo=UTC)  # 09:15 IST
 
 
 def candles_from_ohlc(
-    rows: list[tuple[float, float, float, float]],
+    rows: Sequence[tuple[float, float, float, float]],
     *,
     volumes: list[int] | None = None,
     symbol: str = "TEST",

@@ -64,7 +64,10 @@ async def test_service_computes_snapshot_summaries_and_breadth_on_start() -> Non
         assert len(summaries) == len(WATCHLIST)
         assert summaries[0].symbol == NIFTY_INDEX_SYMBOL  # benchmark listed first
         ranks = [s.relative_strength_rank for s in summaries[1:]]
-        assert sorted(ranks) == list(range(1, len(WATCHLIST)))  # constituents ranked 1..n
+        assert all(rank is not None for rank in ranks)
+        assert sorted(rank for rank in ranks if rank is not None) == list(
+            range(1, len(WATCHLIST))
+        )  # constituents ranked 1..n
         assert summaries[0].relative_strength_rank is None  # index isn't ranked against itself
 
         status = intelligence.status()
