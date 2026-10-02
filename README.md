@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 5 — Price Action Intelligence Engine complete.**
+**Status: Phase 6 — Adaptive Strategy Engine complete.**
 
 See:
 
@@ -43,7 +43,7 @@ See:
   why, breadth, factor scores, a live regime-change feed, a sortable
   regime table for all 51 symbols and a per-symbol engine breakdown.
   The dashboard home shows a market regime card.
-- **Price action engine** (Phase 5, new): COG, NR, NRB, WRB, BT and TT
+- **Price action engine** (Phase 5): COG, NR, NRB, WRB, BT and TT
   detectors (each with detected, direction, confidence, strength,
   context and reasons), significant swings, a retracement engine with
   40/50/60/80/100% zones, support/resistance (previous day, intraday,
@@ -54,9 +54,17 @@ See:
   retracement levels and pattern markers; multi-timeframe panel; all six
   detectors with their reasons; retracement gauge; full levels table.
 
-**Still no strategies, signals, or orders of any kind exist.** The
-engines only read and describe prices; nothing in this codebase can
-place a trade. Patterns are contextual features, not trade signals;
+- **Adaptive strategy engine** (Phase 6, new): trend continuation,
+  breakout momentum (consolidation or a configurable 5/15/30-minute
+  opening range) and mean reversion (range only, never against a strong
+  trend), behind a configurable regime router. Each returns eligible,
+  direction, entry/stop/target candidates, confidence, reasons and
+  features. **Frontend `/strategies` page** lists current candidates,
+  the routing table and each strategy's checks.
+
+**No signals or orders of any kind exist.** Strategy candidates are
+hypotheses: not sized, not risk-checked and never sent to a broker
+(nothing in this codebase can place a trade). Patterns are contextual features, not trade signals;
 levels are reference zones, not guaranteed reversal points; and a
 regime describes recent behaviour, not a forecast. Every price shown is explicitly labeled
 simulated, never live — see `PROJECT_CONTRACT.md` section 9.
@@ -76,7 +84,8 @@ docker compose up --build
 
 Seed a demo account (see the backend steps below), then visit
 http://localhost:3000/market (Market Intelligence) and
-http://localhost:3000/price-action (Price Action) after logging in. Simulated warm-up history is
+http://localhost:3000/price-action (Price Action) and
+http://localhost:3000/strategies (Strategies) after logging in. Simulated warm-up history is
 generated at startup, so regimes are available within seconds.
 
 To stop:
@@ -174,6 +183,23 @@ npm run dev
   latest candle, momentum and volume agree with the higher-timeframe
   bias. It never produces an order, price, stop or size.
 
+## How strategies work (Phase 6 scope)
+
+- The router maps the regime to the strategies allowed to run (and
+  their directions). Defaults: STRONG_BULLISH / STRONG_BEARISH -> trend
+  continuation (with the trend only), BREAKOUT -> breakout momentum,
+  RANGE -> mean reversion and breakout momentum, HIGH_VOLATILITY and
+  UNKNOWN -> nothing. The router does not rank strategies.
+- Each strategy has required checks (all must pass) and weighted checks
+  (confidence). Ineligible results still return every check, the
+  blockers and the furthest stage of the strategy's concept reached.
+- Every threshold is a hypothesis in `app/strategies/config.py`, exposed
+  at `GET /api/v1/strategies/config`, to be validated by backtesting.
+- On the simulated feed most strategies are waiting most of the time,
+  as they should be. Simulated ranges are narrow relative to ATR, so
+  mean reversion rarely finds enough room to VWAP; its tests show it
+  fires when the geometry works.
+
 ## Environment variables
 
 See [`.env.example`](./.env.example) for the full list. New in Phases 4
@@ -197,7 +223,7 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 235 tests, all passing with a real Postgres;
+make test-backend    # pytest — 301 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
 make test-frontend   # tsc --noEmit + eslint + vitest
 make lint             # ruff + black (backend), eslint (frontend)
@@ -209,6 +235,14 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 6 (66 backend tests, 4 frontend): an
+eligible baseline per strategy and side with exact candidates, every
+required check failing on its own, stop/target geometry limits,
+configurable thresholds and opening ranges, error isolation, every
+default route and custom routing, the service, the API, and an import
+guard that fails if strategy code references broker, order or
+execution modules.
 
 Test coverage added in Phase 5 (94 backend tests, 11 frontend): every
 detector with positive, negative and context cases plus a no-look-ahead
@@ -242,12 +276,15 @@ gainzalgo-pro-max/
       regime/          Market Regime Detector + RegimeConfig (Phase 4)
       price_action/    pattern detectors, swings, retracement,
                         support/resistance, multi-timeframe,
-                        PriceActionService (Phase 5, new)
+                        PriceActionService (Phase 5)
+      strategies/      BaseStrategy, trend continuation, breakout
+                        momentum, mean reversion, StrategyRouter,
+                        StrategyService (Phase 6, new)
       websocket/       ConnectionManager (Phase 3)
       schemas/         Pydantic request/response models
       services/        auth_service, settings_service, system_health
       api/v1/          auth, settings, system, market, intelligence,
-                        price_action, market_ws routes
+                        price_action, strategies, market_ws routes
       seed.py          demo user seed script
     alembic/           migrations
   frontend/
@@ -258,9 +295,11 @@ gainzalgo-pro-max/
     components/market/ regime badge/explainer/table, factor list,
                         breadth, symbol detail (Phase 4)
     components/price-action/ chart, pattern grid, retracement gauge,
-                        levels table, multi-timeframe panel (Phase 5, new)
+                        levels table, multi-timeframe panel (Phase 5)
+    components/strategies/ strategy result card (Phase 6, new)
     lib/               market-client, use-market-socket,
-                        intelligence-format, price-action-format
+                        intelligence-format, price-action-format,
+                        strategy-format
                         (+ vitest tests)
     middleware.ts       route-level auth redirect
   infrastructure/       Dockerfiles + backend entrypoint (runs migrations)
@@ -269,8 +308,7 @@ gainzalgo-pro-max/
 
 ## What's next
 
-See `docs/development-roadmap.md`. The market intelligence and price
-action layers are complete; next come the remaining trading-domain data
-models, the strategy engine (which will consume these features),
-signals and scoring, risk, and the paper trading engine, built one
-phase at a time.
+See `docs/development-roadmap.md`. Next: the Signal Engine (turning
+strategy candidates into scored, ranked signals), the remaining
+trading-domain data models, the Risk Engine, and paper trading, built
+one phase at a time.

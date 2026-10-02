@@ -188,7 +188,7 @@ class BreakoutMomentumStrategy(BaseStrategy):
                     and lookback_start <= m.timestamp < start
                 }
             )
-            f["compression_patterns"] = ",".join(compression) or None
+            f["compression_patterns"] = ", ".join(compression) or None
         else:
             f["breakout_direction"] = None
 

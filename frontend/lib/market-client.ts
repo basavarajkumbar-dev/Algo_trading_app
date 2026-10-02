@@ -6,6 +6,11 @@ import type {
 } from "@/types/intelligence";
 import type { PriceActionOverview, SymbolPriceAction } from "@/types/price-action";
 import type {
+  StrategyEngineConfig,
+  StrategyOverview,
+  SymbolStrategies,
+} from "@/types/strategies";
+import type {
   CandleResponse,
   InstrumentResponse,
   MarketSnapshotResponse,
@@ -53,4 +58,20 @@ export function getPriceActionOverviewRequest(): Promise<PriceActionOverview> {
 
 export function getSymbolPriceActionRequest(symbol: string): Promise<SymbolPriceAction> {
   return apiGet<SymbolPriceAction>(`/market/price-action/${encodeURIComponent(symbol)}`);
+}
+
+export function getStrategiesRequest(): Promise<StrategyOverview> {
+  return apiGet<StrategyOverview>("/strategies");
+}
+
+export function getStrategyConfigRequest(): Promise<StrategyEngineConfig> {
+  return apiGet<StrategyEngineConfig>("/strategies/config");
+}
+
+export function getSymbolStrategiesRequest(
+  symbol: string,
+  includeUnrouted = false
+): Promise<SymbolStrategies> {
+  const query = includeUnrouted ? "?include_unrouted=true" : "";
+  return apiGet<SymbolStrategies>(`/strategies/${encodeURIComponent(symbol)}${query}`);
 }

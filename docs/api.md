@@ -477,3 +477,67 @@ latest 150 closed entry-timeframe candles the analysis used, and
 Every threshold and weight in use (`patterns`, `swings`, `retracement`,
 `levels` including Level Strength Score weights, `multi_timeframe`).
 
+---
+
+## Strategies
+
+Read-only, no authentication required. Strategy **candidates** computed
+from simulated data after each price action refresh. Candidates are
+hypotheses, not orders: they are not sized, not risk-checked and never
+sent to a broker. No endpoint returns order, quantity or broker fields.
+
+All endpoints return `503` if the service is not running.
+
+### `GET /strategies`
+
+One row per watched symbol: `regime`, `regime_confidence`,
+`eligible_strategies` (what the router allows), `candidates` (eligible
+results: `strategy`, `direction`, `entry_candidate`, `stop_candidate`,
+`target_candidate`, `reward_risk`, `confidence`) and `stages` (how far
+each routed strategy's concept got), plus service `status`.
+
+### `GET /strategies/{symbol}?include_unrouted=false`
+
+`evaluation` holds the router `decision` (regime, eligible strategies,
+one entry per strategy with the reason it was or was not routed and the
+allowed directions) and one `StrategyResult` per routed strategy:
+
+```json
+{
+  "strategy": "TREND_CONTINUATION",
+  "eligible": true,
+  "direction": "LONG",
+  "entry_candidate": 102.4,
+  "stop_candidate": 99.8,
+  "target_candidate": 110.0,
+  "risk_per_unit": 2.6,
+  "reward_per_unit": 7.6,
+  "reward_risk": 2.92,
+  "entry_basis": "above the confirmation candle's high",
+  "stop_basis": "below the pullback low",
+  "target_basis": "Swing high (structure)",
+  "confidence": 100.0,
+  "setup_score": 100.0,
+  "stage": "ENTRY_CANDIDATE",
+  "checks": [{ "key": "pullback", "label": "Pullback", "passed": true, "required": true, "weight": 0.0, "detail": "pulled back 50% (healthy range 30-65%), now 40%" }],
+  "reasons": ["Trend: up from regime", "..."],
+  "blockers": [],
+  "features": { "pullback_extreme": 100.0, "impulse_size_atr": 20.0, "...": "..." },
+  "note": "Strategy candidates are hypotheses, not orders. ..."
+}
+```
+
+When not eligible, the candidates are `null`, `confidence` is 0 and
+`blockers` says why; `setup_score` still shows how much of the setup is
+present. `include_unrouted=true` adds `unrouted`: every enabled
+strategy evaluated regardless of routing (research view).
+
+### `GET /strategies/route?regime=RANGE&confidence=70`
+
+The router decision for any regime and confidence.
+
+### `GET /strategies/config`
+
+Router mapping, minimum regime confidence, and every strategy's
+thresholds, weights and candidate geometry.
+

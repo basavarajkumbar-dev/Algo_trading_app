@@ -413,21 +413,61 @@ under this phase number.
 
 ---
 
-## Phase 8 — Strategy Engine
+## Phase 8 — Strategy Engine ✅ *(delivered as "Phase 6 — Adaptive Strategy Engine")*
 
-**Scope**
-- `BaseStrategy` abstract class (`analyze`, `generate_signal`,
-  `validate`, `calculate_entry`, `calculate_stop_loss`,
-  `calculate_target`, `explain`).
-- `TrendContinuationStrategy`, `BreakoutMomentumStrategy`,
-  `MeanReversionStrategy`.
-- Strategy Router (regime → strategy selection, including
-  defensive/no-trade for `HIGH_VOLATILITY`).
+> **Numbering note:** directed and executed as "Phase 6". It completes
+> this entry; roadmap Phase 4 (remaining domain tables) is still open.
+
+**Delivered** (`backend/app/strategies/`)
+- `BaseStrategy` with `analyze`, `validate`, `calculate_entry`,
+  `calculate_stop_loss`, `calculate_target` and `explain`, run in that
+  order by `evaluate()`. Shared candidate rules: stop between 0.5 and
+  3 ATR from entry (too tight is widened, too wide blocks), target at
+  least the minimum reward:risk. A strategy that raises returns an
+  ineligible result naming the error instead of breaking the others.
+- `TrendContinuationStrategy`: trend -> impulse -> pullback (30-65%) ->
+  support -> confirmation -> entry candidate, weighted by regime, higher
+  timeframe, structure, VWAP, trend quality, volume, momentum, relative
+  strength and price action.
+- `BreakoutMomentumStrategy`: consolidation or a configurable opening
+  range (5/15/30 min from 09:15 IST) -> compression (NR/NRB) -> volume ->
+  breakout -> confirmation; rejects extended (chasing) entries.
+- `MeanReversionStrategy`: range only; refuses strong trends (trend
+  quality, directional efficiency or higher-timeframe bias); needs the
+  range edge, VWAP deviation and a reversal pattern; targets VWAP.
+- Each returns `eligible`, `direction`, `entry_candidate`,
+  `stop_candidate`, `target_candidate`, `confidence`, `reasons`,
+  `blockers`, every `check`, `features` and the concept `stage` reached.
+- `StrategyRouter`: configurable regime -> strategies (and allowed
+  directions) map plus a minimum regime confidence. Defaults: strong
+  trends -> trend continuation (with the trend only), breakout ->
+  breakout momentum, range -> mean reversion and breakout momentum,
+  high volatility / unknown -> nothing. The order is evaluation order,
+  not a ranking.
+- `StrategyService` re-evaluates after each price action refresh, on
+  the same candles; read-only `/api/v1/strategies` endpoints and a
+  Strategies page.
+
+**Deviations from the original scope**
+- No `generate_signal()`: turning a candidate into a `TradingSignal`
+  belongs to the Signal Engine (Phase 9), per the brief's flow
+  STRATEGY -> SIGNAL -> RISK. Strategies stop at candidates.
+- RANGE also routes to breakout momentum (the brief's example maps it
+  to mean reversion only): a breakout starts from a consolidation, and
+  the BREAKOUT regime is only detected once a large breakout candle has
+  printed, usually too late for a non-extended entry.
 
 **Definition of Done**
-- [ ] Each strategy implements the full base interface.
-- [ ] Router selects the documented mapping under test for each regime.
-- [ ] No strategy calls a broker or order manager directly.
+- [x] Each strategy implements the full base interface (66 tests: an
+      eligible baseline with exact candidates per strategy and side,
+      every required check failing on its own, geometry limits,
+      configurability, error isolation).
+- [x] Router selects the documented mapping under test for each regime,
+      including direction restrictions, confidence floor, disabled
+      strategies and custom routes.
+- [x] No strategy calls a broker or order manager: a test parses every
+      module in `app/strategies` and fails on any broker, order or
+      execution import, and API tests assert no order fields.
 
 ---
 

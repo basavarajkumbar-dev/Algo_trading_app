@@ -343,7 +343,8 @@ list with entry/exit criteria. Summary:
   engines. (Volume, momentum and relative strength delivered in "Phase
   4"; COG, NR, NRB, WRB, BT and TT detectors in "Phase 5".)
 - **Phase 8** — Strategy engine: base strategy, concrete strategies,
-  strategy router.
+  strategy router. (Delivered as "Phase 6 — Adaptive Strategy Engine";
+  strategies return candidates only, signal generation is Phase 9.)
 - **Phase 9** — Signal engine, confidence scoring, candidate ranking,
   stock scanner.
 - **Phase 10** — Risk engine.

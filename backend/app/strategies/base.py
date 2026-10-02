@@ -154,7 +154,12 @@ class BaseStrategy(ABC):
     def _evaluate(
         self, ctx: StrategyContext, allowed_directions: list[TradeDirection] | None
     ) -> StrategyResult:
-        features = self.analyze(ctx)
+        # Round once, so the features returned and the check details built
+        # from them show the same readable numbers (prices to 2 decimals,
+        # the NSE tick being 0.05).
+        features = {
+            k: round(v, 2) if isinstance(v, float) else v for k, v in self.analyze(ctx).items()
+        }
         direction, checks = self.validate(ctx, features)
 
         if allowed_directions is not None and direction != TradeDirection.NONE:

@@ -140,12 +140,12 @@ class TrendContinuationStrategy(BaseStrategy):
                 or (p.direction == PatternDirection.BEARISH and sign < 0)
             )
         ]
-        f["confirmation_patterns"] = ",".join(aligned) or None
+        f["confirmation_patterns"] = ", ".join(aligned) or None
         latest = ctx.latest
         f["latest_closes_with_trend"] = (latest.close - latest.open) * sign > 0
 
         support = self._support_near_pullback(ctx, direction, f)
-        f["support_levels"] = ",".join(support) or None
+        f["support_levels"] = ", ".join(support) or None
         return f
 
     def _support_near_pullback(

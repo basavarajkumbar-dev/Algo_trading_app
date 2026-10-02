@@ -78,7 +78,7 @@ class MeanReversionStrategy(BaseStrategy):
         broken = [
             t.value for t in (LevelType.BREAKOUT_LEVEL, LevelType.BREAKDOWN_LEVEL) if t in by_type
         ]
-        f["range_broken"] = ",".join(broken) or None
+        f["range_broken"] = ", ".join(broken) or None
 
         proximity = cfg.boundary_proximity_atr * ctx.atr
         side_name = None
@@ -113,7 +113,7 @@ class MeanReversionStrategy(BaseStrategy):
                 or (p.direction == PatternDirection.BEARISH and sign < 0)
             )
         ]
-        f["reversal_patterns"] = ",".join(reversal) or None
+        f["reversal_patterns"] = ", ".join(reversal) or None
         f["relative_volume"] = a.volume.relative_volume if a.volume else None
         return f
 
