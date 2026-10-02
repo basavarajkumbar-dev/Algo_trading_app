@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { SignalDetail } from "@/components/signals/signal-detail";
+import { ExecuteSignal } from "@/components/trading/execute-signal";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatIstTime, formatScore } from "@/lib/intelligence-format";
@@ -182,6 +183,15 @@ function SignalsView() {
             {detailError && <p className="text-sm text-loss">{detailError}</p>}
             {!detailError && !detail && (
               <p className="text-sm text-muted">{activeId ? "Loading…" : "Select a signal."}</p>
+            )}
+            {detail && detail.signal.id && (
+              <div className="mb-6">
+                <ExecuteSignal
+                  key={detail.signal.id}
+                  signalId={detail.signal.id}
+                  active={detail.signal.status === "ACTIVE"}
+                />
+              </div>
             )}
             {detail && (
               <SignalDetail

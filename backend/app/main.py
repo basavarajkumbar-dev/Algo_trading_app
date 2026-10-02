@@ -121,6 +121,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             # execution exists.
             trading_mode=settings.trading_mode.value,
             entry_timeout_seconds=settings.paper_entry_timeout_seconds,
+            emergency_close_positions=settings.paper_emergency_close_positions,
         ),
         session_factory=async_session_factory,
     )

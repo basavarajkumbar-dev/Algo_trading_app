@@ -282,7 +282,7 @@ async def test_auto_trading_takes_the_top_ready_candidate_once(db_session) -> No
     market.set("RELIANCE", ready.entry)
 
     scan = SimpleNamespace(
-        top_candidates=[
+        candidates=[
             SimpleNamespace(status="WATCH", signal_id=uuid.uuid4()),
             SimpleNamespace(status="READY", signal_id=ready_id),
         ]
@@ -322,14 +322,19 @@ async def test_emergency_stop_through_the_service(db_session) -> None:
     market.set("RELIANCE", 1003)
     await svc.emergency_stop("drill")
     st = await svc.status()
-    assert st.emergency_stop and st.active_trade is None and st.positions == []
+    assert st.emergency_stop and st.active_trade is not None  # position kept
+    assert len(st.working_orders) == 2  # stop + target still protect it
     assert st.risk.entries_blocked and R.EMERGENCY_STOP in st.risk.blocked_reasons
+
+    await svc.emergency_stop("drill: close it", close_position=True)  # explicit request
+    st = await svc.status()
+    assert st.active_trade is None and st.positions == []
     trades, _ = await list_trades(db_session)
     assert trades[0].exit_reason == ExitReason.EMERGENCY and trades[0].exit_price == 1003
     critical = await db_session.scalar(
         select(func.count()).select_from(SystemEvent).where(SystemEvent.severity == "CRITICAL")
     )
-    assert critical >= 1
+    assert critical >= 2
     await svc.reset_emergency_stop()
     assert not (await svc.status()).emergency_stop
 
@@ -434,7 +439,15 @@ def test_execute_signal_end_to_end_with_emergency_stop(client: TestClient) -> No
     st = stop.json()
     assert st["emergency_stop"] is True
     assert st["auto_trading"] is False
-    assert st["active_trade"] is None or st["state"] == "EXIT"
+    assert st["active_trade"] is not None  # not auto-closed
+
+    close = client.post(
+        "/api/v1/trading/emergency-stop",
+        headers=headers,
+        json={"reason": "api test: close", "close_position": True},
+    )
+    assert close.status_code == 200
+    assert close.json()["active_trade"] is None or close.json()["state"] == "EXIT"
 
     assert (
         client.post("/api/v1/trading/auto", headers=headers, json={"enabled": True}).status_code

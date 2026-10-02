@@ -1,18 +1,52 @@
 "use client";
 
 import { Bell, CircleUserRound, LogOut } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { Badge } from "@/components/ui/badge";
+import { getTradingStatusRequest } from "@/lib/trading-client";
+import { STATE_LABEL } from "@/lib/trading-format";
+import type { TradingStatus } from "@/types/trading";
+
+type AlgoBadge = { label: string; variant: "neutral" | "connected" | "disconnected" | "accent" };
+
+function algoBadge(status: TradingStatus | null): AlgoBadge {
+  if (!status) return { label: "Unknown", variant: "neutral" };
+  if (status.emergency_stop) return { label: "Emergency stop", variant: "disconnected" };
+  if (status.active_trade) return { label: STATE_LABEL[status.state], variant: "accent" };
+  return status.auto_trading
+    ? { label: "Auto · scanning", variant: "connected" }
+    : { label: "Stopped", variant: "neutral" };
+}
 
 /**
  * Market shows "Simulated": the only data source is the mock provider
- * (no live feed, no broker). Algo stays "Stopped" until the paper
- * trading loop exists. The user section reflects the authenticated
- * user from AuthProvider and offers a working logout.
+ * (no live feed, no broker). Algo reflects the paper trading engine:
+ * stopped, scanning automatically, the active trade's state, or an
+ * emergency stop. The user section reflects the authenticated user
+ * from AuthProvider and offers a working logout.
  */
 export function Header() {
   const { user, logout } = useAuth();
+  const [trading, setTrading] = useState<TradingStatus | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    function poll() {
+      getTradingStatusRequest()
+        .then((s) => !cancelled && setTrading(s))
+        .catch(() => !cancelled && setTrading(null));
+    }
+    poll();
+    const id = setInterval(poll, 5_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+  const algo = algoBadge(trading);
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-surface px-6">
@@ -29,7 +63,9 @@ export function Header() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs uppercase tracking-wide text-muted">Algo</span>
-          <Badge variant="neutral">Stopped</Badge>
+          <Link href="/positions" title="Paper trading engine">
+            <Badge variant={algo.variant}>{algo.label}</Badge>
+          </Link>
         </div>
       </div>
 

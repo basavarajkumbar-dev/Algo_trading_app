@@ -234,7 +234,7 @@ class TradingService:
         scan = self._signals.get_scan()
         if scan is None:
             return
-        for candidate in scan.top_candidates:
+        for candidate in scan.candidates:  # ranked; READY = at or above the executable score
             if candidate.status != "READY" or candidate.signal_id is None:
                 continue
             if candidate.signal_id in self._auto_tried:
@@ -364,10 +364,10 @@ class TradingService:
             await self.engine.exit_position()
             await self._persist()
 
-    async def emergency_stop(self, reason: str) -> None:
+    async def emergency_stop(self, reason: str, *, close_position: bool | None = None) -> None:
         async with self._lock:
             await self._feed_prices()
-            await self.engine.emergency_stop(reason)
+            await self.engine.emergency_stop(reason, close_position=close_position)
             await self._persist()
 
     async def reset_emergency_stop(self) -> None:

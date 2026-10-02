@@ -531,48 +531,101 @@ under this phase number.
 
 ---
 
-## Phase 10 — Risk Engine
+## Phase 10 — Risk Engine ✅ *(delivered with Phase 11 as "Phase 8 — Risk Engine + Paper Trading")*
 
-**Scope**
-- `RiskManager`: position sizing from capital/risk%/stop distance, daily
-  loss limit, max trades/day, max consecutive losses, max position size,
-  max exposure, volatility adjustment.
-- Approve/reject decisions with explicit reasons.
-- Stop Loss Engine (structure/ATR/volatility/fixed) and Target Engine
-  (RR/fixed/structure/trailing/momentum/time), strategy-recommended,
-  risk-validated.
+> **Numbering note:** directed and executed as "Phase 8 — Risk Engine +
+> Paper Trading", which covers this phase and Phase 11 together.
+
+**Delivered**
+- `app/risk/`: `RiskLimits` (all configurable via `RISK_*`,
+  `RISK_PER_TRADE`, `MAX_DAILY_LOSS`, `MAX_TRADES_PER_DAY`,
+  `SIGNAL_EXECUTABLE_THRESHOLD` and `TRADING_*`), `calculate_position_size`
+  (risk amount = capital x risk %, quantity = risk amount / |entry - stop|;
+  tick rounding with the stop rounded away from entry, rounded down to
+  lots, capped by max position value, available capital x margin
+  multiplier and max order quantity; every binding cap named).
+- `RiskManager.evaluate` runs every check and reports every failure:
+  trading mode (PAPER only), emergency stop, system health, market hours
+  (NSE 09:15-15:30 IST Mon-Fri, configured holidays, no entries after
+  15:00), data freshness (price age and signal age / expiry), one active
+  trade, duplicate order (signal already sent today, open order for the
+  symbol), daily loss limit, max trades, consecutive losses, executable
+  score, shorts allowed, stop validity, target validity, price moved away
+  from the planned entry, quantity, sufficient capital (incl. estimated
+  charges) and max exposure.
+- A trade's quantity is reduced so its planned risk fits inside what is
+  left of today's loss limit. Daily counters roll over on the IST date.
+- `TRADING_SESSION_MODE=SIMULATED_24H` treats every moment as in-session
+  so the simulated feed can be exercised outside exchange hours; the
+  default is `EXCHANGE`.
+
+**Not in this phase**
+- Volatility-adjusted sizing and the separate Stop Loss / Target Engines
+  (structure, ATR, trailing, momentum): stops and targets come from the
+  strategies (Phase 6) and are validated here, not re-derived.
+- Per-user risk configuration: the paper engine is one simulated account
+  configured from the environment; the `risk_configs` table is not read yet.
 
 **Definition of Done**
-- [ ] Position sizing formula matches the contract's documented formula
+- [x] Position sizing formula matches the contract's documented formula
       under test.
-- [ ] Each rejection reason (daily loss, max trades, consecutive losses,
-      max position size, max exposure) has a dedicated test.
-- [ ] Risk engine is independently callable/testable without the
-      strategy or order layers.
+- [x] Each rejection reason has a dedicated test (18 reasons).
+- [x] Risk engine is independently callable/testable without the
+      strategy or order layers (`test_risk_manager.py` uses plain intents).
 
 ---
 
-## Phase 11 — Orders, Paper Trading, Positions, Exits
+## Phase 11 — Orders, Paper Trading, Positions, Exits ✅ *(delivered as part of "Phase 8")*
 
-**Scope**
-- Trade state machine (`CREATED` → ... → `CLOSED`/`CANCELLED`/`FAILED`).
-- `OrderManager`: create/validate/submit/track/partial-fill/cancel/
-  retry/reconcile; duplicate-order and race-condition prevention.
-- Full Paper Trading Engine: virtual capital/positions/orders/P&L,
-  configurable slippage/brokerage/charges/execution delay.
-- `PositionManager` and Exit Management (`STOP_LOSS`, `TARGET`,
-  `TRAILING_STOP`, `TIME_EXIT`, `MOMENTUM_EXIT`, `MANUAL_EXIT`,
-  `EMERGENCY_EXIT`, `SYSTEM_FAILURE`, `MARKET_CLOSE`).
-- One-active-trade-at-a-time enforcement via explicit state.
+**Delivered**
+- Trading state machine `IDLE / SCANNING -> SIGNAL_FOUND -> RISK_CHECK ->
+  ORDER_PENDING -> POSITION_ACTIVE -> EXIT -> CLOSED` with an explicit
+  transition table; only one trade can be between SIGNAL_FOUND and EXIT.
+- `app/execution/`: `BrokerAdapter` (place_order, modify_order,
+  cancel_order, get_order_status, get_positions, get_balance) and
+  `PaperBrokerAdapter`: MARKET / LIMIT / SL_M orders, adverse slippage
+  (bps), execution delay, partial fills (max fill fraction), lot-size
+  and margin validation, duplicate `client_order_id` rejection, stop
+  triggers already crossed rejected, position and balance accounting.
+  `CostModel`: brokerage (capped per order across partial fills), STT,
+  exchange, SEBI, stamp duty, GST, all configurable assumptions.
+- `PaperTradingEngine`: SIGNAL -> RISK -> MARKET entry -> fills ->
+  protective SL_M + LIMIT target sized to the filled quantity (resized on
+  partial fills, one-cancels-other) -> exit -> trade with average entry /
+  exit, gross P&L, charges, net P&L and R multiple -> daily risk counters.
+  Exits: STOP_LOSS, TARGET, TIME_EXIT (square-off 15:15 IST), MANUAL,
+  EMERGENCY (only when explicitly requested), entry expiry. An entry is
+  cancelled if unfilled after `PAPER_ENTRY_TIMEOUT_SECONDS`.
+- Emergency stop: disables new trading, turns automatic trading off,
+  cancels pending entry orders; an open position keeps its stop and
+  target and is closed only on an explicit request (or when
+  `PAPER_EMERGENCY_CLOSE_POSITIONS=true`). Reset is explicit.
+- `paper_orders` / `paper_trades` tables (Alembic `a71fadaf6cb3`), engine
+  events as `system_events` (`PAPER_*`), operator actions in `audit_logs`.
+  On restart, capital and today's counters are rebuilt from stored
+  trades; a trade open at shutdown is marked INTERRUPTED.
+- `TradingService` (prices every 0.5 s, health = feed + scanner + trade
+  storage; automatic mode takes the best-ranked READY signal once per
+  scan, OFF by default). Endpoints under `/trading` (status, risk,
+  positions, orders, trades; execute signal, auto, exit, emergency stop
+  and reset for TRADER/ADMIN). Frontend: Paper Trading, Trades and Risk
+  pages, "Paper trade this signal" on Signals, live Algo badge.
+
+**Not in this phase**
+- Trailing stop and momentum exits; order retry / reconciliation against
+  a real broker (there is none); resuming an open paper trade after a
+  restart (marked INTERRUPTED instead).
+- Any real broker connection: no Zerodha code path exists. LIVE and
+  APPROVAL modes make every risk check fail.
 
 **Definition of Done**
-- [ ] Full lifecycle test: signal → risk-approved → paper order → fill →
-      position → SL or TP exit → trade history → P&L update, passes
-      end-to-end.
-- [ ] Duplicate order prevention test passes.
-- [ ] One-active-trade rule test passes.
-- [ ] Emergency stop test passes (blocks new trades, cancels safe
-      pending orders, does not auto-close positions).
+- [x] Full lifecycle test: signal -> risk-approved -> paper order -> fill
+      -> position -> SL or TP exit -> trade history -> P&L update, passes
+      end-to-end (engine, service with Postgres, and API).
+- [x] Duplicate order prevention test passes (risk manager and broker).
+- [x] One-active-trade rule test passes.
+- [x] Emergency stop test passes (blocks new trades, cancels safe
+      pending orders, does not auto-close positions unless asked).
 
 ---
 

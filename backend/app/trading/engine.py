@@ -14,9 +14,12 @@ The complete paper lifecycle, one trade at a time:
   sized to the open quantity as further entry fills or partial exits
   arrive. The two exit legs are one-cancels-other: whichever fills, the
   other is reduced or cancelled.
-* Exits: stop loss, target, square-off time, manual, and emergency stop.
-  Any exit other than SL/TP cancels the working orders and closes the
-  remaining quantity at market.
+* Exits: stop loss, target, square-off time, manual exit, and an
+  emergency stop that explicitly asks for it. Any exit other than SL/TP
+  cancels the working orders and closes the remaining quantity at market.
+* Emergency stop: disables new trading and cancels pending (entry) orders.
+  It does not close an open position unless explicitly requested or
+  configured; the position keeps its protective stop and target.
 * When the position is flat the trade is closed with its average entry
   and exit, gross P&L, charges, net P&L and R multiple, and the result
   is fed back into the RiskManager's daily counters.
@@ -46,6 +49,7 @@ from app.execution.models import (
 from app.execution.paper_broker import PaperBrokerAdapter
 from app.market_data.base import utcnow
 from app.risk.manager import AccountView, RiskManager
+from app.risk.position_sizing import round_to_tick
 from app.risk.schemas import MarketConditions, RiskDecision, TradeIntent, TradeSide
 from app.trading.schemas import (
     EngineEvent,
@@ -61,6 +65,10 @@ class EngineConfig(BaseModel):
     trading_mode: str = "PAPER"
     # Cancel an entry (or its unfilled remainder) this long after placing it.
     entry_timeout_seconds: float = Field(default=60.0, gt=0)
+    # Whether an emergency stop also closes the active position when the
+    # request does not say. Off: positions are never auto-closed unless
+    # configured or explicitly requested (PROJECT_CONTRACT.md section 9).
+    emergency_close_positions: bool = False
     history_size: int = Field(default=200, ge=10)
 
 
@@ -198,29 +206,66 @@ class PaperTradingEngine:
             "AUTO_TRADING", f"Automatic paper trading {'enabled' if enabled else 'disabled'}"
         )
 
-    async def emergency_stop(self, reason: str = "operator request") -> None:
-        """Block new entries, cancel working orders and flatten at market."""
+    async def emergency_stop(
+        self, reason: str = "operator request", *, close_position: bool | None = None
+    ) -> None:
+        """Disable new trading and cancel pending orders where safe.
 
+        Safe to cancel: an entry order (or its unfilled remainder) and any
+        order not protecting the active position. Not cancelled: the
+        protective stop and target of an open position, which keep
+        working. The position itself is closed only when `close_position`
+        is true (an explicit request) or, when it is not given, when
+        `EngineConfig.emergency_close_positions` is configured on.
+        """
+
+        close = self.config.emergency_close_positions if close_position is None else close_position
         self.emergency_stop_active = True
         self.emergency_reason = reason
         self.auto_trading = False
-        self._event("EMERGENCY_STOP", f"Emergency stop activated: {reason}", severity="CRITICAL")
+        self._event(
+            "EMERGENCY_STOP",
+            f"Emergency stop activated: {reason}. New trading disabled"
+            + ("; closing the active position at market" if close and self.active else "")
+            + ".",
+            severity="CRITICAL",
+            close_position=close,
+        )
         if self.active is None:
             self._cancel_stray_orders()
             if self.state in (TradingState.IDLE, TradingState.SCANNING):
                 self._rest("emergency stop")
             return
         if self.state == TradingState.ORDER_PENDING:
-            await self._cancel_unfilled_entry(ExitReason.EMERGENCY, "emergency stop")
+            await self._cancel_unfilled_entry(
+                ExitReason.EMERGENCY, "entry cancelled by emergency stop"
+            )
         elif self.state == TradingState.POSITION_ACTIVE:
-            await self._begin_exit(ExitReason.EMERGENCY)
-        self._cancel_stray_orders(keep_exit=True)
+            entry = self._entry()
+            if entry.status.is_working:
+                self._track(self.broker.cancel(entry.id))
+                self._event(
+                    "ENTRY_CANCELLED",
+                    "Unfilled entry remainder cancelled by emergency stop",
+                    trade_id=str(self.active.id),
+                )
+            if close:
+                await self._begin_exit(ExitReason.EMERGENCY)
+            else:
+                self._event(
+                    "POSITION_KEPT",
+                    f"{self.active.symbol} position kept with its stop loss and target "
+                    "working; use Exit position to close it",
+                    severity="WARNING",
+                    trade_id=str(self.active.id),
+                )
+                await self._sync()
         self._refresh_trade_numbers()
         self._touch_trade()
 
     def reset_emergency_stop(self) -> None:
-        if self.active is not None:
-            raise EngineError("The emergency exit is still in progress; wait until flat.")
+        if self.state == TradingState.EXIT:
+            raise EngineError("An exit is in progress; reset once it has filled.")
         self.emergency_stop_active = False
         self.emergency_reason = None
         self._event("EMERGENCY_STOP_RESET", "Emergency stop reset; automatic trading stays off")
@@ -278,7 +323,7 @@ class PaperTradingEngine:
             score=intent.score,
             planned_entry=intent.entry,
             stop_loss=size.stop_loss,
-            target=intent.target,
+            target=round_to_tick(intent.target, self.risk.limits.tick_size),
             quantity=size.quantity,
             initial_risk=size.actual_risk,
             created_at=now,

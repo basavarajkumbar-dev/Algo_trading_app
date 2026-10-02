@@ -1,6 +1,6 @@
 # GAINZALGO PRO MAX — API Reference
 
-Covers the API surface that exists through Phase 2. Interactive,
+Covers the API surface that exists through Phase 8. Interactive,
 always-current documentation is also available at `/docs` (Swagger UI)
 and `/redoc` on the running backend. This file is a narrative
 companion, not a replacement — update it in the same phase that changes
@@ -629,3 +629,129 @@ storage is unavailable.
 Scoring weights, category bands, executable threshold, quantity
 defaults, ranking settings and the storage score.
 
+
+---
+
+## Paper trading and risk (Phase 8)
+
+PAPER only. Every order goes to the simulated `PaperBrokerAdapter`; no
+broker is connected and no real order can be placed. If `TRADING_MODE`
+is anything other than `PAPER`, every risk check fails with
+`TRADING_MODE_NOT_PAPER`. Automatic trading is off at every start.
+
+Read endpoints need no authentication. Action endpoints need a
+`TRADER` or `ADMIN` bearer token (401 without one, 403 for `VIEWER`), and
+each action is written to the audit log.
+
+### `GET /trading/status`
+
+`TradingStatus`: `mode` (`PAPER`), `state` (`IDLE`, `SCANNING`,
+`SIGNAL_FOUND`, `RISK_CHECK`, `ORDER_PENDING`, `POSITION_ACTIVE`, `EXIT`,
+`CLOSED`) and `state_since`, `auto_trading`, `emergency_stop` /
+`emergency_reason`, `active_trade` (a `PaperTrade` or null),
+`last_decision` (the last `RiskDecision`), `balance`, `positions`,
+`working_orders`, `risk` (`RiskSnapshot`), `system_healthy` /
+`health_detail`, `persistence_ok` / `persistence_error`,
+`restored_trades_today`, `interrupted_trades`, `broker` (the paper
+broker assumptions), `entry_timeout_seconds`, `recent_transitions`.
+
+### `GET /trading/risk`
+
+`{ limits: RiskLimits, snapshot: RiskSnapshot, last_decision, note }`.
+`snapshot`: today's `state` (trading day, day-start capital, trades,
+realized net P&L, consecutive losses, wins, losses), `capital`,
+`available_capital`, `open_exposure`, `daily_loss_limit_amount`,
+`daily_loss_remaining`, `risk_per_trade_amount`, `trades_remaining`,
+`consecutive_losses_remaining`, `entries_blocked`, `blocked_reasons`.
+
+A `RiskDecision` is `{ approved, intent, size, checks, rejection_reasons,
+evaluated_at, note }`. `size` (`PositionSize`): `quantity`,
+`raw_quantity`, `risk_amount`, `risk_per_unit`, `actual_risk`,
+`position_value`, tick-rounded `entry` and `stop_loss`, and the
+`constraints` that reduced the quantity. `checks` lists every check with
+`passed`, `detail` and, when failed, its `reason`:
+
+| reason | when |
+|---|---|
+| `TRADING_MODE_NOT_PAPER` | mode is not PAPER |
+| `EMERGENCY_STOP` | emergency stop active |
+| `SYSTEM_UNHEALTHY` | market data feed, scanner or trade storage unhealthy |
+| `MARKET_CLOSED` | outside the session, weekend, configured holiday, or after the last entry time |
+| `DATA_STALE` | no price / price older than `RISK_MAX_DATA_AGE_SECONDS` / signal expired or not confirmed within `RISK_MAX_SIGNAL_AGE_SECONDS` |
+| `ACTIVE_POSITION_EXISTS` | a trade is already between signal and exit |
+| `DUPLICATE_ORDER` | the signal was already sent today, or an order for the symbol is open |
+| `DAILY_LOSS_LIMIT` | today's realized loss reached `MAX_DAILY_LOSS` % |
+| `MAX_TRADES_REACHED` | `MAX_TRADES_PER_DAY` entries taken |
+| `MAX_CONSECUTIVE_LOSSES` | `RISK_MAX_CONSECUTIVE_LOSSES` losses in a row |
+| `SIGNAL_NOT_EXECUTABLE` | score below `SIGNAL_EXECUTABLE_THRESHOLD` |
+| `SHORT_NOT_ALLOWED` | short side with `RISK_ALLOW_SHORT=false` |
+| `INVALID_STOP` | stop not on the loss side of entry and price by a tick |
+| `INVALID_TARGET` | target not on the profit side of price |
+| `PRICE_MOVED_AWAY` | price moved more than `RISK_MAX_ENTRY_DEVIATION_R` x stop distance against the entry |
+| `INVALID_QUANTITY` | sized quantity below one lot |
+| `INSUFFICIENT_CAPITAL` | position value / margin multiplier + estimated charges exceeds available capital |
+| `MAX_EXPOSURE` | open exposure + this trade exceeds `RISK_MAX_EXPOSURE` |
+
+### `GET /trading/positions`
+
+`{ positions: Position[], balance: Balance, note }`. A `Position` has
+signed `quantity`, `average_price`, `last_price`, `realized_pnl`,
+`unrealized_pnl`, `charges`. `Balance`: `starting_capital`, `cash`,
+`used_margin`, `available`, `realized_pnl` (gross), `unrealized_pnl`,
+`charges_paid`, `equity`.
+
+### `GET /trading/orders?trade_id=&limit=&offset=`
+
+Stored paper orders, newest first: `{ items: [{ order, trade_id, purpose }],
+total, limit, offset, note }`. `purpose` is `ENTRY`, `STOP_LOSS`,
+`TARGET` or `EXIT`. An `Order` has `order_type` (`MARKET`, `LIMIT`,
+`SL_M`), `quantity`, `price`, `trigger_price`, `status` (`OPEN`,
+`TRIGGER_PENDING`, `PARTIALLY_FILLED`, `FILLED`, `CANCELLED`,
+`REJECTED`), `filled_quantity`, `average_price`, `fills` (each with
+`price`, `market_price`, `slippage`, `charges`, `timestamp`), `charges`
+(brokerage, STT, exchange, SEBI, stamp duty, GST) and
+`rejection_reason`.
+
+### `GET /trading/trades?status=&limit=&offset=` and `GET /trading/trades/{id}`
+
+Stored paper trades, newest first. A `PaperTrade`: `symbol`, `side`
+(`LONG`/`SHORT`), `strategy`, `score`, `status` (`PENDING`, `OPEN`,
+`EXITING`, `CLOSED`, `CANCELLED`, `REJECTED`, `INTERRUPTED`),
+`planned_entry`, `stop_loss`, `target`, `quantity` (approved),
+`filled_quantity`, `entry_price` / `exit_price` (averages),
+`initial_risk`, `gross_pnl`, `charges`, `net_pnl`, `r_multiple`,
+`exit_reason` (`STOP_LOSS`, `TARGET`, `TIME_EXIT`, `MANUAL`, `EMERGENCY`,
+`ENTRY_EXPIRED`, `ENTRY_REJECTED`), timestamps, `order_ids` by purpose,
+and the `risk_summary` / `risk_checks` that approved it.
+
+### `POST /trading/signals/{signal_id}/execute` (TRADER / ADMIN)
+
+Runs a stored signal through the risk check and, if approved, places a
+PAPER market entry. Returns `{ decision: RiskDecision, status:
+TradingStatus }` with 200 whether approved or not — a rejection is a
+normal result listing every failed check. 404 if the signal does not
+exist.
+
+### `POST /trading/auto` (TRADER / ADMIN)
+
+Body `{ "enabled": true|false }`. With automatic trading on, the
+best-ranked READY signal not yet tried today is executed after each
+scan, one trade at a time. 409 while the emergency stop is active.
+
+### `POST /trading/exit` (TRADER / ADMIN)
+
+Closes the active trade at market (or cancels an unfilled entry). 409
+when there is no active trade or an exit is already working.
+
+### `POST /trading/emergency-stop` (TRADER / ADMIN)
+
+Body (optional) `{ "reason": "...", "close_position": false }`. Disables
+new trading, turns automatic trading off and cancels pending entry
+orders. An open position is **not** closed unless `close_position` is
+true (or `PAPER_EMERGENCY_CLOSE_POSITIONS=true` and the field is
+omitted); it keeps its protective stop and target.
+
+### `POST /trading/emergency-stop/reset` (TRADER / ADMIN)
+
+Allows new trading again; automatic trading stays off. 409 while an
+exit order is working.

@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 7 — Signal Engine, Scoring and NIFTY 50 Scanner complete.**
+**Status: Phase 8 — Risk Engine and Paper Trading complete. Mode: PAPER only.**
 
 See:
 
@@ -13,7 +13,7 @@ See:
 - [`docs/development-roadmap.md`](./docs/development-roadmap.md) —
   phase-by-phase build plan and this phase's full Definition of Done.
 - [`docs/api.md`](./docs/api.md) — full endpoint reference, including
-  the price action endpoints added in this phase.
+  the paper trading endpoints added in this phase.
 
 ## What exists right now
 
@@ -62,7 +62,7 @@ See:
   features. **Frontend `/strategies` page** lists current candidates,
   the routing table and each strategy's checks.
 
-- **Signal engine, scoring and NIFTY 50 scanner** (Phase 7, new):
+- **Signal engine, scoring and NIFTY 50 scanner** (Phase 7):
   every eligible strategy candidate becomes a scored, explained
   `TradingSignal` (score 0-100 from the nine configurable factors,
   ELITE/STRONG/WATCH/IGNORE, READY at 85 or above), candidates are
@@ -70,10 +70,26 @@ See:
   **Frontend `/scanner`** (scanner table, top candidates, signal details)
   and **`/signals`** (stored signals with score and reason breakdowns).
 
-**No orders of any kind exist.** Signals are scored candidates: their
-quantities are candidates for a future risk engine, nothing is
-risk-checked, and nothing is ever sent to a broker. Scores and ranks
-are not proof of profitability. Patterns are contextual features, not trade signals;
+- **Risk engine and paper trading** (Phase 8, new): a `RiskManager`
+  sizes every trade (capital x risk % / stop distance, rounded to lots and
+  capped) and rejects it, with every reason, on emergency stop, an
+  unhealthy system, market closed, stale data, an active trade, a
+  duplicate, the daily loss limit, max trades, consecutive losses, an
+  invalid stop/target/quantity, insufficient capital or exposure. A
+  `PaperBrokerAdapter` simulates MARKET / LIMIT / SL-M orders with
+  configurable slippage, charges, execution delay and partial fills. The
+  paper trading engine runs SIGNAL -> RISK -> ORDER -> FILL -> POSITION ->
+  SL/TP -> EXIT -> TRADE -> P&L, **one trade at a time**, with manual exit,
+  square-off and an emergency stop. **Frontend `/positions`** (Paper
+  Trading: state machine, active trade, controls), **`/trades`** and
+  **`/risk`**; Signals has a "Paper trade this signal" button.
+
+**Paper only.** Orders go to a simulated broker; no broker (Zerodha or any
+other) is connected, no real order can be placed and no real money is
+involved. Automatic trading is **off** at every start. Fills, slippage and
+charges are configurable assumptions, so paper results will differ from
+live results, and nothing here claims a win rate or profitability.
+Scores and ranks are not proof of profitability. Patterns are contextual features, not trade signals;
 levels are reference zones, not guaranteed reversal points; and a
 regime describes recent behaviour, not a forecast. Every price shown is explicitly labeled
 simulated, never live — see `PROJECT_CONTRACT.md` section 9.
@@ -95,8 +111,9 @@ Seed a demo account (see the backend steps below), then visit
 http://localhost:3000/market (Market Intelligence) and
 http://localhost:3000/price-action (Price Action) and
 http://localhost:3000/strategies (Strategies),
-http://localhost:3000/scanner (Scanner) and http://localhost:3000/signals
-(Signals) after logging in. Simulated warm-up history is
+http://localhost:3000/scanner (Scanner), http://localhost:3000/signals
+(Signals), http://localhost:3000/positions (Paper Trading),
+http://localhost:3000/trades and http://localhost:3000/risk after logging in. Simulated warm-up history is
 generated at startup, so regimes are available within seconds.
 
 To stop:
@@ -229,6 +246,39 @@ npm run dev
   the constituents, so market alignment can disagree with a broadly
   rising set of stocks. Thresholds were not lowered to compensate.
 
+## How paper trading works (Phase 8 scope)
+
+- **Entry.** A stored ACTIVE signal (from the Signals page, the API, or
+  automatic mode, which takes the best-ranked READY signal once per scan)
+  becomes a trade intent. The RiskManager evaluates it against the live
+  price; if approved, a paper MARKET order is placed for the sized
+  quantity. Its client order id comes from the signal id, so the same
+  signal can never be sent twice.
+- **Position.** As the entry fills, an SL-M stop and a LIMIT target are
+  placed for the filled quantity and kept in step with partial fills.
+  Whichever fills, the other is reduced or cancelled. An unfilled entry
+  is cancelled after `PAPER_ENTRY_TIMEOUT_SECONDS`.
+- **Exit.** Stop loss, target, square-off at 15:15 IST, manual exit, or an
+  emergency stop that explicitly asks to close. The trade records average
+  entry and exit, gross P&L, charges, net P&L and the R multiple, and
+  feeds today's risk counters.
+- **Emergency stop** disables new trading, turns automatic mode off and
+  cancels pending entry orders. It does **not** close an open position
+  unless you ask (the dashboard asks separately) or set
+  `PAPER_EMERGENCY_CLOSE_POSITIONS=true`; the position keeps its stop
+  and target.
+- **Market hours.** By default entries are allowed 09:15-15:00 IST,
+  Monday to Friday; exchange holidays are not built in (set
+  `TRADING_HOLIDAYS`). To exercise the simulated feed at other times set
+  `TRADING_SESSION_MODE=SIMULATED_24H`.
+- **Restarts.** Capital and today's counters are rebuilt from stored
+  trades. A trade that was open when the process stopped cannot be
+  resumed (paper orders live in memory) and is marked INTERRUPTED.
+- READY (85+) signals are rare on the simulated feed (see above), so
+  automatic mode may wait a long time for one. For a demonstration you can
+  lower `SIGNAL_EXECUTABLE_THRESHOLD`; that changes which signals count as
+  executable and says nothing about their quality.
+
 ## Environment variables
 
 See [`.env.example`](./.env.example) for the full list. New in Phases 4
@@ -250,7 +300,13 @@ and 5:
   (default `70`), `SCANNER_TOP_N` (default `10`) and optional
   `SIGNAL_SCORE_WEIGHTS` (JSON; unlisted components keep their defaults).
 - Migrations: run `alembic upgrade head` (Docker does this on start) to
-  create the `signals` table.
+  create the `signals`, `paper_orders` and `paper_trades` tables.
+- Phase 8: `RISK_*` limits, `TRADING_SESSION_MODE`,
+  `TRADING_LAST_ENTRY_TIME`, `TRADING_SQUARE_OFF_TIME`,
+  `TRADING_HOLIDAYS`, and the paper broker assumptions `PAPER_SLIPPAGE_BPS`,
+  `PAPER_EXECUTION_DELAY_SECONDS`, `PAPER_MAX_FILL_FRACTION`,
+  `PAPER_ENTRY_TIMEOUT_SECONDS`, `PAPER_EMERGENCY_CLOSE_POSITIONS` and
+  `PAPER_COSTS` — see `.env.example`.
 
 `MARKET_DATA_TICK_INTERVAL_SECONDS` and everything from Phase 2
 (`TRADING_MODE`, `JWT_SECRET`, etc.) still apply unchanged.
@@ -258,7 +314,7 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 344 tests, all passing with a real Postgres;
+make test-backend    # pytest — 466 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
 make test-frontend   # tsc --noEmit + eslint + vitest
 make lint             # ruff + black (backend), eslint (frontend)
@@ -270,6 +326,20 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 8 (122 backend tests, 5 frontend):
+position sizing (formula, lots, ticks, every cap), every rejection
+reason on its own and all failures reported together, day rollover and
+session rules; the paper broker's order types, slippage, delay, partial
+fills, modify / cancel, duplicates, validation, charges and accounting;
+the state machine; and the engine end to end — long and short TP and SL,
+gaps through the stop, a stop already crossed, one active trade,
+duplicate signals at the risk manager and the broker, partial entry and
+exit fills, entry expiry, the daily loss limit (block and shrink),
+consecutive losses, max trades, manual exit, square-off, market closed,
+stale data, non-PAPER mode, and emergency stop with and without closing.
+With Postgres: storage, events, restart recovery, auto mode, and the
+`/trading` API with auth and audit logging.
 
 Test coverage added in Phase 7 (43 backend tests, 5 frontend): default
 weights and validation, every category boundary, scoring arithmetic,
@@ -325,14 +395,18 @@ gainzalgo-pro-max/
                         momentum, mean reversion, StrategyRouter,
                         StrategyService (Phase 6)
       signals/         scoring, signal, ranking engines, storage,
-                        SignalService (Phase 7, new)
-      scanner/         Nifty50Scanner (Phase 7, new)
+                        SignalService (Phase 7)
+      scanner/         Nifty50Scanner (Phase 7)
+      risk/            RiskLimits, position sizing, RiskManager (Phase 8, new)
+      execution/       BrokerAdapter, PaperBrokerAdapter, CostModel (Phase 8, new)
+      trading/         state machine, PaperTradingEngine, storage,
+                        TradingService (Phase 8, new)
       websocket/       ConnectionManager (Phase 3)
       schemas/         Pydantic request/response models
       services/        auth_service, settings_service, system_health
       api/v1/          auth, settings, system, market, intelligence,
                         price_action, strategies, signals (scanner),
-                        market_ws routes
+                        trading, market_ws routes
       seed.py          demo user seed script
     alembic/           migrations
   frontend/
@@ -345,10 +419,13 @@ gainzalgo-pro-max/
     components/price-action/ chart, pattern grid, retracement gauge,
                         levels table, multi-timeframe panel (Phase 5)
     components/strategies/ strategy result card (Phase 6)
-    components/signals/ signal detail, score and reason breakdowns (Phase 7, new)
+    components/signals/ signal detail, score and reason breakdowns (Phase 7)
+    components/trading/ lifecycle strip, risk checks, trade figures,
+                        execute-signal button (Phase 8, new)
     lib/               market-client, use-market-socket,
                         intelligence-format, price-action-format,
-                        strategy-format, signal-format
+                        strategy-format, signal-format,
+                        trading-client, trading-format
                         (+ vitest tests)
     middleware.ts       route-level auth redirect
   infrastructure/       Dockerfiles + backend entrypoint (runs migrations)
@@ -357,7 +434,8 @@ gainzalgo-pro-max/
 
 ## What's next
 
-See `docs/development-roadmap.md`. Next: the Risk Engine (validating
-signals and sizing against per-user limits), the remaining
-trading-domain data models, and paper trading, built one phase at a
-time.
+See `docs/development-roadmap.md`. Next: the remaining trading-domain
+data models, the WebSocket event set and REST API completion, analytics,
+and backtesting, built one phase at a time. A real broker adapter comes
+last and only behind the live-trading safety conditions in
+`PROJECT_CONTRACT.md` section 9.

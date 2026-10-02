@@ -34,7 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Price Action", href: "/price-action", icon: CandlestickChart },
   { label: "Scanner", href: "/scanner", icon: Radar },
   { label: "Signals", href: "/signals", icon: Activity },
-  { label: "Positions", href: "/positions", icon: ListTree },
+  { label: "Paper Trading", href: "/positions", icon: ListTree },
   { label: "Trades", href: "/trades", icon: History },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Strategies", href: "/strategies", icon: TestTubeDiagonal },

@@ -173,6 +173,11 @@ class Settings(BaseSettings):
     paper_entry_timeout_seconds: float = Field(
         default=60.0, gt=0, alias="PAPER_ENTRY_TIMEOUT_SECONDS"
     )
+    # Whether an emergency stop also closes the active position when the
+    # request does not say. Off by default: positions are not auto-closed.
+    paper_emergency_close_positions: bool = Field(
+        default=False, alias="PAPER_EMERGENCY_CLOSE_POSITIONS"
+    )
     # Optional JSON object overriding cost-model fields, e.g.
     # {"brokerage_cap_per_order": 20, "stt_sell_rate": 0.00025}.
     paper_costs: dict[str, float] | None = Field(default=None, alias="PAPER_COSTS")

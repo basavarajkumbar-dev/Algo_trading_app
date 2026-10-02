@@ -457,7 +457,7 @@ async def test_non_paper_mode_never_places_an_order() -> None:
 # --- emergency stop -----------------------------------------------------------------------------
 
 
-async def test_emergency_stop_flattens_cancels_and_blocks() -> None:
+async def test_emergency_stop_blocks_trading_but_keeps_the_position_protected() -> None:
     clock = Clock()
     e = make_engine(clock)
     e.set_auto_trading(True)
@@ -465,23 +465,60 @@ async def test_emergency_stop_flattens_cancels_and_blocks() -> None:
     await open_trade(e, clock)
     await price(e, clock, 1006)
     await e.emergency_stop("test")
-    t = e.closed[-1]
-    assert t.exit_reason == ExitReason.EMERGENCY and t.exit_price == 1006
-    assert e.emergency_stop_active and not e.auto_trading
-    assert e.state == S.IDLE
-    assert all(not o.status.is_working for o in e.broker.orders())
-    assert all(p.quantity == 0 for p in e.broker.positions())
-    events = [ev.event_type for ev in e.drain()[2]]
-    assert "EMERGENCY_STOP" in events and "EXIT_STARTED" in events
 
-    d = await open_trade(e, clock)
-    assert d.rejection_reasons == [R.EMERGENCY_STOP]
+    # new trading disabled ...
+    assert e.emergency_stop_active and not e.auto_trading
+    # ... but the position is NOT auto-closed, and its stop and target keep working
+    assert e.state == S.POSITION_ACTIVE and e.active is not None
+    assert e.broker.positions()[0].quantity == 50
+    working = {e.purpose_of(o.id) for o in e.broker.working_orders()}
+    assert working == {OrderPurpose.STOP_LOSS, OrderPurpose.TARGET}
+    events = [ev.event_type for ev in e.drain()[2]]
+    assert "EMERGENCY_STOP" in events and "POSITION_KEPT" in events
+    assert "EXIT_STARTED" not in events
+
+    d = await e.execute(intent(symbol="INFY"), conditions(clock))
+    assert R.EMERGENCY_STOP in d.rejection_reasons
     with pytest.raises(EngineError):
         e.set_auto_trading(True)
 
+    # the protective stop still closes it
+    await price(e, clock, 990)
+    assert e.closed[-1].exit_reason == ExitReason.STOP_LOSS
+    assert e.state == S.IDLE
+    d2 = await open_trade(e, clock, at=990)
+    assert d2.rejection_reasons == [R.EMERGENCY_STOP]
+
     e.reset_emergency_stop()
     assert not e.emergency_stop_active and not e.auto_trading
-    assert (await open_trade(e, clock, at=1006)).approved
+    assert (await open_trade(e, clock, at=991)).approved
+
+
+async def test_emergency_stop_closes_the_position_only_when_asked() -> None:
+    clock = Clock()
+    e = make_engine(clock)
+    await open_trade(e, clock)
+    await price(e, clock, 1006)
+    await e.emergency_stop("drill", close_position=True)
+    t = e.closed[-1]
+    assert t.exit_reason == ExitReason.EMERGENCY and t.exit_price == 1006
+    assert e.state == S.IDLE
+    assert all(not o.status.is_working for o in e.broker.orders())
+    assert all(p.quantity == 0 for p in e.broker.positions())
+    assert "EXIT_STARTED" in [ev.event_type for ev in e.drain()[2]]
+
+
+async def test_emergency_close_can_be_configured_as_the_default() -> None:
+    clock = Clock()
+    e = make_engine(clock, engine={"emergency_close_positions": True})
+    await open_trade(e, clock)
+    await e.emergency_stop()
+    assert e.closed[-1].exit_reason == ExitReason.EMERGENCY
+    # an explicit request still wins over the configured default
+    e.reset_emergency_stop()
+    await open_trade(e, clock, at=1000.5)
+    await e.emergency_stop(close_position=False)
+    assert e.state == S.POSITION_ACTIVE
 
 
 async def test_emergency_stop_with_pending_entry_cancels_it() -> None:
@@ -494,12 +531,25 @@ async def test_emergency_stop_with_pending_entry_cancels_it() -> None:
     assert not e.broker.working_orders()
 
 
-async def test_emergency_reset_is_refused_while_the_exit_is_still_working() -> None:
+async def test_emergency_stop_cancels_an_unfilled_entry_remainder() -> None:
+    clock = Clock()
+    e = make_engine(clock, broker={"max_fill_fraction": 0.4})
+    await open_trade(e, clock)  # 20 of 50 filled
+    await e.emergency_stop()
+    entry = orders_of(e, OrderPurpose.ENTRY)[0]
+    assert entry.status == OrderStatus.CANCELLED and entry.filled_quantity == 20
+    stop = orders_of(e, OrderPurpose.STOP_LOSS)[0]
+    assert e.broker.order(stop.id).remaining_quantity == 20  # still protecting 20
+    await price(e, clock, 1001)
+    assert e.active is not None and e.active.filled_quantity == 20  # nothing added
+
+
+async def test_emergency_reset_is_refused_while_an_exit_is_working() -> None:
     clock = Clock()
     e = make_engine(clock, broker={"execution_delay_seconds": 1})
     await open_trade(e, clock)
     await price(e, clock, 1001)
-    await e.emergency_stop()
+    await e.emergency_stop(close_position=True)
     assert e.state == S.EXIT
     with pytest.raises(EngineError):
         e.reset_emergency_stop()

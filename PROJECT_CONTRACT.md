@@ -348,9 +348,11 @@ list with entry/exit criteria. Summary:
 - **Phase 9** — Signal engine, confidence scoring, candidate ranking,
   stock scanner. (Delivered as "Phase 7 — Signal Engine + Scoring +
   NIFTY 50 Scanner"; the risk check is Phase 10.)
-- **Phase 10** — Risk engine.
+- **Phase 10** — Risk engine. (Delivered with Phase 11 as "Phase 8 —
+  Risk Engine + Paper Trading".)
 - **Phase 11** — Order management, paper trading engine, position/exit
-  management, trade state machine.
+  management, trade state machine. (Delivered as part of "Phase 8";
+  paper only, no broker connected.)
 - **Phase 12** — WebSocket real-time layer + REST API completion.
 - **Phase 13** — Frontend foundation + dashboard command center.
 - **Phase 14** — Remaining frontend pages (scanner, signals, positions,

@@ -12,8 +12,9 @@ Act (TRADER or ADMIN; each action is written to the audit log):
 POST /trading/signals/{id}/execute   SIGNAL -> RISK -> paper ORDER
 POST /trading/auto                   automatic paper trading on / off
 POST /trading/exit                   close the active trade at market
-POST /trading/emergency-stop         block entries, cancel orders, flatten
-POST /trading/emergency-stop/reset   allow entries again (once flat)
+POST /trading/emergency-stop         disable new trading, cancel pending entries
+                                     (closes the position only if asked)
+POST /trading/emergency-stop/reset   allow new trading again
 
 PAPER only: every order goes to the simulated paper broker.
 """
@@ -254,6 +255,10 @@ async def exit_position(
 
 class EmergencyRequest(BaseModel):
     reason: str = Field(default="operator request", max_length=300)
+    # Also close the active position at market. Omitted: the configured
+    # default (PAPER_EMERGENCY_CLOSE_POSITIONS, off), so positions are not
+    # closed unless asked.
+    close_position: bool | None = None
 
 
 @router.post("/emergency-stop", response_model=TradingStatus)
@@ -263,10 +268,15 @@ async def emergency_stop(
     user: User = Depends(_operator),
     db: AsyncSession = Depends(get_db),
 ) -> TradingStatus:
+    """Disable new trading and cancel pending entry orders. An open
+    position keeps its stop loss and target and is closed only when
+    `close_position` is true (or configured)."""
+
     service = _service(request)
     reason = (body.reason if body else None) or "operator request"
-    await service.emergency_stop(f"{reason} ({user.email})")
-    await _audit(db, user, "PAPER_EMERGENCY_STOP", {"reason": reason})
+    close = body.close_position if body else None
+    await service.emergency_stop(f"{reason} ({user.email})", close_position=close)
+    await _audit(db, user, "PAPER_EMERGENCY_STOP", {"reason": reason, "close_position": close})
     return await service.status()
 
 
