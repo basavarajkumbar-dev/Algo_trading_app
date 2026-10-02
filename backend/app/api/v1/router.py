@@ -9,6 +9,7 @@ minimal.
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    analytics,
     auth,
     intelligence,
     market,
@@ -31,4 +32,5 @@ api_v1_router.include_router(price_action.router)
 api_v1_router.include_router(strategies.router)
 api_v1_router.include_router(signals.router)
 api_v1_router.include_router(trading.router)
+api_v1_router.include_router(analytics.router)
 api_v1_router.include_router(market_ws.router)

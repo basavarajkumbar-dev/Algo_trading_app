@@ -26,6 +26,7 @@ DATABASE_TEST_MODULES = (
     "test_auth.py",
     "test_signal_persistence.py",
     "test_paper_trading_persistence.py",
+    "test_dashboard_api.py",
 )
 
 

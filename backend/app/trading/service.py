@@ -79,6 +79,10 @@ class TradingStatus(BaseModel):
     entry_timeout_seconds: float
     recent_transitions: list[StateChange]
     is_running: bool
+    market_open: bool  # exchange session (or simulated 24h) is open
+    entries_allowed: bool  # session open and before the last entry time
+    market_detail: str
+    session_mode: str
     note: str = PAPER_NOTE
 
 
@@ -254,6 +258,7 @@ class TradingService:
             return
         if self._session_factory is None:
             self._persistence_error = "No database session configured"
+            await self._broadcast(events)
             return
         try:
             async with self._session_factory() as session:
@@ -272,6 +277,29 @@ class TradingService:
             return
         self._persistence_error = None
         self._persisted_once = True
+        await self._broadcast(events)
+
+    async def _broadcast(self, events: list) -> None:
+        """Push engine events to /ws/market clients so dashboards refresh
+        immediately instead of waiting for their next poll."""
+
+        manager = getattr(self._market_data, "connection_manager", None)
+        if manager is None or not events:
+            return
+        for event in events:
+            try:
+                await manager.broadcast(
+                    {
+                        "type": "trading_event",
+                        "event_type": event.event_type,
+                        "severity": event.severity,
+                        "message": event.message,
+                        "at": event.at.isoformat(),
+                        "metadata": event.metadata,
+                    }
+                )
+            except Exception:  # noqa: BLE001 - a broadcast must never break trading
+                logger.exception("Failed to broadcast a trading event")
 
     # --- health -------------------------------------------------------------
 
@@ -381,7 +409,13 @@ class TradingService:
         engine = self.engine
         healthy, detail = await self.health()
         now = self._clock()
+        market_open, market_detail = engine.risk.market_open(now)
+        entries_allowed, entries_detail = engine.risk.entries_allowed(now)
         return TradingStatus(
+            market_open=market_open,
+            entries_allowed=entries_allowed,
+            market_detail=entries_detail if market_open else market_detail,
+            session_mode=engine.risk.limits.session.mode.value,
             mode="PAPER",
             state=engine.state,
             state_since=engine.machine.changed_at,
