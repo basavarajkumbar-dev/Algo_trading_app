@@ -1,0 +1,299 @@
+{
+ "symbol": "NIFTY50",
+ "name": "NIFTY 50 Index (simulated)",
+ "price": 25005.58,
+ "change_percent": -5.48,
+ "regime": {
+  "symbol": "NIFTY50",
+  "timeframe": "5m",
+  "regime": "STRONG_BEARISH",
+  "confidence": 95.0,
+  "reasons": [
+   "Lower-high, lower-low structure",
+   "Price below VWAP (-2.64%)",
+   "Negative EMA slope (-0.079%/candle)",
+   "Negative momentum (score 21)",
+   "Negative VWAP slope",
+   "Bearish EMA alignment",
+   "Directional price movement (efficiency 0.72)"
+  ],
+  "counter_reasons": [
+   "Below-average volume (0.9x)"
+  ],
+  "features": {
+   "price": 25011.27,
+   "candles_analyzed": 300,
+   "vwap": 25690.1611,
+   "price_vs_vwap": "BELOW",
+   "distance_from_vwap_percent": -2.6426,
+   "vwap_slope_percent": -0.044511,
+   "vwap_recent_crossings": 0,
+   "ema_fast": 25165.3196,
+   "ema_slow": 25446.5453,
+   "ma_long": 26564.7732,
+   "ema_fast_slope_percent": -0.078811,
+   "ema_separation_percent": -1.1052,
+   "ma_alignment": "BEARISH",
+   "ma_trend": "DOWN",
+   "trend_quality_score": 94.98,
+   "structure_trend": "DOWN",
+   "structure_state": "TREND_CONTINUATION",
+   "structure_event": "BREAK_OF_STRUCTURE",
+   "momentum_score": 21.13,
+   "momentum_direction": "DOWN",
+   "relative_volume": 0.8973,
+   "volume_trend": "INCREASING",
+   "atr_percent": 0.2142,
+   "atr_ratio": 0.8817,
+   "volatility_level": "NORMAL",
+   "average_wick_ratio": 0.7055,
+   "direction_changes": 6,
+   "latest_range_atr": 0.8145,
+   "efficiency_ratio": 0.7151,
+   "compression_ratio": 0.8329,
+   "breakout_direction": null
+  },
+  "scores": {
+   "HIGH_VOLATILITY": 35.0,
+   "BREAKOUT": 0.0,
+   "STRONG_BULLISH": 0.0,
+   "STRONG_BEARISH": 95.0,
+   "RANGE": 10.0
+  },
+  "candles_analyzed": 300,
+  "data_as_of": "2026-10-02T05:40:00Z",
+  "timestamp": "2026-10-02T05:48:05.915368Z",
+  "note": "A regime describes recent price behaviour. It is not a forecast and does not guarantee future price movement."
+ },
+ "factors": [
+  {
+   "key": "trend",
+   "label": "Trend",
+   "score": 94.98,
+   "scale": "intensity",
+   "interpretation": "Downtrend",
+   "detail": "Trend quality: direction, slope, structure, momentum, volume, volatility"
+  },
+  {
+   "key": "momentum",
+   "label": "Momentum",
+   "score": 21.13,
+   "scale": "directional",
+   "interpretation": "Bearish",
+   "detail": "Volatility-normalised rate of change over 3/10/20 candles"
+  },
+  {
+   "key": "vwap",
+   "label": "VWAP",
+   "score": 0.0,
+   "scale": "directional",
+   "interpretation": "Below VWAP",
+   "detail": "-2.64% from VWAP"
+  },
+  {
+   "key": "volume",
+   "label": "Volume",
+   "score": 47.29,
+   "scale": "intensity",
+   "interpretation": "Average",
+   "detail": "0.90x the 20-candle average"
+  },
+  {
+   "key": "volatility",
+   "label": "Volatility",
+   "score": 35.27,
+   "scale": "intensity",
+   "interpretation": "Normal",
+   "detail": "ATR 0.88x baseline (0.21% of price)"
+  },
+  {
+   "key": "structure",
+   "label": "Structure",
+   "score": 95.0,
+   "scale": "intensity",
+   "interpretation": "Bearish (trend continuation)",
+   "detail": "Confidence in the swing-structure reading"
+  },
+  {
+   "key": "breadth",
+   "label": "Breadth",
+   "score": 64.0,
+   "scale": "directional",
+   "interpretation": "Bullish",
+   "detail": "32 of 50 constituents above VWAP"
+  }
+ ],
+ "relative_strength_rank": null,
+ "analysis": {
+  "symbol": "NIFTY50",
+  "timeframe": "5m",
+  "candles_analyzed": 300,
+  "price": 25011.27,
+  "data_as_of": "2026-10-02T05:40:00Z",
+  "vwap": {
+   "reasons": [
+    "Price -2.64% below VWAP",
+    "VWAP sloping down"
+   ],
+   "vwap": 25690.1611,
+   "vwap_slope_percent": -0.044511,
+   "price_vs_vwap": "BELOW",
+   "distance_from_vwap": -678.8911,
+   "distance_from_vwap_percent": -2.6426,
+   "crossings": 2,
+   "recent_crossings": 0,
+   "candles_since_last_cross": 71,
+   "anchor_candles": 75
+  },
+  "moving_averages": {
+   "reasons": [
+    "Price below fast EMA",
+    "Negative EMA slope",
+    "Bearish EMA alignment (price < fast < slow)",
+    "Fast and slow EMAs diverging",
+    "Price below long MA"
+   ],
+   "ema_fast_period": 20,
+   "ema_slow_period": 50,
+   "ma_period": 200,
+   "ema_fast": 25165.3196,
+   "ema_slow": 25446.5453,
+   "ma": 26564.7732,
+   "price_vs_ema_fast": "BELOW",
+   "price_vs_ema_slow": "BELOW",
+   "price_vs_ma": "BELOW",
+   "distance_from_ema_fast_percent": -0.6122,
+   "distance_from_ema_slow_percent": -1.7105,
+   "distance_from_ma_percent": -5.848,
+   "ema_fast_slope_percent": -0.078811,
+   "ema_slow_slope_percent": -0.075245,
+   "ma_slope_percent": -0.060006,
+   "separation_percent": -1.1052,
+   "separation_state": "DIVERGING",
+   "alignment": "BEARISH",
+   "trend": "DOWN",
+   "ma_trend_score": 100.0
+  },
+  "volatility": {
+   "reasons": [
+    "Large wicks (71% of candle range)",
+    "6 candle-direction reversals in 10 candles"
+   ],
+   "atr": 53.582,
+   "atr_percent": 0.2142,
+   "atr_baseline": 60.7715,
+   "atr_ratio": 0.8817,
+   "volatility_level": "NORMAL",
+   "is_expanding": false,
+   "average_wick_ratio": 0.7055,
+   "direction_changes": 6,
+   "character_window": 10,
+   "latest_range_atr": 0.8145
+  },
+  "momentum": {
+   "reasons": [
+    "Negative momentum (score 21)"
+   ],
+   "momentum_score": 21.13,
+   "direction": "DOWN",
+   "composite_z": -1.0974,
+   "rate_of_change_percent": {
+    "3": -0.0506,
+    "10": -0.625,
+    "20": -1.7367
+   },
+   "normalized_rate_of_change": {
+    "3": -0.2115,
+    "10": -1.4309,
+    "20": -2.8117
+   },
+   "volatility_normalized": true
+  },
+  "volume": {
+   "reasons": [
+    "Volume trending higher"
+   ],
+   "current_volume": 40910,
+   "average_volume": 45591.6,
+   "relative_volume": 0.8973,
+   "relative_volume_score": 47.29,
+   "is_spike": false,
+   "volume_trend": "INCREASING",
+   "confirms_price_move": false
+  },
+  "structure": {
+   "reasons": [
+    "Lower-high, lower-low structure",
+    "Break of structure in the trend's direction"
+   ],
+   "trend": "DOWN",
+   "structure_state": "TREND_CONTINUATION",
+   "last_event": "BREAK_OF_STRUCTURE",
+   "confidence": 95.0,
+   "latest_swing_high": 25188.21,
+   "latest_swing_low": 25567.55,
+   "higher_highs": 3,
+   "higher_lows": 2,
+   "lower_highs": 20,
+   "lower_lows": 17,
+   "swings": [
+    {
+     "type": "HIGH",
+     "index": 212,
+     "price": 26690.99,
+     "timestamp": "2026-10-01T22:25:00Z",
+     "label": "LOWER_HIGH"
+    },
+    {
+     "type": "LOW",
+     "index": 219,
+     "price": 26386.73,
+     "timestamp": "2026-10-01T23:00:00Z",
+     "label": "LOWER_LOW"
+    },
+    {
+     "type": "HIGH",
+     "index": 227,
+     "price": 26538.64,
+     "timestamp": "2026-10-01T23:40:00Z",
+     "label": "LOWER_HIGH"
+    }
+   ]
+  },
+  "range": {
+   "reasons": [
+    "Directional movement (efficiency 0.72)"
+   ],
+   "window": 12,
+   "range_high": 25216.74,
+   "range_low": 24992.59,
+   "range_width_percent": 0.8969,
+   "range_width_atr": 3.5691,
+   "compression_ratio": 0.8329,
+   "is_compressed": false,
+   "breakout_direction": null,
+   "breakout_distance_atr": 0.0,
+   "efficiency_ratio": 0.7151,
+   "net_move_atr": -7.0387
+  },
+  "relative_strength": null,
+  "trend_quality": {
+   "reasons": [
+    "Swing structure agrees with the trend",
+    "Momentum agrees with the trend"
+   ],
+   "direction": "DOWN",
+   "score": 94.98,
+   "components": {
+    "direction": 20.0,
+    "slope": 15.0,
+    "structure": 19.0,
+    "distance": 10.0,
+    "momentum": 15.0,
+    "volume": 5.98,
+    "volatility": 10.0
+   }
+  },
+  "unavailable": {}
+ }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -13,6 +14,7 @@ import type { RiskDecision } from "@/types/trading";
 /** Sends a stored signal through the risk check to the PAPER broker. */
 export function ExecuteSignal({ signalId, active }: { signalId: string; active: boolean }) {
   const { accessToken } = useAuth();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [decision, setDecision] = useState<RiskDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +26,8 @@ export function ExecuteSignal({ signalId, active }: { signalId: string; active: 
     try {
       const res = await executeSignalRequest(signalId, accessToken);
       setDecision(res.decision);
+      queryClient.setQueryData(["trading", "status"], res.status);
+      void queryClient.invalidateQueries({ queryKey: ["trading"] });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Request failed");
     } finally {

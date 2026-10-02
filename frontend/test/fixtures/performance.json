@@ -1,0 +1,94 @@
+{
+ "summary": {
+  "closed_trades": 2,
+  "wins": 0,
+  "losses": 2,
+  "breakeven": 0,
+  "win_rate": 0.0,
+  "net_pnl": -146.5,
+  "gross_profit": 0.0,
+  "gross_loss": -146.5,
+  "profit_factor": 0.0,
+  "charges": 103.3,
+  "average_win": null,
+  "average_loss": -73.25,
+  "expectancy": -73.25,
+  "average_r": -0.55,
+  "best_trade": -70.45,
+  "worst_trade": -76.05,
+  "max_drawdown": -146.5,
+  "max_drawdown_percent": -0.146,
+  "longest_win_streak": 0,
+  "longest_loss_streak": 2,
+  "starting_capital": 100000.0,
+  "ending_equity": 99853.5,
+  "return_percent": -0.146
+ },
+ "equity_curve": [
+  {
+   "trade_id": "19ca177d-2962-4113-8f29-b31e32c34393",
+   "symbol": "ADANIENT",
+   "strategy": "TREND_CONTINUATION",
+   "closed_at": "2026-10-02T05:42:08.624523Z",
+   "net_pnl": -70.45,
+   "r_multiple": -0.42,
+   "cumulative_pnl": -70.45,
+   "equity": 99929.55,
+   "drawdown": -70.45,
+   "drawdown_percent": -0.07
+  },
+  {
+   "trade_id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8",
+   "symbol": "RELIANCE",
+   "strategy": "TREND_CONTINUATION",
+   "closed_at": "2026-10-02T05:47:09.572641Z",
+   "net_pnl": -76.05,
+   "r_multiple": -0.68,
+   "cumulative_pnl": -146.5,
+   "equity": 99853.5,
+   "drawdown": -146.5,
+   "drawdown_percent": -0.146
+  }
+ ],
+ "daily": [
+  {
+   "date": "2026-10-02",
+   "net_pnl": -146.5,
+   "trades": 2,
+   "wins": 0,
+   "losses": 2
+  }
+ ],
+ "by_strategy": [
+  {
+   "key": "TREND_CONTINUATION",
+   "trades": 2,
+   "wins": 0,
+   "losses": 2,
+   "win_rate": 0.0,
+   "net_pnl": -146.5,
+   "gross_profit": 0.0,
+   "gross_loss": -146.5,
+   "profit_factor": 0.0,
+   "average_r": -0.55
+  }
+ ],
+ "by_exit_reason": [
+  {
+   "key": "MANUAL",
+   "trades": 2,
+   "wins": 0,
+   "losses": 2,
+   "win_rate": 0.0,
+   "net_pnl": -146.5,
+   "gross_profit": 0.0,
+   "gross_loss": -146.5,
+   "profit_factor": 0.0,
+   "average_r": -0.55
+  }
+ ],
+ "other_trades": {
+  "INTERRUPTED": 1
+ },
+ "note": "Paper trading results on simulated market data, under configurable fill, slippage and cost assumptions. Past paper performance does not predict future results and is not evidence of profitability."
+}

@@ -1,0 +1,191 @@
+{
+ "limits": {
+  "risk_per_trade_percent": 1.0,
+  "lot_size": 1,
+  "tick_size": 0.05,
+  "max_order_quantity": 100000,
+  "max_position_value": 50000.0,
+  "margin_multiplier": 1.0,
+  "daily_loss_limit_percent": 3.0,
+  "max_trades_per_day": 5,
+  "max_consecutive_losses": 3,
+  "max_exposure": 50000.0,
+  "min_signal_score": 60.0,
+  "max_data_age_seconds": 30.0,
+  "max_signal_age_seconds": 120.0,
+  "max_entry_deviation_r": 0.25,
+  "allow_short": true,
+  "session": {
+   "mode": "SIMULATED_24H",
+   "open_time": "09:15:00",
+   "close_time": "15:30:00",
+   "last_entry_time": "15:00:00",
+   "square_off_time": "15:15:00",
+   "holidays": []
+  }
+ },
+ "snapshot": {
+  "state": {
+   "trading_day": "2026-10-02",
+   "day_start_capital": 100000.0,
+   "trades_today": 3,
+   "realized_pnl_today": -146.5,
+   "consecutive_losses": 2,
+   "wins_today": 0,
+   "losses_today": 2,
+   "executed_signal_ids": [
+    "b206ee9e-58b8-4300-ab04-1ccf1c76a037",
+    "ef43832f-f079-41df-a830-9bbfc176f2bd",
+    "cba34ba9-fa7c-497c-8c38-6b72541a048b"
+   ]
+  },
+  "capital": 99853.5,
+  "available_capital": 99853.5,
+  "open_exposure": 0.0,
+  "daily_loss_limit_amount": 3000.0,
+  "daily_loss_remaining": 2853.5,
+  "risk_per_trade_amount": 998.53,
+  "trades_remaining": 2,
+  "consecutive_losses_remaining": 1,
+  "entries_blocked": false,
+  "blocked_reasons": [],
+  "note": "Risk checks limit how much a single paper trade and a trading day can lose under the configured assumptions. Passing every check does not make a trade profitable, and slippage or gaps can push a loss past the planned risk."
+ },
+ "last_decision": {
+  "approved": true,
+  "intent": {
+   "signal_id": "cba34ba9-fa7c-497c-8c38-6b72541a048b",
+   "symbol": "RELIANCE",
+   "side": "LONG",
+   "entry": 1227.53,
+   "stop_loss": 1224.7,
+   "target": 1233.2,
+   "score": 67.8,
+   "strategy": "TREND_CONTINUATION",
+   "signal_last_seen_at": "2026-10-02T05:46:11.290852Z",
+   "signal_active": true
+  },
+  "size": {
+   "quantity": 40,
+   "raw_quantity": 454.2273,
+   "risk_amount": 999.3,
+   "risk_per_unit": 2.2,
+   "actual_risk": 88.0,
+   "position_value": 49076.0,
+   "entry": 1226.9,
+   "stop_loss": 1224.7,
+   "constraints": [
+    "rounded down to lot size 1",
+    "capped by max position value"
+   ]
+  },
+  "checks": [
+   {
+    "name": "trading_mode",
+    "passed": true,
+    "detail": "mode PAPER; only PAPER execution exists",
+    "reason": null
+   },
+   {
+    "name": "emergency_stop",
+    "passed": true,
+    "detail": "not active",
+    "reason": null
+   },
+   {
+    "name": "system_health",
+    "passed": true,
+    "detail": "market data, scanner and trade storage healthy",
+    "reason": null
+   },
+   {
+    "name": "market_hours",
+    "passed": true,
+    "detail": "simulated 24h session (exchange hours not enforced)",
+    "reason": null
+   },
+   {
+    "name": "data_freshness",
+    "passed": true,
+    "detail": "price and signal are current",
+    "reason": null
+   },
+   {
+    "name": "one_active_trade",
+    "passed": true,
+    "detail": "no active trade",
+    "reason": null
+   },
+   {
+    "name": "duplicate_order",
+    "passed": true,
+    "detail": "no matching order",
+    "reason": null
+   },
+   {
+    "name": "daily_loss_limit",
+    "passed": true,
+    "detail": "realized today \u20b9-70.45; \u20b92,929.55 of \u20b93,000.00 left",
+    "reason": null
+   },
+   {
+    "name": "max_trades",
+    "passed": true,
+    "detail": "2 of 5 trades taken today",
+    "reason": null
+   },
+   {
+    "name": "consecutive_losses",
+    "passed": true,
+    "detail": "1 in a row (limit 3)",
+    "reason": null
+   },
+   {
+    "name": "signal_score",
+    "passed": true,
+    "detail": "score 67.8, executable threshold 60",
+    "reason": null
+   },
+   {
+    "name": "stop_validity",
+    "passed": true,
+    "detail": "stop 1224.70 is below entry 1227.53 and price 1226.88",
+    "reason": null
+   },
+   {
+    "name": "target_validity",
+    "passed": true,
+    "detail": "target 1233.20 vs price 1226.88",
+    "reason": null
+   },
+   {
+    "name": "entry_deviation",
+    "passed": true,
+    "detail": "price 1226.88 is 0.00 worse than planned entry 1227.53 (allowed 0.71 = 0.25R)",
+    "reason": null
+   },
+   {
+    "name": "quantity_validity",
+    "passed": true,
+    "detail": "40 shares (raw 454.23; rounded down to lot size 1, capped by max position value)",
+    "reason": null
+   },
+   {
+    "name": "sufficient_capital",
+    "passed": true,
+    "detail": "needs \u20b949,128.04, available \u20b999,929.55",
+    "reason": null
+   },
+   {
+    "name": "max_exposure",
+    "passed": true,
+    "detail": "exposure would be \u20b949,076.00 (limit \u20b950,000.00)",
+    "reason": null
+   }
+  ],
+  "rejection_reasons": [],
+  "evaluated_at": "2026-10-02T05:46:11.762167Z",
+  "note": "Risk checks limit how much a single paper trade and a trading day can lose under the configured assumptions. Passing every check does not make a trade profitable, and slippage or gaps can push a loss past the planned risk."
+ },
+ "note": "Risk checks limit how much a single paper trade and a trading day can lose under the configured assumptions. Passing every check does not make a trade profitable, and slippage or gaps can push a loss past the planned risk."
+}

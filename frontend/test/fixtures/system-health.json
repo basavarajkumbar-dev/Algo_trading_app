@@ -1,0 +1,24 @@
+{
+ "status": "HEALTHY",
+ "app_name": "GAINZALGO PRO MAX",
+ "app_env": "development",
+ "demo_mode": true,
+ "trading_mode": "PAPER",
+ "live_trading_active": false,
+ "components": [
+  {
+   "name": "database",
+   "status": "CONNECTED",
+   "detail": null
+  },
+  {
+   "name": "redis",
+   "status": "CONNECTED",
+   "detail": null
+  }
+ ],
+ "notes": [
+  "Market data is simulated (mock provider) \u2014 no live market feed is connected in this phase.",
+  "No broker is connected and no real orders can be placed."
+ ]
+}

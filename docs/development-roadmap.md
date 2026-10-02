@@ -629,7 +629,10 @@ under this phase number.
 
 ---
 
-## Phase 12 — WebSocket Layer & REST API Completion
+## Phase 12 — WebSocket Layer & REST API Completion *(partly delivered in "Phase 9")*
+
+> Delivered so far: `trading_event` messages on `/ws/market`, `GET
+> /analytics/performance`, `GET /system/components`, `GET /system/events`.
 
 **Scope**
 - WebSocket event set exactly as specified in the contract (market_tick,
@@ -648,40 +651,83 @@ under this phase number.
 
 ---
 
-## Phase 13 — Frontend Foundation & Dashboard
+## Phase 13 — Frontend Foundation & Dashboard ✅ *(delivered with Phase 14 as "Phase 9 — Professional Trading Dashboard")*
 
-**Scope**
-- Next.js app: layout, left sidebar nav, top bar (market status, trading
-  mode, algo status, system health, notifications, user).
-- Dashboard command center: NIFTY market KPI, market regime card, algo
-  status, today P&L, system health, AI Market Brain panel, live scanner
-  table, active signal panel, active position panel, trade history
-  preview.
-- WebSocket client with reconnect logic and visible connection status.
-- Demo/seed data wired so the dashboard is populated on first load.
+> **Numbering note:** directed and executed as "Phase 9 — Professional
+> Trading Dashboard", which covers this phase and Phase 14 together, plus
+> the read-only endpoints the dashboard needed (part of Phase 12).
+
+**Delivered**
+- Stack: Next.js 14, TypeScript, Tailwind, shadcn/ui components (table,
+  tabs, tooltip, dropdown menu, progress, separator, skeleton; written in
+  shadcn's source form, `components.json`), Recharts, TanStack Query
+  (every dashboard read; keys in `lib/query-keys.ts`), Zustand (live
+  market store; per-browser UI store) and one WebSocket connection
+  (`SocketBridge`) for the whole dashboard.
+- Sidebar: Dashboard, Market (Price Action under it), Scanner, Signals,
+  Positions, Trades, Analytics, Strategies, Backtesting, Risk, System,
+  Settings, with the current section highlighted.
+- Top bar: NIFTY 50 (live price, change, regime), market session, trading
+  mode, algo status, overall system health, WebSocket status,
+  notifications (recent system events, unread count per browser).
+- Command center: NIFTY, market regime, regime confidence, algo status,
+  trading mode, today's P&L (realized net + open trade at the live
+  price), trade count, win/loss, system health; AI Market Brain (regime,
+  confidence, active / routed strategy, trend, momentum, VWAP, volume,
+  volatility, structure, relative-strength leaders); live scanner (rank,
+  stock, live price and change, signal, score, strategy, status); signal
+  panel with every scoring factor ("Why?"); active position with live
+  price, P&L, duration and the SL ── ENTRY ── CURRENT ── TARGET bar; trade
+  history; risk meters; system health list.
+- Realtime: prices, intelligence and regime changes from `/ws/market`;
+  every `trading_event` invalidates the trading, analytics and system
+  queries, so panels update without waiting for a poll. Reconnects after
+  a drop and shows its state.
+- No fake data: every panel reads the backend. Empty and error states say
+  so instead of filling in values. The market data itself is the
+  simulated feed, labelled "Simulated" everywhere.
 
 **Definition of Done**
-- [ ] Dashboard renders fully against the running backend in demo mode
-      with zero external credentials.
-- [ ] WebSocket reconnect behavior verified (simulated disconnect).
-- [ ] No `any` types in new frontend code.
+- [x] Dashboard renders fully against the running backend in demo mode
+      with zero external credentials (Playwright e2e).
+- [x] WebSocket reconnect behaviour verified (integration test drops the
+      socket and checks the reconnect).
+- [x] No `any` types in new frontend code.
 
 ---
 
-## Phase 14 — Remaining Frontend Pages
+## Phase 14 — Remaining Frontend Pages ✅ *(delivered as part of "Phase 9")*
 
-**Scope**
-- `/market`, `/scanner`, `/signals`, `/positions`, `/trades`,
-  `/analytics`, `/strategies`, `/risk`, `/settings`, `/system`.
-- Signal details panel, active position panel with trade progress
-  visualization, trade history detail view, analytics charts with time
-  filters, risk dashboard, system health page, settings UI, emergency
-  controls.
+**Delivered**
+- `/analytics` (new): net P&L, win rate, profit factor, expectancy, max
+  drawdown, average R, equity curve, drawdown chart, P&L per trade / per
+  day, performance by strategy and by exit reason (`GET
+  /analytics/performance`).
+- `/system` (new): Market Data, Backend, Database, Redis, WebSocket,
+  Strategy Engine, Risk Engine and Paper Broker as HEALTHY / WARNING /
+  CRITICAL with reasons and metrics (`GET /system/components`), this
+  browser's socket, and the event log (`GET /system/events`).
+- `/backtesting`: states that the engine is Phase 15 and shows no results.
+- `/positions`, `/trades`, `/risk` moved to TanStack Query; Positions has
+  the position bar and duration; Trades has the complete trade table
+  with filters; Risk adds daily loss, risk used, trades used, exposure,
+  consecutive losses and system status meters. Emergency stop remains on
+  Positions and calls the real endpoint.
+
+**Not in this phase**
+- Analytics time-range filters (per trade / per day only).
+- `/market`, `/scanner`, `/signals`, `/strategies`, `/price-action` keep
+  their own polling (they work; moving them to TanStack Query is
+  housekeeping).
+- Settings audit trail beyond what Phase 2 built.
 
 **Definition of Done**
-- [ ] Every page listed loads without error against the backend.
-- [ ] Emergency Stop control is reachable and calls the real endpoint.
-- [ ] Settings changes are validated, logged, and audited end-to-end.
+- [x] Every page listed loads without error against the backend
+      (Playwright visits all twelve sections and fails on any console
+      or page error).
+- [x] Emergency Stop control is reachable and calls the real endpoint.
+- [ ] Settings changes are validated, logged, and audited end-to-end
+      (unchanged from Phase 2).
 
 ---
 

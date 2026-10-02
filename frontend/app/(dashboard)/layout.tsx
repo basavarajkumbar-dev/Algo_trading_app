@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
+import { SocketBridge } from "@/components/realtime/socket-bridge";
 
 /**
  * `middleware.ts` already redirects unauthenticated requests to /login
@@ -35,6 +36,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <SocketBridge />
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />

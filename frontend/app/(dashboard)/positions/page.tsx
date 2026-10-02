@@ -1,9 +1,11 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { PositionBar } from "@/components/dashboard/position-bar";
 import {
   DecisionSummary,
   LifecycleStrip,
@@ -16,48 +18,41 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError } from "@/lib/api";
+import { formatDuration } from "@/lib/dashboard-format";
 import { formatIstTime, formatPrice } from "@/lib/intelligence-format";
+import { useTradingStatus } from "@/lib/queries";
+import { qk } from "@/lib/query-keys";
+import { useMarketStore } from "@/lib/stores/market-store";
 import {
   emergencyStopRequest,
   exitPositionRequest,
-  getTradingStatusRequest,
   resetEmergencyStopRequest,
   setAutoTradingRequest,
 } from "@/lib/trading-client";
 import { REJECTION_LABEL, STATE_LABEL, formatInr, pnlTone } from "@/lib/trading-format";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 import type { TradingStatus } from "@/types/trading";
 
-const POLL_MS = 2_000;
-
-export default function PaperTradingPage() {
+export default function PositionsPage() {
   const { accessToken } = useAuth();
-  const [status, setStatus] = useState<TradingStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const query = useTradingStatus();
+  const status = query.data ?? null;
+  const error = query.error ? (query.error instanceof Error ? query.error.message : "Request failed") : null;
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(() => {
-    getTradingStatusRequest()
-      .then((s) => {
-        setStatus(s);
-        setError(null);
-      })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : "Request failed"));
-  }, []);
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
-  }, [load]);
+  const live = useMarketStore((st) => (status?.active_trade ? st.snapshots[status.active_trade.symbol] : undefined));
+  const now = useNow();
 
   async function act(fn: (token: string) => Promise<TradingStatus>) {
     if (!accessToken) return;
     setBusy(true);
     setActionError(null);
     try {
-      setStatus(await fn(accessToken));
+      queryClient.setQueryData(qk.tradingStatus, await fn(accessToken));
+      void queryClient.invalidateQueries({ queryKey: ["trading"] });
+      void queryClient.invalidateQueries({ queryKey: ["system"] });
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Action failed");
     } finally {
@@ -73,7 +68,7 @@ export default function PaperTradingPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">Paper trading</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Positions</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
             Signal → risk check → paper order → fill → position → stop / target → exit → P&amp;L,
             one trade at a time. Orders go to a simulated broker; no broker is connected and no
@@ -184,8 +179,21 @@ export default function PaperTradingPage() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-4">
-                  <TradeHeader trade={trade} />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <TradeHeader trade={trade} />
+                    <span className="tabular text-xs text-muted">
+                      held {formatDuration(trade.opened_at ?? trade.created_at, now)}
+                    </span>
+                  </div>
                   <TradeFigures trade={trade} />
+                  {trade.entry_price !== null && (
+                    <PositionBar
+                      stop={trade.stop_loss}
+                      entry={trade.entry_price}
+                      target={trade.target}
+                      current={live?.price ?? trade.last_price}
+                    />
+                  )}
                 </div>
               )}
             </CardContent>

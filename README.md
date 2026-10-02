@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 8 — Risk Engine and Paper Trading complete. Mode: PAPER only.**
+**Status: Phase 9 — Professional Trading Dashboard complete. Mode: PAPER only.**
 
 See:
 
@@ -13,7 +13,7 @@ See:
 - [`docs/development-roadmap.md`](./docs/development-roadmap.md) —
   phase-by-phase build plan and this phase's full Definition of Done.
 - [`docs/api.md`](./docs/api.md) — full endpoint reference, including
-  the paper trading endpoints added in this phase.
+  the analytics, system health and event endpoints added in this phase.
 
 ## What exists right now
 
@@ -70,7 +70,7 @@ See:
   **Frontend `/scanner`** (scanner table, top candidates, signal details)
   and **`/signals`** (stored signals with score and reason breakdowns).
 
-- **Risk engine and paper trading** (Phase 8, new): a `RiskManager`
+- **Risk engine and paper trading** (Phase 8): a `RiskManager`
   sizes every trade (capital x risk % / stop distance, rounded to lots and
   capped) and rejects it, with every reason, on emergency stop, an
   unhealthy system, market closed, stale data, an active trade, a
@@ -83,6 +83,18 @@ See:
   square-off and an emergency stop. **Frontend `/positions`** (Paper
   Trading: state machine, active trade, controls), **`/trades`** and
   **`/risk`**; Signals has a "Paper trade this signal" button.
+
+- **Professional trading dashboard** (Phase 9, new): a command center
+  (NIFTY, regime and confidence, algo status, trading mode, today's P&L,
+  trade count, win/loss, system health), AI Market Brain, live scanner,
+  signal panel with every scoring factor, active position with an
+  SL ── ENTRY ── CURRENT ── TARGET bar, trade history, risk meters and
+  system health — plus new **Analytics** (equity curve, drawdown, P&L,
+  win rate, profit factor, strategy performance) and **System** (eight
+  components, HEALTHY / WARNING / CRITICAL, event log) pages, a top bar
+  with live NIFTY, market session, mode, algo, health and notifications.
+  Built with TanStack Query, Zustand, Recharts and shadcn/ui, live over
+  one WebSocket. Every panel reads the backend; nothing is invented.
 
 **Paper only.** Orders go to a simulated broker; no broker (Zerodha or any
 other) is connected, no real order can be placed and no real money is
@@ -113,7 +125,8 @@ http://localhost:3000/price-action (Price Action) and
 http://localhost:3000/strategies (Strategies),
 http://localhost:3000/scanner (Scanner), http://localhost:3000/signals
 (Signals), http://localhost:3000/positions (Paper Trading),
-http://localhost:3000/trades and http://localhost:3000/risk after logging in. Simulated warm-up history is
+http://localhost:3000/trades, http://localhost:3000/analytics,
+http://localhost:3000/risk and http://localhost:3000/system after logging in. Simulated warm-up history is
 generated at startup, so regimes are available within seconds.
 
 To stop:
@@ -279,6 +292,27 @@ npm run dev
   lower `SIGNAL_EXECUTABLE_THRESHOLD`; that changes which signals count as
   executable and says nothing about their quality.
 
+## How the dashboard works (Phase 9 scope)
+
+- **Data.** Every panel reads the backend through TanStack Query; there is
+  no hardcoded or sample data in the frontend. The market data itself is
+  the simulated feed (that is what demo mode is), labelled "Simulated".
+  When the backend is unreachable panels say so instead of keeping
+  invented values.
+- **Realtime.** One WebSocket per tab (`SocketBridge`) streams prices,
+  intelligence and regime changes into a Zustand store; paper trading
+  events arriving on the same socket refresh the trading, analytics and
+  system queries immediately. Polling remains as a fallback.
+- **Today's P&L** is realized net P&L today plus the open trade's net P&L
+  at the live price — the same figure the Active Position panel shows.
+- **Health levels** are explained per component on the System page and
+  in `docs/api.md`. HEALTHY means a component is running as designed; it
+  says nothing about trading results.
+- **End-to-end tests** expect the stack to be running: `make up` (or the
+  backend plus `npm run build && npm start`), then `make test-e2e`. Set
+  `E2E_BASE_URL` / `E2E_API_URL` for other hosts. Each run registers a
+  throwaway account with a random password.
+
 ## Environment variables
 
 See [`.env.example`](./.env.example) for the full list. New in Phases 4
@@ -314,9 +348,10 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 466 tests, all passing with a real Postgres;
+make test-backend    # pytest — 482 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
-make test-frontend   # tsc --noEmit + eslint + vitest
+make test-frontend   # tsc --noEmit + eslint + vitest (68 unit + integration tests)
+make test-e2e        # Playwright against a running stack (5 end-to-end tests)
 make lint             # ruff + black (backend), eslint (frontend)
 ```
 
@@ -326,6 +361,22 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 9 (16 backend tests, 32 frontend tests,
+5 end-to-end): performance analytics (summary figures, undefined profit
+factor, equity and drawdown in closing order, streaks, IST days, groups),
+component health classification, and the new endpoints with Postgres
+(components, events, performance, trading events over the WebSocket).
+Frontend integration tests render the dashboard, shell and pages with
+real providers against API responses captured from the backend and a
+mock WebSocket: every command-center panel, scanner selection, live
+position P&L and the position bar, error states without invented data,
+live NIFTY over the socket, query refresh on trading events, reconnect,
+notifications, analytics (and its empty state), all eight system
+components, the complete trade table and the risk meters. Playwright
+logs in to the running stack, opens all twelve sections (failing on any
+console error), checks the live WebSocket feed, the system page,
+switching automatic trading on and off, and notifications.
 
 Test coverage added in Phase 8 (122 backend tests, 5 frontend):
 position sizing (formula, lots, ticks, every cap), every rejection
@@ -400,7 +451,8 @@ gainzalgo-pro-max/
       risk/            RiskLimits, position sizing, RiskManager (Phase 8, new)
       execution/       BrokerAdapter, PaperBrokerAdapter, CostModel (Phase 8, new)
       trading/         state machine, PaperTradingEngine, storage,
-                        TradingService (Phase 8, new)
+                        TradingService (Phase 8)
+      analytics/       performance analytics over paper trades (Phase 9, new)
       websocket/       ConnectionManager (Phase 3)
       schemas/         Pydantic request/response models
       services/        auth_service, settings_service, system_health
@@ -421,7 +473,17 @@ gainzalgo-pro-max/
     components/strategies/ strategy result card (Phase 6)
     components/signals/ signal detail, score and reason breakdowns (Phase 7)
     components/trading/ lifecycle strip, risk checks, trade figures,
-                        execute-signal button (Phase 8, new)
+                        execute-signal button, trade table/detail (Phase 8)
+    components/dashboard/ command center, market brain, live scanner,
+                        signal panel, active position + bar, risk,
+                        health (Phase 9, new)
+    components/analytics/ Recharts equity, drawdown, P&L (Phase 9, new)
+    components/realtime/ SocketBridge: the one /ws/market connection
+    components/ui/      shadcn/ui components
+    lib/stores/         Zustand market and UI stores (Phase 9, new)
+    lib/queries.ts      TanStack Query hooks (Phase 9, new)
+    test/               fixtures, render helpers, integration tests
+    e2e/                Playwright end-to-end tests
     lib/               market-client, use-market-socket,
                         intelligence-format, price-action-format,
                         strategy-format, signal-format,
@@ -435,7 +497,7 @@ gainzalgo-pro-max/
 ## What's next
 
 See `docs/development-roadmap.md`. Next: the remaining trading-domain
-data models, the WebSocket event set and REST API completion, analytics,
-and backtesting, built one phase at a time. A real broker adapter comes
+data models, the rest of the WebSocket event set and REST API, and the
+backtesting engine, built one phase at a time. A real broker adapter comes
 last and only behind the live-trading safety conditions in
 `PROJECT_CONTRACT.md` section 9.

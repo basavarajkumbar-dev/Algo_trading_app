@@ -273,6 +273,10 @@ export interface TradingStatus {
   entry_timeout_seconds: number;
   recent_transitions: StateChange[];
   is_running: boolean;
+  market_open: boolean;
+  entries_allowed: boolean;
+  market_detail: string;
+  session_mode: "EXCHANGE" | "SIMULATED_24H";
   note: string;
 }
 

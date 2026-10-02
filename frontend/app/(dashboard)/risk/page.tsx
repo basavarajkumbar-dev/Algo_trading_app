@@ -1,38 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
+import { RiskSummary } from "@/components/dashboard/risk-summary";
 import { DecisionSummary, LimitBar, Stat } from "@/components/trading/trading-parts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTradingRiskRequest } from "@/lib/trading-client";
+import { useTradingRisk } from "@/lib/queries";
 import { REJECTION_LABEL, formatInr, pnlTone } from "@/lib/trading-format";
-import type { RiskResponse } from "@/types/trading";
-
-const POLL_MS = 3_000;
 
 export default function RiskPage() {
-  const [data, setData] = useState<RiskResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    function poll() {
-      getTradingRiskRequest()
-        .then((d) => {
-          if (cancelled) return;
-          setData(d);
-          setError(null);
-        })
-        .catch((err: unknown) => !cancelled && setError(err instanceof Error ? err.message : "Request failed"));
-    }
-    poll();
-    const id = setInterval(poll, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+  const query = useTradingRisk();
+  const data = query.data;
+  const error = query.error ? (query.error instanceof Error ? query.error.message : "Request failed") : null;
 
   const l = data?.limits;
   const snap = data?.snapshot;
@@ -55,7 +33,8 @@ export default function RiskPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-3">
+        <RiskSummary title="Limits used" />
         <Card>
           <CardHeader>
             <CardTitle>Today</CardTitle>

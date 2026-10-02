@@ -1,3 +1,4 @@
+import type { WsTradingEventMessage } from "@/types/dashboard";
 import type { WsMarketIntelligenceMessage, WsMarketRegimeMessage } from "@/types/intelligence";
 
 /**
@@ -94,4 +95,5 @@ export type WsMessage =
   | WsMarketTickMessage
   | WsCandleClosedMessage
   | WsMarketIntelligenceMessage
-  | WsMarketRegimeMessage;
+  | WsMarketRegimeMessage
+  | WsTradingEventMessage;

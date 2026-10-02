@@ -1,6 +1,6 @@
 # GAINZALGO PRO MAX — API Reference
 
-Covers the API surface that exists through Phase 8. Interactive,
+Covers the API surface that exists through Phase 9. Interactive,
 always-current documentation is also available at `/docs` (Swagger UI)
 and `/redoc` on the running backend. This file is a narrative
 companion, not a replacement — update it in the same phase that changes
@@ -653,7 +653,9 @@ each action is written to the audit log.
 `working_orders`, `risk` (`RiskSnapshot`), `system_healthy` /
 `health_detail`, `persistence_ok` / `persistence_error`,
 `restored_trades_today`, `interrupted_trades`, `broker` (the paper
-broker assumptions), `entry_timeout_seconds`, `recent_transitions`.
+broker assumptions), `entry_timeout_seconds`, `recent_transitions`, and
+(Phase 9) the session: `market_open`, `entries_allowed`, `market_detail`,
+`session_mode` (`EXCHANGE` / `SIMULATED_24H`).
 
 ### `GET /trading/risk`
 
@@ -755,3 +757,80 @@ omitted); it keeps its protective stop and target.
 
 Allows new trading again; automatic trading stays off. 409 while an
 exit order is working.
+
+
+---
+
+## Dashboard support (Phase 9)
+
+Read-only, no authentication required.
+
+### `GET /analytics/performance`
+
+Computed from stored CLOSED paper trades with a fill (up to 5,000), all
+P&L net of charges:
+
+- `summary`: `closed_trades`, `wins`, `losses`, `breakeven`, `win_rate`
+  (%), `net_pnl`, `gross_profit`, `gross_loss`, `profit_factor` (gross
+  profit / |gross loss|; `null` when there are no losing trades),
+  `charges`, `average_win`, `average_loss`, `expectancy` (net per trade),
+  `average_r`, `best_trade`, `worst_trade`, `max_drawdown` (rupees, <= 0),
+  `max_drawdown_percent`, `longest_win_streak`, `longest_loss_streak`,
+  `starting_capital` (`PAPER_CAPITAL`), `ending_equity`, `return_percent`.
+- `equity_curve`: per trade in closing order — `trade_id`, `symbol`,
+  `strategy`, `closed_at`, `net_pnl`, `r_multiple`, `cumulative_pnl`,
+  `equity`, `drawdown`, `drawdown_percent` (below the running peak).
+- `daily`: per IST trading day — `date`, `net_pnl`, `trades`, `wins`,
+  `losses`.
+- `by_strategy`, `by_exit_reason`: `{ key, trades, wins, losses,
+  win_rate, net_pnl, gross_profit, gross_loss, profit_factor, average_r }`.
+- `other_trades`: counts of trades not in the statistics by status
+  (open, cancelled, rejected, interrupted).
+
+Paper results on simulated data; not a forecast and not evidence of
+profitability.
+
+### `GET /system/components`
+
+`{ status, components, demo_mode, trading_mode, checked_at, note }`.
+`status` is the worst component level. Each component is `{ key, name,
+status: HEALTHY | WARNING | CRITICAL, detail, metrics }`:
+
+| key | HEALTHY | WARNING | CRITICAL |
+|---|---|---|---|
+| `market_data` | feed running, provider connected, tick < 10 s old | tick 10–60 s old, no tick yet, or simulated feed with `DEMO_MODE=false` | not running, provider not connected, tick > 60 s old |
+| `backend` | answering | — | (unreachable: the request fails) |
+| `database` | PostgreSQL reachable | — | unreachable |
+| `redis` | reachable | unreachable (not on the trading path yet) | — |
+| `websocket` | `/ws/market` broadcasting (`connected_clients`) | — | market data feed not running |
+| `strategy_engine` | intelligence, price action, strategies and signals refreshing on time | a service errored or is > 3 refresh intervals late | a service is not running |
+| `risk_engine` | evaluating orders | emergency stop active, or a daily risk limit reached | trading service not running |
+| `paper_broker` | simulating fills, trades stored | system unhealthy for new entries | loop not running, or trades cannot be stored |
+
+### `GET /system/events?limit=30&severity=`
+
+Recent system events, newest first: `{ items: [{ id, event_type,
+severity, message, metadata, created_at }], total }`. Paper trading
+events are prefixed `PAPER_` (`PAPER_ORDER_PLACED`,
+`PAPER_POSITION_OPENED`, `PAPER_TRADE_CLOSED`, `PAPER_RISK_REJECTED`,
+`PAPER_EMERGENCY_STOP`, ...). `severity` filters to `INFO`, `WARNING` or
+`CRITICAL`.
+
+### WebSocket: `trading_event`
+
+Every paper trading event is also pushed on `WS /ws/market` after it is
+stored (example shape):
+
+```json
+{
+  "type": "trading_event",
+  "event_type": "TRADE_CLOSED",
+  "severity": "INFO",
+  "message": "LONG 40 RELIANCE: TARGET, net P&L ₹212.40 (+0.85R)",
+  "at": "2026-10-02T05:46:11.204+00:00",
+  "metadata": { "trade_id": "…", "net_pnl": 212.4, "exit_reason": "TARGET" }
+}
+```
+
+The dashboard refreshes its trading, analytics and system queries when
+one arrives.

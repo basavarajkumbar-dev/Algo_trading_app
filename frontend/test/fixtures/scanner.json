@@ -1,0 +1,969 @@
+{
+ "scan": {
+  "market_context": {
+   "benchmark_symbol": "NIFTY50",
+   "available": true,
+   "regime": "STRONG_BEARISH",
+   "regime_confidence": 95.0,
+   "bias_score": -80.1,
+   "direction": "DOWN",
+   "price": 25011.27,
+   "change_percent": -5.44
+  },
+  "rows": [
+   {
+    "rank": 1,
+    "symbol": "RELIANCE",
+    "name": "Reliance Industries Ltd.",
+    "price": 1229.26,
+    "change_percent": 4.86,
+    "status": "READY",
+    "signal_id": "cba34ba9-fa7c-497c-8c38-6b72541a048b",
+    "signal_direction": "BUY",
+    "signal_strategy": "TREND_CONTINUATION",
+    "score": 67.8,
+    "category": "IGNORE",
+    "regime": "STRONG_BULLISH",
+    "regime_confidence": 95.0,
+    "context_direction": "UP",
+    "context_bias": 68.0,
+    "setup_direction": "UP",
+    "setup_bias": 92.1,
+    "entry_direction": "UP",
+    "entry_bias": 81.7,
+    "overall_bias": "BULLISH",
+    "alignment_score": 100.0,
+    "setup_state": "WITH_TREND",
+    "structure_trend": "UP",
+    "structure_state": "TREND_CONTINUATION",
+    "price_vs_vwap": "ABOVE",
+    "trend_quality": 86.7,
+    "trend_direction": "UP",
+    "retracement_direction": "UP",
+    "retracement_percentage": 18.8,
+    "retracement_zone": "SHALLOW",
+    "nearest_support": {
+     "label": "Retracement 40%",
+     "price": 1224.98,
+     "strength": 54.7
+    },
+    "nearest_resistance": {
+     "label": "Day high",
+     "price": 1228.62,
+     "strength": 61.2
+    },
+    "patterns": [],
+    "relative_volume": 0.84,
+    "momentum_score": 68.8,
+    "relative_strength": 92.1,
+    "relative_strength_rank": 21,
+    "strategies": [
+     "TREND_CONTINUATION"
+    ],
+    "strategy_stages": {
+     "TREND_CONTINUATION": "ENTRY_CANDIDATE"
+    },
+    "data_as_of": "2026-10-02T05:40:00Z"
+   },
+   {
+    "rank": 2,
+    "symbol": "MARUTI",
+    "name": "Maruti Suzuki India Ltd.",
+    "price": 12157.7,
+    "change_percent": 0.67,
+    "status": "IGNORE",
+    "signal_id": "1b36d9c0-ca35-401f-a665-1fdaaf6cdacd",
+    "signal_direction": "BUY",
+    "signal_strategy": "BREAKOUT_MOMENTUM",
+    "score": 56.0,
+    "category": "IGNORE",
+    "regime": "BREAKOUT",
+    "regime_confidence": 72.5,
+    "context_direction": "UP",
+    "context_bias": 21.2,
+    "setup_direction": "UP",
+    "setup_bias": 25.5,
+    "entry_direction": "UP",
+    "entry_bias": 21.6,
+    "overall_bias": "BULLISH",
+    "alignment_score": 56.4,
+    "setup_state": "WITH_TREND",
+    "structure_trend": "DOWN",
+    "structure_state": "STRUCTURE_SHIFT",
+    "price_vs_vwap": "ABOVE",
+    "trend_quality": 5.7,
+    "trend_direction": "SIDEWAYS",
+    "retracement_direction": "DOWN",
+    "retracement_percentage": 96.8,
+    "retracement_zone": "MAJOR_WEAKNESS",
+    "nearest_support": {
+     "label": "Swing high",
+     "price": 12142.34,
+     "strength": 73.2
+    },
+    "nearest_resistance": {
+     "label": "Swing high",
+     "price": 12155.13,
+     "strength": 53.9
+    },
+    "patterns": [
+     {
+      "pattern": "WRB",
+      "direction": "BULLISH",
+      "confidence": 100.0
+     }
+    ],
+    "relative_volume": 1.77,
+    "momentum_score": 87.1,
+    "relative_strength": 89.8,
+    "relative_strength_rank": 24,
+    "strategies": [
+     "BREAKOUT_MOMENTUM"
+    ],
+    "strategy_stages": {
+     "BREAKOUT_MOMENTUM": "ENTRY_CANDIDATE"
+    },
+    "data_as_of": "2026-10-02T05:40:00Z"
+   },
+   {
+    "rank": 3,
+    "symbol": "ULTRACEMCO",
+    "name": "UltraTech Cement Ltd.",
+    "price": 10984.76,
+    "change_percent": -2.87,
+    "status": "IGNORE",
+    "signal_id": "d2a6fa14-8411-4f3e-a462-372e6d9224c0",
+    "signal_direction": "SELL",
+    "signal_strategy": "TREND_CONTINUATION",
+    "score": 44.6,
+    "category": "IGNORE",
+    "regime": "STRONG_BEARISH",
+    "regime_confidence": 70.0,
+    "context_direction": "DOWN",
+    "context_bias": -68.1,
+    "setup_direction": "DOWN",
+    "setup_bias": -77.5,
+    "entry_direction": "DOWN",
+    "entry_bias": -42.2,
+    "overall_bias": "BEARISH",
+    "alignment_score": 100.0,
+    "setup_state": "WITH_TREND",
+    "structure_trend": "DOWN",
+    "structure_state": "TRENDING",
+    "price_vs_vwap": "BELOW",
+    "trend_quality": 7.8,
+    "trend_direction": "SIDEWAYS",
+    "retracement_direction": "DOWN",
+    "retracement_percentage": 30.6,
+    "retracement_zone": "SHALLOW",
+    "nearest_support": {
+     "label": "Day low",
+     "price": 10960.93,
+     "strength": 72.9
+    },
+    "nearest_resistance": {
+     "label": "Retracement 40%",
+     "price": 10999.818,
+     "strength": 54.3
+    },
+    "patterns": [],
+    "relative_volume": 0.79,
+    "momentum_score": 39.1,
+    "relative_strength": 79.0,
+    "relative_strength_rank": 40,
+    "strategies": [
+     "TREND_CONTINUATION"
+    ],
+    "strategy_stages": {
+     "TREND_CONTINUATION": "ENTRY_CANDIDATE"
+    },
+    "data_as_of": "2026-10-02T05:40:00Z"
+   },
+   {
+    "rank": null,
+    "symbol": "EICHERMOT",
+    "name": "Eicher Motors Ltd.",
+    "price": 7558.7,
+    "change_percent": 5.39,
+    "status": "NO_SETUP",
+    "signal_id": null,
+    "signal_direction": null,
+    "signal_strategy": null,
+    "score": null,
+    "category": null,
+    "regime": "STRONG_BULLISH",
+    "regime_confidence": 95.0,
+    "context_direction": "UP",
+    "context_bias": 67.2,
+    "setup_direction": "UP",
+    "setup_bias": 95.6,
+    "entry_direction": "UP",
+    "entry_bias": 96.8,
+    "overall_bias": "BULLISH",
+    "alignment_score": 100.0,
+    "setup_state": "WITH_TREND",
+    "structure_trend": "UP",
+    "structure_state": "TREND_CONTINUATION",
+    "price_vs_vwap": "ABOVE",
+    "trend_quality": 95.2,
+    "trend_direction": "UP",
+    "retracement_direction": "UP",
+    "retracement_percentage": 0.4,
+    "retracement_zone": "SHALLOW",
+    "nearest_support": {
+     "label": "Breakout level",
+     "price": 7518.26,
+     "strength": 49.2
+    },
+    "nearest_resistance": {
+     "label": "Day high",
+     "price": 7536.16,
+     "strength": 55.2
+    },
+    "patterns": [],
+    "relative_volume": 0.93,
+    "momentum_score": 96.5,
+    "relative_strength": 99.0,
+    "relative_strength_rank": 1,
+    "strategies": [
+     "TREND_CONTINUATION"
+    ],
+    "strategy_stages": {
+     "TREND_CONTINUATION": "IMPULSE"
+    },
+    "data_as_of": "2026-10-02T05:40:00Z"
+   },
+   {
+    "rank": null,
+    "symbol": "BHARTIARTL",
+    "name": "Bharti Airtel Ltd.",
+    "price": 1896.82,
+    "change_percent": 7.53,
+    "status": "NO_SETUP",
+    "signal_id": null,
+    "signal_direction": null,
+    "signal_strategy": null,
+    "score": null,
+    "category": null,
+    "regime": "STRONG_BULLISH",
+    "regime_confidence": 95.0,
+    "context_direction": "UP",
+    "context_bias": 68.0,
+    "setup_direction": "UP",
+    "setup_bias": 96.8,
+    "entry_direction": "UP",
+    "entry_bias": 94.1,
+    "overall_bias": "BULLISH",
+    "alignment_score": 100.0,
+    "setup_state": "WITH_TREND",
+    "structure_trend": "UP",
+    "structure_state": "TREND_CONTINUATION",
+    "price_vs_vwap": "ABOVE",
+    "trend_quality": 91.6,
+    "trend_direction": "UP",
+    "retracement_direction": "UP",
+    "retracement_percentage": 1.7,
+    "retracement_zone": "SHALLOW",
+    "nearest_support": {
+     "label": "EMA 20",
+     "price": 1869.9696,
+     "strength": 52.2
+    },
+    "nearest_resistance": {
+     "label": "Range high",
+     "price": 1894.55,
+     "strength": 46.2
+    },
+    "patterns": [
+     {
+      "pattern": "NRB",
+      "direction": "NEUTRAL",
+      "confidence": 77.5
+     }
+    ],
+    "relative_volume": 0.62,
+    "momentum_score": 95.7,
+    "relative_strength": 98.4,
+    "relative_strength_rank": 2,
+    "strategies": [
+     "TREND_CONTINUATION"
+    ],
+    "strategy_stages": {
+     "TREND_CONTINUATION": "IMPULSE"
+    },
+    "data_as_of": "2026-10-02T05:40:00Z"
+   },
+   {
+    "rank": null,
+    "symbol": "NTPC",
+    "name": "NTPC Ltd.",
+    "price": 324.43,
+    "change_percent": 2.26,
+    "status": "NO_ROUTE",
+    "signal_id": null,
+    "signal_direction": null,
+    "signal_strategy": null,
+    "score": null,
+    "category": null,
+    "regime": "HIGH_VOLATILITY",
+    "regime_confidence": 62.5,
+    "context_direction": "DOWN",
+    "context_bias": -70.7,
+    "setup_direction": "UP",
+    "setup_bias": 84.0,
+    "entry_direction": "UP",
+    "entry_bias": 74.2,
+    "overall_bias": "NEUTRAL",
+    "alignment_score": 0.0,
+    "setup_state": "COUNTER_TREND",
+    "structure_trend": "UP",
+    "structure_state": "TREND_CONTINUATION",
+    "price_vs_vwap": "ABOVE",
+    "trend_quality": 66.9,
+    "trend_direction": "UP",
+    "retracement_direction": "UP",
+    "retracement_percentage": 39.1,
+    "retracement_zone": "SHALLOW",
+    "nearest_support": {
+     "label": "Retracement 40%",
+     "price": 323.634,
+     "strength": 48.4
+    },
+    "nearest_resistance": {
+     "label": "Day high",
+     "price": 331.69,
+     "strength": 68.2
+    },
+    "patterns": [
+     {
+      "pattern": "NRB",
+      "direction": "NEUTRAL",
+      "confidence": 72.5
+     }
+    ],
+    "relative_volume": 0.78,
+    "momentum_score": 59.0,
+    "relative_strength": 98.3,
+    "relative_strength_rank": 3,
+    "strategies": [],
+    "strategy_stages": {},
+    "data_as_of": "2026-10-02T05:40:00Z"
+   }
+  ],
+  "candidates": [
+   {
+    "rank": 1,
+    "signal_id": "cba34ba9-fa7c-497c-8c38-6b72541a048b",
+    "symbol": "RELIANCE",
+    "direction": "BUY",
+    "strategy": "TREND_CONTINUATION",
+    "score": 67.8,
+    "category": "IGNORE",
+    "status": "READY",
+    "entry": 1227.53,
+    "stop_loss": 1224.7,
+    "target": 1233.2,
+    "risk_reward": 2.0,
+    "quantity_candidate": 40,
+    "relative_strength": 92.13,
+    "liquidity": 63098359.36,
+    "trend_quality": 86.73,
+    "relative_volume": 0.84,
+    "strategy_confidence": 85.0,
+    "market_regime": "STRONG_BULLISH"
+   },
+   {
+    "rank": 2,
+    "signal_id": "1b36d9c0-ca35-401f-a665-1fdaaf6cdacd",
+    "symbol": "MARUTI",
+    "direction": "BUY",
+    "strategy": "BREAKOUT_MOMENTUM",
+    "score": 56.0,
+    "category": "IGNORE",
+    "status": "IGNORE",
+    "entry": 12151.77,
+    "stop_loss": 12083.03,
+    "target": 12289.24,
+    "risk_reward": 2.0,
+    "quantity_candidate": 4,
+    "relative_strength": 89.81,
+    "liquidity": 395967776.6,
+    "trend_quality": 5.69,
+    "relative_volume": 1.77,
+    "strategy_confidence": 100.0,
+    "market_regime": "BREAKOUT"
+   }
+  ],
+  "signals": [
+   {
+    "id": "cba34ba9-fa7c-497c-8c38-6b72541a048b",
+    "symbol": "RELIANCE",
+    "direction": "BUY",
+    "strategy": "TREND_CONTINUATION",
+    "strategy_version": "1.0.0+567cf21b",
+    "timeframe": "5m",
+    "entry": 1227.53,
+    "stop_loss": 1224.7,
+    "target": 1233.2,
+    "risk_reward": 2.0,
+    "quantity_candidate": 40,
+    "quantity_note": "40 shares: risk 1% of 100,000 at 2.83/share, capped at 50,000 position value (limited by position value cap). Candidate only; the Risk Engine decides the real size.",
+    "score": 67.8,
+    "category": "IGNORE",
+    "executable": true,
+    "confidence": 85.0,
+    "relative_strength": 92.13,
+    "trend_quality": 86.73,
+    "relative_volume": 0.84,
+    "liquidity": 63098359.36,
+    "market_regime": "STRONG_BULLISH",
+    "regime_confidence": 95.0,
+    "breakdown": {
+     "total": 67.8,
+     "category": "IGNORE",
+     "executable": true,
+     "executable_threshold": 60.0,
+     "components": [
+      {
+       "key": "market_alignment",
+       "label": "Market alignment",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 15.79,
+       "score": 0.5,
+       "points": 7.89,
+       "passed": true,
+       "detail": "NIFTY 50 bias -80, own timeframe bias +78 (with the trade), timeframe alignment 100/100"
+      },
+      {
+       "key": "relative_strength",
+       "label": "Relative strength",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 15.79,
+       "score": 1.0,
+       "points": 15.79,
+       "passed": true,
+       "detail": "RS score 92, rank 21/50"
+      },
+      {
+       "key": "trend_quality",
+       "label": "Trend quality",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 15.79,
+       "score": 0.867,
+       "points": 13.69,
+       "passed": true,
+       "detail": "87 (up)"
+      },
+      {
+       "key": "vwap",
+       "label": "VWAP",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 10.53,
+       "score": 1.0,
+       "points": 10.53,
+       "passed": true,
+       "detail": "price above VWAP"
+      },
+      {
+       "key": "market_structure",
+       "label": "Market structure",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 10.53,
+       "score": 0.95,
+       "points": 10.0,
+       "passed": true,
+       "detail": "higher highs / higher lows (trend continuation)"
+      },
+      {
+       "key": "retracement",
+       "label": "Retracement",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 10.53,
+       "score": 0.6,
+       "points": 6.32,
+       "passed": true,
+       "detail": "deepest pullback 38% (shallow)"
+      },
+      {
+       "key": "volume",
+       "label": "Volume",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 10.53,
+       "score": 0.03,
+       "points": 0.32,
+       "passed": false,
+       "detail": "0.84x average volume"
+      },
+      {
+       "key": "momentum",
+       "label": "Momentum",
+       "weight": 5.0,
+       "applicable": true,
+       "effective_weight": 5.26,
+       "score": 0.625,
+       "points": 3.29,
+       "passed": true,
+       "detail": "score 69"
+      },
+      {
+       "key": "price_action",
+       "label": "Price action",
+       "weight": 5.0,
+       "applicable": true,
+       "effective_weight": 5.26,
+       "score": 0.0,
+       "points": 0.0,
+       "passed": false,
+       "detail": "no aligned pattern on the latest candle"
+      }
+     ]
+    },
+    "reasons": [
+     "\u2713 Market alignment: NIFTY 50 bias -80, own timeframe bias +78 (with the trade), timeframe alignment 100/100 (7.9/15.8)",
+     "\u2713 Relative strength: RS score 92, rank 21/50 (15.8/15.8)",
+     "\u2713 Trend quality: 87 (up) (13.7/15.8)",
+     "\u2713 VWAP: price above VWAP (10.5/10.5)",
+     "\u2713 Market structure: higher highs / higher lows (trend continuation) (10.0/10.5)",
+     "\u2713 Retracement: deepest pullback 38% (shallow) (6.3/10.5)",
+     "\u2717 Volume: 0.84x average volume (0.3/10.5)",
+     "\u2713 Momentum: score 69 (3.3/5.3)",
+     "\u2717 Price action: no aligned pattern on the latest candle (0.0/5.3)",
+     "Final score 68 / 100 (IGNORE)"
+    ],
+    "strategy_reasons": [
+     "Trend: up from regime",
+     "Impulse: 3.54 ATR impulse with the trend",
+     "Pullback: pulled back 38% (healthy range 30-65%), now 19%",
+     "Support: pullback held near Swing high",
+     "Confirmation: momentum returning with a candle closing in the trend direction",
+     "Regime: STRONG_BULLISH (95)",
+     "Higher timeframe: context up, alignment 100.0",
+     "Market structure: swing structure up",
+     "VWAP: price above VWAP",
+     "Trend quality: 86.73 (up)",
+     "Momentum: score 68.76",
+     "Relative strength: score 92.13 vs NIFTY 50",
+     "Direction allowed by router: LONG permitted for STRONG_BULLISH"
+    ],
+    "strategy_checks": [
+     {
+      "key": "trend",
+      "label": "Trend",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "up from regime"
+     },
+     {
+      "key": "impulse",
+      "label": "Impulse",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "3.54 ATR impulse with the trend"
+     },
+     {
+      "key": "pullback",
+      "label": "Pullback",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "pulled back 38% (healthy range 30-65%), now 19%"
+     },
+     {
+      "key": "support",
+      "label": "Support",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "pullback held near Swing high"
+     },
+     {
+      "key": "confirmation",
+      "label": "Confirmation",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "momentum returning with a candle closing in the trend direction"
+     },
+     {
+      "key": "regime",
+      "label": "Regime",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "STRONG_BULLISH (95)"
+     },
+     {
+      "key": "higher_timeframe",
+      "label": "Higher timeframe",
+      "passed": true,
+      "required": false,
+      "weight": 15.0,
+      "detail": "context up, alignment 100.0"
+     },
+     {
+      "key": "structure",
+      "label": "Market structure",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "swing structure up"
+     },
+     {
+      "key": "vwap",
+      "label": "VWAP",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "price above VWAP"
+     },
+     {
+      "key": "trend_quality",
+      "label": "Trend quality",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "86.73 (up)"
+     },
+     {
+      "key": "volume",
+      "label": "Volume",
+      "passed": false,
+      "required": false,
+      "weight": 5.0,
+      "detail": "latest candle 0.84x average volume"
+     },
+     {
+      "key": "momentum",
+      "label": "Momentum",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "score 68.76"
+     },
+     {
+      "key": "relative_strength",
+      "label": "Relative strength",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "score 92.13 vs NIFTY 50"
+     },
+     {
+      "key": "pattern",
+      "label": "Price action",
+      "passed": false,
+      "required": false,
+      "weight": 10.0,
+      "detail": "no aligned pattern"
+     },
+     {
+      "key": "direction_allowed",
+      "label": "Direction allowed by router",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "LONG permitted for STRONG_BULLISH"
+     }
+    ],
+    "features": {},
+    "candle_time": "2026-10-02T05:40:00Z",
+    "timestamp": "2026-10-02T05:48:03.418447Z",
+    "status": "ACTIVE",
+    "note": "Signals are scored strategy candidates, not orders. Scores and ranks describe how much of each strategy's evidence is present; they are not proof of profitability."
+   },
+   {
+    "id": "1b36d9c0-ca35-401f-a665-1fdaaf6cdacd",
+    "symbol": "MARUTI",
+    "direction": "BUY",
+    "strategy": "BREAKOUT_MOMENTUM",
+    "strategy_version": "1.0.0+6d9da7cf",
+    "timeframe": "5m",
+    "entry": 12151.77,
+    "stop_loss": 12083.03,
+    "target": 12289.24,
+    "risk_reward": 2.0,
+    "quantity_candidate": 4,
+    "quantity_note": "4 shares: risk 1% of 100,000 at 68.74/share, capped at 50,000 position value (limited by position value cap). Candidate only; the Risk Engine decides the real size.",
+    "score": 56.0,
+    "category": "IGNORE",
+    "executable": false,
+    "confidence": 100.0,
+    "relative_strength": 89.81,
+    "trend_quality": 5.69,
+    "relative_volume": 1.77,
+    "liquidity": 395967776.6,
+    "market_regime": "BREAKOUT",
+    "regime_confidence": 72.5,
+    "breakdown": {
+     "total": 56.0,
+     "category": "IGNORE",
+     "executable": false,
+     "executable_threshold": 60.0,
+     "components": [
+      {
+       "key": "market_alignment",
+       "label": "Market alignment",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 17.65,
+       "score": 0.282,
+       "points": 4.98,
+       "passed": false,
+       "detail": "NIFTY 50 bias -80, own timeframe bias +23 (with the trade), timeframe alignment 56/100"
+      },
+      {
+       "key": "relative_strength",
+       "label": "Relative strength",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 17.65,
+       "score": 1.0,
+       "points": 17.65,
+       "passed": true,
+       "detail": "RS score 90, rank 24/50"
+      },
+      {
+       "key": "trend_quality",
+       "label": "Trend quality",
+       "weight": 15.0,
+       "applicable": true,
+       "effective_weight": 17.65,
+       "score": 0.017,
+       "points": 0.3,
+       "passed": false,
+       "detail": "6 (sideways)"
+      },
+      {
+       "key": "vwap",
+       "label": "VWAP",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 11.76,
+       "score": 1.0,
+       "points": 11.76,
+       "passed": true,
+       "detail": "price above VWAP"
+      },
+      {
+       "key": "market_structure",
+       "label": "Market structure",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 11.76,
+       "score": 0.0,
+       "points": 0.0,
+       "passed": false,
+       "detail": "lower highs / lower lows (structure shift)"
+      },
+      {
+       "key": "retracement",
+       "label": "Retracement",
+       "weight": 10.0,
+       "applicable": false,
+       "effective_weight": 0.0,
+       "score": null,
+       "points": 0.0,
+       "passed": false,
+       "detail": "not part of this strategy"
+      },
+      {
+       "key": "volume",
+       "label": "Volume",
+       "weight": 10.0,
+       "applicable": true,
+       "effective_weight": 11.76,
+       "score": 0.808,
+       "points": 9.51,
+       "passed": true,
+       "detail": "1.77x average volume"
+      },
+      {
+       "key": "momentum",
+       "label": "Momentum",
+       "weight": 5.0,
+       "applicable": true,
+       "effective_weight": 5.88,
+       "score": 1.0,
+       "points": 5.88,
+       "passed": true,
+       "detail": "score 87"
+      },
+      {
+       "key": "price_action",
+       "label": "Price action",
+       "weight": 5.0,
+       "applicable": true,
+       "effective_weight": 5.88,
+       "score": 1.0,
+       "points": 5.88,
+       "passed": true,
+       "detail": "WRB on the latest candle"
+      }
+     ]
+    },
+    "reasons": [
+     "\u2717 Market alignment: NIFTY 50 bias -80, own timeframe bias +23 (with the trade), timeframe alignment 56/100 (5.0/17.6)",
+     "\u2713 Relative strength: RS score 90, rank 24/50 (17.6/17.6)",
+     "\u2717 Trend quality: 6 (sideways) (0.3/17.6)",
+     "\u2713 VWAP: price above VWAP (11.8/11.8)",
+     "\u2717 Market structure: lower highs / lower lows (structure shift) (0.0/11.8)",
+     "\u2013 Retracement: not part of this strategy",
+     "\u2713 Volume: 1.77x average volume (9.5/11.8)",
+     "\u2713 Momentum: score 87 (5.9/5.9)",
+     "\u2713 Price action: WRB on the latest candle (5.9/5.9)",
+     "Final score 56 / 100 (IGNORE)"
+    ],
+    "strategy_reasons": [
+     "Reference range: 3.08 ATR consolidation over 20 candles",
+     "Breakout: closed above 12142.34 0 candle(s) ago",
+     "Not extended: 0.31 ATR past the level (max 1.5)",
+     "Volume: breakout candle 1.77x average volume (min 1.3x)",
+     "Compression: NR, NRB; candle ranges 0.84x their longer average",
+     "Volatility expansion: breakout candle 2.5x the average range",
+     "Momentum: score 87.13",
+     "VWAP: price above VWAP",
+     "Opening range: 15m opening range 12067.9-12139",
+     "Higher timeframe: context up",
+     "Direction allowed by router: LONG permitted for BREAKOUT"
+    ],
+    "strategy_checks": [
+     {
+      "key": "range",
+      "label": "Reference range",
+      "passed": true,
+      "required": true,
+      "weight": 15.0,
+      "detail": "3.08 ATR consolidation over 20 candles"
+     },
+     {
+      "key": "breakout",
+      "label": "Breakout",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "closed above 12142.34 0 candle(s) ago"
+     },
+     {
+      "key": "not_extended",
+      "label": "Not extended",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "0.31 ATR past the level (max 1.5)"
+     },
+     {
+      "key": "volume",
+      "label": "Volume",
+      "passed": true,
+      "required": true,
+      "weight": 15.0,
+      "detail": "breakout candle 1.77x average volume (min 1.3x)"
+     },
+     {
+      "key": "compression",
+      "label": "Compression",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "NR, NRB; candle ranges 0.84x their longer average"
+     },
+     {
+      "key": "expansion",
+      "label": "Volatility expansion",
+      "passed": true,
+      "required": false,
+      "weight": 15.0,
+      "detail": "breakout candle 2.5x the average range"
+     },
+     {
+      "key": "momentum",
+      "label": "Momentum",
+      "passed": true,
+      "required": false,
+      "weight": 15.0,
+      "detail": "score 87.13"
+     },
+     {
+      "key": "vwap",
+      "label": "VWAP",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "price above VWAP"
+     },
+     {
+      "key": "opening_range",
+      "label": "Opening range",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "15m opening range 12067.9-12139"
+     },
+     {
+      "key": "higher_timeframe",
+      "label": "Higher timeframe",
+      "passed": true,
+      "required": false,
+      "weight": 10.0,
+      "detail": "context up"
+     },
+     {
+      "key": "direction_allowed",
+      "label": "Direction allowed by router",
+      "passed": true,
+      "required": true,
+      "weight": 0.0,
+      "detail": "LONG permitted for BREAKOUT"
+     }
+    ],
+    "features": {},
+    "candle_time": "2026-10-02T05:40:00Z",
+    "timestamp": "2026-10-02T05:48:03.418447Z",
+    "status": "ACTIVE",
+    "note": "Signals are scored strategy candidates, not orders. Scores and ranks describe how much of each strategy's evidence is present; they are not proof of profitability."
+   }
+  ],
+  "top_candidates": [],
+  "status_counts": {
+   "READY": 1,
+   "WATCH": 0,
+   "IGNORE": 2,
+   "NO_SETUP": 45,
+   "NO_ROUTE": 2,
+   "NO_DATA": 0
+  },
+  "symbols_scanned": 50,
+  "filtered_out": {
+   "NIFTY50": "index: used as market context, not scanned"
+  },
+  "scanned_at": "2026-10-02T05:48:03.418447Z",
+  "note": "Scanner results describe simulated market data. A rank orders the current evidence; it is not a forecast and not proof of profitability.",
+  "ranking_note": "Ranking orders the current evidence; it is not proof of profitability."
+ },
+ "status": {
+  "is_running": true,
+  "scan_count": 27,
+  "last_scan_at": "2026-10-02T05:48:03.418447Z",
+  "last_compute_ms": 10.0,
+  "last_error": null,
+  "persistence_ok": true,
+  "persistence_error": null,
+  "last_persisted": {
+   "created": 0,
+   "updated": 3,
+   "expired": 0
+  },
+  "signals_in_scan": 3,
+  "strategy_refresh": 27,
+  "executable_threshold": 60.0
+ }
+}

@@ -1,0 +1,455 @@
+{
+ "items": [
+  {
+   "id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8",
+   "signal_id": "cba34ba9-fa7c-497c-8c38-6b72541a048b",
+   "symbol": "RELIANCE",
+   "side": "LONG",
+   "strategy": "TREND_CONTINUATION",
+   "score": 67.8,
+   "status": "CLOSED",
+   "planned_entry": 1227.53,
+   "stop_loss": 1224.7,
+   "target": 1233.2,
+   "quantity": 40,
+   "filled_quantity": 40,
+   "open_quantity": 0,
+   "entry_price": 1227.5,
+   "exit_price": 1226.9,
+   "last_price": 1227.54,
+   "initial_risk": 88.0,
+   "gross_pnl": -24.0,
+   "charges": 52.05,
+   "net_pnl": -76.05,
+   "unrealized_pnl": 0.0,
+   "r_multiple": -0.68,
+   "exit_reason": "MANUAL",
+   "created_at": "2026-10-02T05:46:11.762183Z",
+   "opened_at": "2026-10-02T05:46:11.762600Z",
+   "closed_at": "2026-10-02T05:47:09.572641Z",
+   "order_ids": {
+    "EXIT": [
+     "eb006bbd-6100-4343-90b3-24d1c5a9878c"
+    ],
+    "ENTRY": [
+     "0837822f-b40c-4679-aafb-c252204efd9f"
+    ],
+    "TARGET": [
+     "3a1344de-3ee3-40a4-a5d0-71d08361cc2d"
+    ],
+    "STOP_LOSS": [
+     "c13c4948-e119-4169-9352-e55ccacc61e2"
+    ]
+   },
+   "risk_summary": "Approved LONG 40 RELIANCE risking \u20b988.00",
+   "risk_checks": [
+    {
+     "name": "trading_mode",
+     "detail": "mode PAPER; only PAPER execution exists",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "emergency_stop",
+     "detail": "not active",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "system_health",
+     "detail": "market data, scanner and trade storage healthy",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "market_hours",
+     "detail": "simulated 24h session (exchange hours not enforced)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "data_freshness",
+     "detail": "price and signal are current",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "one_active_trade",
+     "detail": "no active trade",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "duplicate_order",
+     "detail": "no matching order",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "daily_loss_limit",
+     "detail": "realized today \u20b9-70.45; \u20b92,929.55 of \u20b93,000.00 left",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_trades",
+     "detail": "2 of 5 trades taken today",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "consecutive_losses",
+     "detail": "1 in a row (limit 3)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "signal_score",
+     "detail": "score 67.8, executable threshold 60",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "stop_validity",
+     "detail": "stop 1224.70 is below entry 1227.53 and price 1226.88",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "target_validity",
+     "detail": "target 1233.20 vs price 1226.88",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "entry_deviation",
+     "detail": "price 1226.88 is 0.00 worse than planned entry 1227.53 (allowed 0.71 = 0.25R)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "quantity_validity",
+     "detail": "40 shares (raw 454.23; rounded down to lot size 1, capped by max position value)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "sufficient_capital",
+     "detail": "needs \u20b949,128.04, available \u20b999,929.55",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_exposure",
+     "detail": "exposure would be \u20b949,076.00 (limit \u20b950,000.00)",
+     "passed": true,
+     "reason": null
+    }
+   ],
+   "note": "PAPER trading: simulated orders and fills against simulated market data. No broker is connected and no real money is used. Fills, slippage and charges are configurable assumptions, so paper results will differ from live results."
+  },
+  {
+   "id": "19ca177d-2962-4113-8f29-b31e32c34393",
+   "signal_id": "ef43832f-f079-41df-a830-9bbfc176f2bd",
+   "symbol": "ADANIENT",
+   "side": "LONG",
+   "strategy": "TREND_CONTINUATION",
+   "score": 69.9,
+   "status": "CLOSED",
+   "planned_entry": 3020.38,
+   "stop_loss": 3010.55,
+   "target": 3040.0,
+   "quantity": 16,
+   "filled_quantity": 16,
+   "open_quantity": 0,
+   "entry_price": 3021.15,
+   "exit_price": 3019.95,
+   "last_price": 3021.49,
+   "initial_risk": 144.8,
+   "gross_pnl": -19.2,
+   "charges": 51.25,
+   "net_pnl": -70.45,
+   "unrealized_pnl": 0.0,
+   "r_multiple": -0.42,
+   "exit_reason": "MANUAL",
+   "created_at": "2026-10-02T05:41:08.601854Z",
+   "opened_at": "2026-10-02T05:41:08.602519Z",
+   "closed_at": "2026-10-02T05:42:08.624523Z",
+   "order_ids": {
+    "EXIT": [
+     "c4802c89-d181-405d-8e17-63751ef2e669"
+    ],
+    "ENTRY": [
+     "3122a89c-835f-434a-b96c-f2d79b9a57e9"
+    ],
+    "TARGET": [
+     "810bef03-5154-43a9-bf5f-ef9a61b602d8"
+    ],
+    "STOP_LOSS": [
+     "43740a6c-b1ca-4b69-b899-4540532af9b0"
+    ]
+   },
+   "risk_summary": "Approved LONG 16 ADANIENT risking \u20b9144.80",
+   "risk_checks": [
+    {
+     "name": "trading_mode",
+     "detail": "mode PAPER; only PAPER execution exists",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "emergency_stop",
+     "detail": "not active",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "system_health",
+     "detail": "market data, scanner and trade storage healthy",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "market_hours",
+     "detail": "simulated 24h session (exchange hours not enforced)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "data_freshness",
+     "detail": "price and signal are current",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "one_active_trade",
+     "detail": "no active trade",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "duplicate_order",
+     "detail": "no matching order",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "daily_loss_limit",
+     "detail": "realized today \u20b90.00; \u20b93,000.00 of \u20b93,000.00 left",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_trades",
+     "detail": "1 of 5 trades taken today",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "consecutive_losses",
+     "detail": "0 in a row (limit 3)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "signal_score",
+     "detail": "score 69.9, executable threshold 60",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "stop_validity",
+     "detail": "stop 3010.57 is below entry 3020.38 and price 3019.60",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "target_validity",
+     "detail": "target 3040.01 vs price 3019.60",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "entry_deviation",
+     "detail": "price 3019.60 is 0.00 worse than planned entry 3020.38 (allowed 2.45 = 0.25R)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "quantity_validity",
+     "detail": "16 shares (raw 110.50; rounded down to lot size 1, capped by max position value)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "sufficient_capital",
+     "detail": "needs \u20b948,364.83, available \u20b9100,000.00",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_exposure",
+     "detail": "exposure would be \u20b948,313.60 (limit \u20b950,000.00)",
+     "passed": true,
+     "reason": null
+    }
+   ],
+   "note": "PAPER trading: simulated orders and fills against simulated market data. No broker is connected and no real money is used. Fills, slippage and charges are configurable assumptions, so paper results will differ from live results."
+  },
+  {
+   "id": "f7641090-f2e2-4d8b-8878-a374bc1195f4",
+   "signal_id": "b206ee9e-58b8-4300-ab04-1ccf1c76a037",
+   "symbol": "COALINDIA",
+   "side": "SHORT",
+   "strategy": "TREND_CONTINUATION",
+   "score": 70.5,
+   "status": "INTERRUPTED",
+   "planned_entry": 409.85,
+   "stop_loss": 412.05,
+   "target": 405.55,
+   "quantity": 122,
+   "filled_quantity": 122,
+   "open_quantity": 122,
+   "entry_price": 409.55,
+   "exit_price": null,
+   "last_price": 409.62,
+   "initial_risk": 280.6,
+   "gross_pnl": 0.0,
+   "charges": 31.99,
+   "net_pnl": -31.99,
+   "unrealized_pnl": -8.54,
+   "r_multiple": null,
+   "exit_reason": null,
+   "created_at": "2026-10-02T05:38:56.819082Z",
+   "opened_at": "2026-10-02T05:38:56.819475Z",
+   "closed_at": null,
+   "order_ids": {
+    "ENTRY": [
+     "6b0c41b7-7167-4b3a-b27b-ab30a61bd307"
+    ],
+    "TARGET": [
+     "da964056-f07d-4111-8de6-2619fb6cbf85"
+    ],
+    "STOP_LOSS": [
+     "b7e4bb7b-530b-4a92-b8f3-fbd353c0c739"
+    ]
+   },
+   "risk_summary": "Approved SHORT 122 COALINDIA risking \u20b9280.60",
+   "risk_checks": [
+    {
+     "name": "trading_mode",
+     "detail": "mode PAPER; only PAPER execution exists",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "emergency_stop",
+     "detail": "not active",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "system_health",
+     "detail": "market data, scanner and trade storage healthy",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "market_hours",
+     "detail": "simulated 24h session (exchange hours not enforced)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "data_freshness",
+     "detail": "price and signal are current",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "one_active_trade",
+     "detail": "no active trade",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "duplicate_order",
+     "detail": "no matching order",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "daily_loss_limit",
+     "detail": "realized today \u20b90.00; \u20b93,000.00 of \u20b93,000.00 left",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_trades",
+     "detail": "0 of 5 trades taken today",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "consecutive_losses",
+     "detail": "0 in a row (limit 3)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "signal_score",
+     "detail": "score 70.5, executable threshold 60",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "short_allowed",
+     "detail": "short selling allowed",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "stop_validity",
+     "detail": "stop 412.01 is above entry 409.85 and price 409.77",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "target_validity",
+     "detail": "target 405.54 vs price 409.77",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "entry_deviation",
+     "detail": "price 409.77 is 0.08 worse than planned entry 409.85 (allowed 0.54 = 0.25R)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "quantity_validity",
+     "detail": "122 shares (raw 434.78; rounded down to lot size 1, capped by max position value)",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "sufficient_capital",
+     "detail": "needs \u20b950,042.52, available \u20b9100,000.00",
+     "passed": true,
+     "reason": null
+    },
+    {
+     "name": "max_exposure",
+     "detail": "exposure would be \u20b949,989.50 (limit \u20b950,000.00)",
+     "passed": true,
+     "reason": null
+    }
+   ],
+   "note": "PAPER trading: simulated orders and fills against simulated market data. No broker is connected and no real money is used. Fills, slippage and charges are configurable assumptions, so paper results will differ from live results."
+  }
+ ],
+ "total": 3,
+ "limit": 200,
+ "offset": 0,
+ "note": "PAPER trading: simulated orders and fills against simulated market data. No broker is connected and no real money is used. Fills, slippage and charges are configurable assumptions, so paper results will differ from live results."
+}

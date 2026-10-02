@@ -1,4 +1,4 @@
-.PHONY: up down logs restart migrate seed test-backend test-frontend lint build-backend build-frontend
+.PHONY: up down logs restart migrate seed test-backend test-frontend test-e2e lint build-backend build-frontend
 
 # --- Docker Compose lifecycle --------------------------------------------
 up:
@@ -26,6 +26,10 @@ test-backend:
 
 test-frontend:
 	cd frontend && npm run typecheck && npm run lint && npm test
+
+# Needs the stack running (make up, or backend + `npm start`).
+test-e2e:
+	cd frontend && npm run test:e2e
 
 # --- Lint / format ----------------------------------------------------------
 lint:

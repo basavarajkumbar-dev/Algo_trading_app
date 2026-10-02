@@ -1,0 +1,32 @@
+{
+ "regime": "STRONG_BEARISH",
+ "regime_confidence": 95.0,
+ "eligible_strategies": [
+  "TREND_CONTINUATION"
+ ],
+ "entries": [
+  {
+   "strategy": "TREND_CONTINUATION",
+   "routed": true,
+   "reason": "Trend continuation runs in STRONG_BEARISH (short)",
+   "allowed_directions": [
+    "SHORT"
+   ]
+  },
+  {
+   "strategy": "BREAKOUT_MOMENTUM",
+   "routed": false,
+   "reason": "Breakout momentum is not mapped to STRONG_BEARISH",
+   "allowed_directions": []
+  },
+  {
+   "strategy": "MEAN_REVERSION",
+   "routed": false,
+   "reason": "Mean reversion is not mapped to STRONG_BEARISH",
+   "allowed_directions": []
+  }
+ ],
+ "reasons": [
+  "Regime STRONG_BEARISH (95 confidence)"
+ ]
+}

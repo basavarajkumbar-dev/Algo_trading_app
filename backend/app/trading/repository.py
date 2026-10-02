@@ -104,6 +104,7 @@ async def save_changes(
     for e in events:
         session.add(
             SystemEvent(
+                created_at=e.at,  # when it happened, not when the batch was saved
                 event_type=f"PAPER_{e.event_type}",
                 severity=e.severity,
                 message=e.message[:1000],

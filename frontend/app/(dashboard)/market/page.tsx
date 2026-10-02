@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -96,6 +97,9 @@ export default function MarketIntelligencePage() {
             Regime and factor analysis of simulated NIFTY 50 data. No live feed or broker is
             connected. A regime describes recent behaviour; it is not a forecast.
           </p>
+          <Link href="/price-action" className="mt-2 inline-block text-xs text-accent hover:underline">
+            Price action: patterns, levels and multi-timeframe →
+          </Link>
         </div>
         <div className="flex shrink-0 flex-col gap-1.5 md:items-end">
           <Badge variant={SOCKET_BADGE_VARIANT[socketStatus]}>{SOCKET_LABEL[socketStatus]}</Badge>

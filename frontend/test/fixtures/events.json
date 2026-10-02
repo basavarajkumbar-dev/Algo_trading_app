@@ -1,0 +1,169 @@
+{
+ "items": [
+  {
+   "id": "12897e07-bdc9-4bcf-8a45-2c0b19795d66",
+   "event_type": "PAPER_TRADE_CLOSED",
+   "severity": "WARNING",
+   "message": "LONG 40 RELIANCE: MANUAL, net P&L \u20b9-76.05 (-0.68R)",
+   "metadata": {
+    "at": "2026-10-02T05:47:09.573464+00:00",
+    "mode": "PAPER",
+    "net_pnl": -76.05,
+    "trade_id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8",
+    "exit_reason": "MANUAL"
+   },
+   "created_at": "2026-10-02T05:47:09.573464Z"
+  },
+  {
+   "id": "c481ed6b-28f7-40a0-849f-9d4208208849",
+   "event_type": "PAPER_EXIT_STARTED",
+   "severity": "INFO",
+   "message": "MANUAL: closing RELIANCE at market",
+   "metadata": {
+    "at": "2026-10-02T05:47:09.571807+00:00",
+    "mode": "PAPER",
+    "trade_id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8"
+   },
+   "created_at": "2026-10-02T05:47:09.571807Z"
+  },
+  {
+   "id": "7771f65e-b7b9-4417-92fb-437912fbc77e",
+   "event_type": "PAPER_POSITION_OPENED",
+   "severity": "INFO",
+   "message": "LONG 40 RELIANCE @ 1227.5",
+   "metadata": {
+    "at": "2026-10-02T05:46:11.763122+00:00",
+    "mode": "PAPER",
+    "trade_id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8"
+   },
+   "created_at": "2026-10-02T05:46:11.763122Z"
+  },
+  {
+   "id": "4674580c-e696-451e-a6ae-8119b28f0415",
+   "event_type": "PAPER_ORDER_PLACED",
+   "severity": "INFO",
+   "message": "Paper BUY 40 RELIANCE at market (stop 1224.7, target 1233.2)",
+   "metadata": {
+    "at": "2026-10-02T05:46:11.762887+00:00",
+    "mode": "PAPER",
+    "order_id": "0837822f-b40c-4679-aafb-c252204efd9f",
+    "trade_id": "e50f2010-6ab0-442e-a1c1-fd3400c92cd8"
+   },
+   "created_at": "2026-10-02T05:46:11.762887Z"
+  },
+  {
+   "id": "a4aaa3e5-6450-4d3a-8f8e-986bddb1cb26",
+   "event_type": "PAPER_TRADE_CLOSED",
+   "severity": "WARNING",
+   "message": "LONG 16 ADANIENT: MANUAL, net P&L \u20b9-70.45 (-0.42R)",
+   "metadata": {
+    "at": "2026-10-02T05:42:08.625068+00:00",
+    "mode": "PAPER",
+    "net_pnl": -70.45,
+    "trade_id": "19ca177d-2962-4113-8f29-b31e32c34393",
+    "exit_reason": "MANUAL"
+   },
+   "created_at": "2026-10-02T05:42:08.625068Z"
+  },
+  {
+   "id": "f418172d-fb41-4452-a80d-f7c2dbeaa088",
+   "event_type": "PAPER_EXIT_STARTED",
+   "severity": "INFO",
+   "message": "MANUAL: closing ADANIENT at market",
+   "metadata": {
+    "at": "2026-10-02T05:42:08.623937+00:00",
+    "mode": "PAPER",
+    "trade_id": "19ca177d-2962-4113-8f29-b31e32c34393"
+   },
+   "created_at": "2026-10-02T05:42:08.623937Z"
+  },
+  {
+   "id": "d4130bc9-14ae-4747-8b75-4022ab90eb11",
+   "event_type": "PAPER_POSITION_OPENED",
+   "severity": "INFO",
+   "message": "LONG 16 ADANIENT @ 3021.15",
+   "metadata": {
+    "at": "2026-10-02T05:41:08.603352+00:00",
+    "mode": "PAPER",
+    "trade_id": "19ca177d-2962-4113-8f29-b31e32c34393"
+   },
+   "created_at": "2026-10-02T05:41:08.603352Z"
+  },
+  {
+   "id": "f1685ed6-7fe1-4b7e-bd2a-1c6d7c29fe9c",
+   "event_type": "PAPER_ORDER_PLACED",
+   "severity": "INFO",
+   "message": "Paper BUY 16 ADANIENT at market (stop 3010.55, target 3040.01)",
+   "metadata": {
+    "at": "2026-10-02T05:41:08.602985+00:00",
+    "mode": "PAPER",
+    "order_id": "3122a89c-835f-434a-b96c-f2d79b9a57e9",
+    "trade_id": "19ca177d-2962-4113-8f29-b31e32c34393"
+   },
+   "created_at": "2026-10-02T05:41:08.602985Z"
+  },
+  {
+   "id": "97e5dc4f-4c56-468b-b1ba-a70021d72c4b",
+   "event_type": "PAPER_AUTO_TRADING",
+   "severity": "INFO",
+   "message": "Automatic paper trading enabled",
+   "metadata": {
+    "at": "2026-10-02T05:41:08.257353+00:00",
+    "mode": "PAPER"
+   },
+   "created_at": "2026-10-02T05:41:08.257353Z"
+  },
+  {
+   "id": "bebc3298-631e-460a-8261-83dcd30605a1",
+   "event_type": "PAPER_POSITION_OPENED",
+   "severity": "INFO",
+   "message": "SHORT 122 COALINDIA @ 409.55",
+   "metadata": {
+    "at": "2026-10-02T05:38:56.820031+00:00",
+    "mode": "PAPER",
+    "trade_id": "f7641090-f2e2-4d8b-8878-a374bc1195f4"
+   },
+   "created_at": "2026-10-02T05:38:56.824133Z"
+  },
+  {
+   "id": "c068f47d-00a8-4eef-b203-be5f4c5abdfd",
+   "event_type": "PAPER_ORDER_PLACED",
+   "severity": "INFO",
+   "message": "Paper SELL 122 COALINDIA at market (stop 412.05, target 405.54)",
+   "metadata": {
+    "at": "2026-10-02T05:38:56.819749+00:00",
+    "mode": "PAPER",
+    "order_id": "6b0c41b7-7167-4b3a-b27b-ab30a61bd307",
+    "trade_id": "f7641090-f2e2-4d8b-8878-a374bc1195f4"
+   },
+   "created_at": "2026-10-02T05:38:56.824133Z"
+  },
+  {
+   "id": "85c8deb4-c775-4a9b-9fed-ecbcb2bf414f",
+   "event_type": "PAPER_AUTO_TRADING",
+   "severity": "INFO",
+   "message": "Automatic paper trading enabled",
+   "metadata": {
+    "at": "2026-10-02T05:38:56.408753+00:00",
+    "mode": "PAPER"
+   },
+   "created_at": "2026-10-02T05:38:56.439857Z"
+  },
+  {
+   "id": "f26a7693-03ee-47c5-86ea-cc5b70652405",
+   "event_type": "PAPER_RISK_REJECTED",
+   "severity": "WARNING",
+   "message": "LONG RELIANCE: Rejected: SIGNAL_NOT_EXECUTABLE",
+   "metadata": {
+    "at": "2026-10-02T05:27:43.330702+00:00",
+    "mode": "PAPER",
+    "reasons": [
+     "SIGNAL_NOT_EXECUTABLE"
+    ],
+    "signal_id": "acedb0af-8c49-4e2c-bd33-674bac6bd75d"
+   },
+   "created_at": "2026-10-02T05:27:43.332231Z"
+  }
+ ],
+ "total": 13
+}
