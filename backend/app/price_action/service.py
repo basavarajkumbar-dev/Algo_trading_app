@@ -166,6 +166,7 @@ class PriceActionService:
         self._names: dict[str, str] = {}
         self._results: dict[str, PriceActionAnalysis] = {}
         self._chart_candles: dict[str, list[Candle]] = {}
+        self._inputs: dict[str, dict[Timeframe, list[Candle]]] = {}
         self._summaries: list[PriceActionSummary] = []
 
         self._task: asyncio.Task[None] | None = None
@@ -253,6 +254,7 @@ class PriceActionService:
         self._chart_candles = {
             symbol: by_timeframe[entry_tf][-CHART_CANDLES:] for symbol, by_timeframe, _ in inputs
         }
+        self._inputs = {symbol: by_timeframe for symbol, by_timeframe, _ in inputs}
         self._summaries = [summarize(r, self._names.get(s)) for s, r in results.items()]
         self._last_compute_ms = round((time.perf_counter() - started) * 1000, 1)
         self._last_refresh_at = utcnow()
@@ -297,6 +299,23 @@ class PriceActionService:
         if not self._results:
             return None
         return PriceActionOverview(symbols=self._summaries, status=self.status())
+
+    @property
+    def refresh_count(self) -> int:
+        return self._refresh_count
+
+    def get_snapshot(
+        self, symbol: str
+    ) -> tuple[dict[Timeframe, list[Candle]], PriceActionAnalysis] | None:
+        """The candles (per timeframe) and the analysis computed from them
+        in the latest refresh, so downstream layers (strategies) can work
+        on exactly the same data."""
+
+        analysis = self._results.get(symbol)
+        inputs = self._inputs.get(symbol)
+        if analysis is None or inputs is None:
+            return None
+        return inputs, analysis
 
     def get_symbol(self, symbol: str) -> SymbolPriceAction | None:
         analysis = self._results.get(symbol)

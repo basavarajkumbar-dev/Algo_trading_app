@@ -1,11 +1,12 @@
 """GAINZALGO PRO MAX — backend application entrypoint.
 
 Application shell, configuration, structured logging, CORS, API
-versioning, auth, settings, and (as of Phase 3) the market data engine
-— a simulated NIFTY 50 feed with candle aggregation and a WebSocket
-broadcast, started/stopped via this module's lifespan. No trading
-orders or strategies exist yet — see docs/development-roadmap.md for
-what each later phase adds.
+versioning, auth and settings, plus the background services started and
+stopped by this module's lifespan: the simulated market data feed
+(Phase 3), market intelligence (Phase 4), price action (Phase 5) and the
+strategy engine (Phase 6), which produces strategy candidates only.
+No order, signal, risk or broker execution code exists yet — see
+docs/development-roadmap.md for what each later phase adds.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from app.market_data.universe import NIFTY_INDEX_SYMBOL
 from app.market_intelligence.service import MarketIntelligenceService
 from app.price_action.config import MultiTimeframeConfig, PriceActionConfig
 from app.price_action.service import PriceActionService
+from app.strategies.service import StrategyService
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -83,8 +85,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await price_action_service.start()
     app.state.price_action_service = price_action_service
 
+    strategy_service = StrategyService(
+        market_data_service, price_action_service, benchmark_symbol=NIFTY_INDEX_SYMBOL
+    )
+    await strategy_service.start()
+    app.state.strategy_service = strategy_service
+
     yield
 
+    await strategy_service.stop()
     await price_action_service.stop()
     await intelligence_service.stop()
     await market_data_service.stop()
