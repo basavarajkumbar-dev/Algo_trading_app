@@ -346,7 +346,8 @@ list with entry/exit criteria. Summary:
   strategy router. (Delivered as "Phase 6 — Adaptive Strategy Engine";
   strategies return candidates only, signal generation is Phase 9.)
 - **Phase 9** — Signal engine, confidence scoring, candidate ranking,
-  stock scanner.
+  stock scanner. (Delivered as "Phase 7 — Signal Engine + Scoring +
+  NIFTY 50 Scanner"; the risk check is Phase 10.)
 - **Phase 10** — Risk engine.
 - **Phase 11** — Order management, paper trading engine, position/exit
   management, trade state machine.

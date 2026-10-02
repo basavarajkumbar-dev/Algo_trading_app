@@ -396,6 +396,7 @@ def test_scanner_rows_cover_every_dimension() -> None:
         snapshots={},
         names={"AAA": "Alpha Ltd."},
         now=datetime(2026, 1, 6, 9, 0, tzinfo=UTC),
+        signals=signals,
     )
     assert result.filtered_out["NIFTY50"].startswith("index")
     assert result.market_context.available and result.market_context.change_percent == 0.4
@@ -426,6 +427,8 @@ def test_scanner_rows_cover_every_dimension() -> None:
     assert rows["CCC"].status == ScanStatus.NO_DATA
     assert result.status_counts["READY"] == 1 and result.symbols_scanned == 2
     assert result.top_candidates[0].symbol == "AAA"
+    assert [s.symbol for s in result.signals] == ["AAA"]
+    assert result.signals[0].breakdown.components  # full breakdown available without storage
     assert "not proof of profitability" in result.ranking_note
 
 

@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from app.market_data.service import MarketSnapshot
 from app.regime.schemas import MarketRegime
 from app.signals.ranking import RANKING_NOTE
-from app.signals.schemas import MarketContext, TradeCandidate
+from app.signals.schemas import MarketContext, TradeCandidate, TradingSignal
 from app.strategies.context import StrategyContext
 from app.strategies.router import SymbolStrategyEvaluation
 
@@ -103,6 +103,9 @@ class ScanResult(BaseModel):
     market_context: MarketContext
     rows: list[ScanRow]
     candidates: list[TradeCandidate]  # every scored candidate, ranked
+    signals: list[TradingSignal] = Field(
+        default_factory=list
+    )  # this scan's scored signals, in rank order
     top_candidates: list[TradeCandidate]
     status_counts: dict[str, int]
     symbols_scanned: int
@@ -213,6 +216,7 @@ class Nifty50Scanner:
         snapshots: dict[str, MarketSnapshot],
         names: dict[str, str],
         now: datetime,
+        signals: list[TradingSignal] | None = None,
     ) -> ScanResult:
         best: dict[str, TradeCandidate] = {}
         for candidate in ranked:  # already in rank order
@@ -251,6 +255,7 @@ class Nifty50Scanner:
                 r.symbol,
             )
         )
+        order = {(c.symbol, c.strategy.value, c.direction.value): c.rank for c in ranked}
         counts: dict[str, int] = {s.value: 0 for s in ScanStatus}
         for row in rows:
             counts[row.status.value] += 1
@@ -258,6 +263,10 @@ class Nifty50Scanner:
             market_context=market,
             rows=rows,
             candidates=[c for c in ranked if c.symbol != self.benchmark_symbol],
+            signals=sorted(
+                (s for s in (signals or []) if s.symbol != self.benchmark_symbol),
+                key=lambda s: order.get(s.key, len(order)),
+            ),
             top_candidates=[c for c in top if c.symbol != self.benchmark_symbol],
             status_counts=counts,
             symbols_scanned=sum(1 for r in rows if r.status != ScanStatus.NO_DATA),

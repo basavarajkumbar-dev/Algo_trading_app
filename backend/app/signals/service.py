@@ -162,6 +162,7 @@ class SignalService:
             snapshots=snapshots,
             names=self._names,
             now=now,
+            signals=signals,
         )
         self._signals = signals
         self._seen_strategy_refresh = current

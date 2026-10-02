@@ -103,9 +103,13 @@ def market_alignment(i: _Inputs) -> tuple[float | None, str]:
         parts.append(_bias_side(market_bias, i.sign))
         detail.append(f"NIFTY 50 bias {market_bias:+.0f}")
     if symbol_bias is not None and alignment is not None:
-        agrees = symbol_bias * i.sign > 0
-        parts.append(alignment / 100.0 if agrees else 0.0)
-        detail.append(f"timeframes {'agree' if agrees else 'disagree'} (alignment {alignment:.0f})")
+        on_side = symbol_bias * i.sign > 0
+        parts.append(alignment / 100.0 if on_side else 0.0)
+        side_word = "with" if on_side else "against"
+        detail.append(
+            f"own timeframe bias {symbol_bias:+.0f} ({side_word} the trade), "
+            f"timeframe alignment {alignment:.0f}/100"
+        )
     if not parts:
         return None, "no market or timeframe data"
     return sum(parts) / len(parts), ", ".join(detail)

@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 6 — Adaptive Strategy Engine complete.**
+**Status: Phase 7 — Signal Engine, Scoring and NIFTY 50 Scanner complete.**
 
 See:
 
@@ -54,7 +54,7 @@ See:
   retracement levels and pattern markers; multi-timeframe panel; all six
   detectors with their reasons; retracement gauge; full levels table.
 
-- **Adaptive strategy engine** (Phase 6, new): trend continuation,
+- **Adaptive strategy engine** (Phase 6): trend continuation,
   breakout momentum (consolidation or a configurable 5/15/30-minute
   opening range) and mean reversion (range only, never against a strong
   trend), behind a configurable regime router. Each returns eligible,
@@ -62,9 +62,18 @@ See:
   features. **Frontend `/strategies` page** lists current candidates,
   the routing table and each strategy's checks.
 
-**No signals or orders of any kind exist.** Strategy candidates are
-hypotheses: not sized, not risk-checked and never sent to a broker
-(nothing in this codebase can place a trade). Patterns are contextual features, not trade signals;
+- **Signal engine, scoring and NIFTY 50 scanner** (Phase 7, new):
+  every eligible strategy candidate becomes a scored, explained
+  `TradingSignal` (score 0-100 from the nine configurable factors,
+  ELITE/STRONG/WATCH/IGNORE, READY at 85 or above), candidates are
+  ranked, and signals are stored with an ACTIVE/EXPIRED lifecycle.
+  **Frontend `/scanner`** (scanner table, top candidates, signal details)
+  and **`/signals`** (stored signals with score and reason breakdowns).
+
+**No orders of any kind exist.** Signals are scored candidates: their
+quantities are candidates for a future risk engine, nothing is
+risk-checked, and nothing is ever sent to a broker. Scores and ranks
+are not proof of profitability. Patterns are contextual features, not trade signals;
 levels are reference zones, not guaranteed reversal points; and a
 regime describes recent behaviour, not a forecast. Every price shown is explicitly labeled
 simulated, never live — see `PROJECT_CONTRACT.md` section 9.
@@ -85,7 +94,9 @@ docker compose up --build
 Seed a demo account (see the backend steps below), then visit
 http://localhost:3000/market (Market Intelligence) and
 http://localhost:3000/price-action (Price Action) and
-http://localhost:3000/strategies (Strategies) after logging in. Simulated warm-up history is
+http://localhost:3000/strategies (Strategies),
+http://localhost:3000/scanner (Scanner) and http://localhost:3000/signals
+(Signals) after logging in. Simulated warm-up history is
 generated at startup, so regimes are available within seconds.
 
 To stop:
@@ -200,6 +211,24 @@ npm run dev
   mean reversion rarely finds enough room to VWAP; its tests show it
   fires when the geometry works.
 
+## How signals and the scanner work (Phase 7 scope)
+
+- After each strategy refresh: eligible candidates -> scored signals ->
+  ranking -> storage -> scanner rows, all on the same snapshot.
+- Scoring weights are the brief's initial model (15/15/15/10/10/10/10/5/5)
+  and live in configuration. **They add up to 95, not 100**; they are kept
+  as given and every score is scaled to 100 over the components that
+  apply to the strategy. They are not assumed to be optimal.
+- A stored signal keeps the values it had when its setup first appeared;
+  later scans only update when it was last seen, its latest score and
+  rank. When the setup disappears it is marked EXPIRED.
+- On the simulated feed, eligible candidates have mostly scored 50-75,
+  so READY (85+) signals are rare. Two simulator traits pull scores down:
+  simulated volume is random (the volume factor rarely confirms), and the
+  simulated NIFTY 50 index is its own series rather than an aggregate of
+  the constituents, so market alignment can disagree with a broadly
+  rising set of stocks. Thresholds were not lowered to compensate.
+
 ## Environment variables
 
 See [`.env.example`](./.env.example) for the full list. New in Phases 4
@@ -217,13 +246,19 @@ and 5:
 - `PRICE_ACTION_REFRESH_SECONDS` — price action re-analysis interval
   (default `15.0`).
 
+- `SIGNAL_EXECUTABLE_THRESHOLD` (default `85`), `SIGNAL_STORE_MIN_SCORE`
+  (default `70`), `SCANNER_TOP_N` (default `10`) and optional
+  `SIGNAL_SCORE_WEIGHTS` (JSON; unlisted components keep their defaults).
+- Migrations: run `alembic upgrade head` (Docker does this on start) to
+  create the `signals` table.
+
 `MARKET_DATA_TICK_INTERVAL_SECONDS` and everything from Phase 2
 (`TRADING_MODE`, `JWT_SECRET`, etc.) still apply unchanged.
 
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 301 tests, all passing with a real Postgres;
+make test-backend    # pytest — 344 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
 make test-frontend   # tsc --noEmit + eslint + vitest
 make lint             # ruff + black (backend), eslint (frontend)
@@ -235,6 +270,15 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 7 (43 backend tests, 5 frontend): default
+weights and validation, every category boundary, scoring arithmetic,
+not-applicable handling, errors counted as zero, direction symmetry,
+mean-reversion inversions, quantity candidates, strategy versioning,
+every ranking tie-break, top-candidate filtering, scanner rows, the
+signal lifecycle in Postgres (create, keep, expire, reappear, the
+one-active-signal index), the scan service with and without a
+database, and the scanner / signal API.
 
 Test coverage added in Phase 6 (66 backend tests, 4 frontend): an
 eligible baseline per strategy and side with exact candidates, every
@@ -279,12 +323,16 @@ gainzalgo-pro-max/
                         PriceActionService (Phase 5)
       strategies/      BaseStrategy, trend continuation, breakout
                         momentum, mean reversion, StrategyRouter,
-                        StrategyService (Phase 6, new)
+                        StrategyService (Phase 6)
+      signals/         scoring, signal, ranking engines, storage,
+                        SignalService (Phase 7, new)
+      scanner/         Nifty50Scanner (Phase 7, new)
       websocket/       ConnectionManager (Phase 3)
       schemas/         Pydantic request/response models
       services/        auth_service, settings_service, system_health
       api/v1/          auth, settings, system, market, intelligence,
-                        price_action, strategies, market_ws routes
+                        price_action, strategies, signals (scanner),
+                        market_ws routes
       seed.py          demo user seed script
     alembic/           migrations
   frontend/
@@ -296,10 +344,11 @@ gainzalgo-pro-max/
                         breadth, symbol detail (Phase 4)
     components/price-action/ chart, pattern grid, retracement gauge,
                         levels table, multi-timeframe panel (Phase 5)
-    components/strategies/ strategy result card (Phase 6, new)
+    components/strategies/ strategy result card (Phase 6)
+    components/signals/ signal detail, score and reason breakdowns (Phase 7, new)
     lib/               market-client, use-market-socket,
                         intelligence-format, price-action-format,
-                        strategy-format
+                        strategy-format, signal-format
                         (+ vitest tests)
     middleware.ts       route-level auth redirect
   infrastructure/       Dockerfiles + backend entrypoint (runs migrations)
@@ -308,7 +357,7 @@ gainzalgo-pro-max/
 
 ## What's next
 
-See `docs/development-roadmap.md`. Next: the Signal Engine (turning
-strategy candidates into scored, ranked signals), the remaining
-trading-domain data models, the Risk Engine, and paper trading, built
-one phase at a time.
+See `docs/development-roadmap.md`. Next: the Risk Engine (validating
+signals and sizing against per-user limits), the remaining
+trading-domain data models, and paper trading, built one phase at a
+time.

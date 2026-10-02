@@ -6,6 +6,12 @@ import type {
 } from "@/types/intelligence";
 import type { PriceActionOverview, SymbolPriceAction } from "@/types/price-action";
 import type {
+  ScannerResponse,
+  SignalEngineConfig,
+  SignalList,
+  StoredSignal,
+} from "@/types/signals";
+import type {
   StrategyEngineConfig,
   StrategyOverview,
   SymbolStrategies,
@@ -74,4 +80,27 @@ export function getSymbolStrategiesRequest(
 ): Promise<SymbolStrategies> {
   const query = includeUnrouted ? "?include_unrouted=true" : "";
   return apiGet<SymbolStrategies>(`/strategies/${encodeURIComponent(symbol)}${query}`);
+}
+
+export function getScannerRequest(): Promise<ScannerResponse> {
+  return apiGet<ScannerResponse>("/scanner");
+}
+
+export function getSignalConfigRequest(): Promise<SignalEngineConfig> {
+  return apiGet<SignalEngineConfig>("/signals/config");
+}
+
+export function getSignalsRequest(
+  filters: { status?: string; category?: string; symbol?: string; limit?: number; offset?: number } = {}
+): Promise<SignalList> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
+  const query = params.toString();
+  return apiGet<SignalList>(`/signals${query ? `?${query}` : ""}`);
+}
+
+export function getSignalRequest(id: string): Promise<StoredSignal> {
+  return apiGet<StoredSignal>(`/signals/${encodeURIComponent(id)}`);
 }

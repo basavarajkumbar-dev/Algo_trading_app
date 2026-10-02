@@ -541,3 +541,91 @@ The router decision for any regime and confidence.
 Router mapping, minimum regime confidence, and every strategy's
 thresholds, weights and candidate geometry.
 
+---
+
+## Scanner and signals
+
+Read-only, no authentication required. Computed from simulated data
+after every strategy refresh. Signals are scored strategy candidates,
+not orders; scores and ranks describe how much of each strategy's
+weighted evidence is present and are not proof of profitability.
+
+### `GET /scanner`
+
+`{ "scan": ScanResult, "status": SignalServiceStatus }`
+
+- `scan.market_context`: NIFTY 50 regime, multi-timeframe bias and
+  direction, price and change.
+- `scan.rows`: one per constituent (50), ranked rows first. Each has
+  `rank`, `symbol`, `price`, `change_percent`, `status` (`READY`,
+  `WATCH`, `IGNORE`, `NO_SETUP`, `NO_ROUTE`, `NO_DATA`), the best
+  signal's `signal_id` / `signal_direction` / `signal_strategy` /
+  `score` / `category`, and the analysis: `regime`, 60m / 15m / 5m
+  directions and biases, `alignment_score`, `setup_state`, structure,
+  `price_vs_vwap`, `trend_quality`, retracement, `nearest_support` /
+  `nearest_resistance`, `patterns`, `relative_volume`,
+  `momentum_score`, `relative_strength` (+ rank) and routed
+  `strategies` with their furthest `strategy_stages`.
+- `scan.candidates`: every scored candidate as a ranked
+  `TradeCandidate` (rank, symbol, direction, strategy, score, category,
+  status, entry, stop_loss, target, risk_reward, quantity_candidate and
+  the ranking metrics); `scan.top_candidates`: the first
+  `SCANNER_TOP_N` that are WATCH or better.
+- `scan.signals`: the full `TradingSignal` for each candidate in this
+  scan (with `id` when stored), so details are available even when a
+  signal is not stored.
+- `status`: scan count and time, persistence state, executable threshold.
+
+### `GET /signals`
+
+Stored signals, newest first. Query: `status` (`ACTIVE` / `EXPIRED`),
+`category`, `symbol`, `strategy`, `executable`, `limit` (max 200),
+`offset`. Returns `{ items: StoredSignal[], total, limit, offset, note }`
+where `StoredSignal` = `{ signal, generated_at, last_seen_at,
+expired_at, last_score, last_rank, times_seen }`.
+
+### `GET /signals/{id}`
+
+One `StoredSignal`. The `signal` holds every field of the signal object:
+
+```json
+{
+  "id": "4edbeb3f-...",
+  "symbol": "ITC",
+  "direction": "BUY",
+  "strategy": "TREND_CONTINUATION",
+  "strategy_version": "1.0.0+567cf21b",
+  "entry": 262.83,
+  "stop_loss": 261.73,
+  "target": 265.02,
+  "risk_reward": 2.0,
+  "quantity_candidate": 190,
+  "quantity_note": "190 shares: risk 1% of 100,000 at 1.10/share, capped at 50,000 position value ... Candidate only",
+  "score": 58.0,
+  "category": "IGNORE",
+  "executable": false,
+  "confidence": 70.0,
+  "market_regime": "STRONG_BULLISH",
+  "breakdown": {
+    "total": 58.0,
+    "category": "IGNORE",
+    "executable": false,
+    "executable_threshold": 85.0,
+    "components": [{ "key": "relative_strength", "label": "Relative strength", "weight": 15.0, "applicable": true, "effective_weight": 15.8, "score": 0.94, "points": 14.9, "passed": true, "detail": "RS score 78, rank 23/50" }]
+  },
+  "reasons": ["✗ Market alignment: ...", "✓ Relative strength: RS score 78, rank 23/50 (14.9/15.8)", "...", "Final score 58 / 100 (IGNORE)"],
+  "strategy_checks": [{ "key": "pullback", "label": "Pullback", "passed": true, "required": true, "weight": 0, "detail": "pulled back 48% ..." }],
+  "candle_time": "2026-10-02T00:50:00Z",
+  "timestamp": "2026-10-02T00:56:18Z",
+  "status": "ACTIVE"
+}
+```
+
+`404` for an unknown id, `422` for a malformed one, `503` if signal
+storage is unavailable.
+
+### `GET /signals/config`
+
+Scoring weights, category bands, executable threshold, quantity
+defaults, ranking settings and the storage score.
+

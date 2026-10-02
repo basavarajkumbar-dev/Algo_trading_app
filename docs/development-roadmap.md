@@ -471,23 +471,63 @@ under this phase number.
 
 ---
 
-## Phase 9 — Signal Engine, Scoring, Ranking, Scanner
+## Phase 9 — Signal Engine, Scoring, Ranking, Scanner ✅ *(delivered as "Phase 7")*
 
-**Scope**
-- `TradingSignal` model + `SignalDirection` enum.
-- Signal Confidence Engine with configurable weighted factors (market
-  alignment, relative strength, trend quality, VWAP, structure,
-  retracement, volume, momentum, price action) and configurable category
-  thresholds (ELITE/STRONG/WATCH/IGNORE) and auto-trade threshold.
-- Signal explainability payload ("Why Signal?").
-- Candidate Ranking Engine across the NIFTY 50 universe.
-- Stock Scanner pipeline (symbols → data → filter → analysis → strategy →
-  signal → score → risk check → rank).
+> **Numbering note:** directed and executed as "Phase 7 — Signal Engine +
+> Scoring + NIFTY 50 Scanner". It also adds the `signals` table, one of
+> the domain tables roadmap Phase 4 lists; the rest of Phase 4 is open.
+
+**Delivered**
+- `app/signals/`: `SignalDirection` (BUY/SELL/NONE), `TradingSignal`
+  (symbol, direction, strategy, strategy_version, entry, stop_loss,
+  target, risk_reward, quantity_candidate, score, category, executable,
+  confidence, market_regime, reasons, timestamp, status, full score
+  breakdown and the strategy's checks).
+- `ConfidenceScoringEngine`: the nine factors with the brief's initial
+  weights in `ScoringConfig` (overridable via `SIGNAL_SCORE_WEIGHTS`).
+  Components score 0-1 relative to the trade's direction and strategy;
+  components that do not apply (retracement for breakout and mean
+  reversion) are excluded and the rest scaled to 100; a component that
+  fails to score counts as 0, never as missing. Categories ELITE >= 90,
+  STRONG >= 80, WATCH >= 70, IGNORE below; executable threshold 85
+  (`SIGNAL_EXECUTABLE_THRESHOLD`). "Why this signal" lists every
+  component with a tick or cross and the final score.
+- `SignalEngine` (candidates -> signals, quantity candidate from the
+  platform's default capital, risk per trade and position cap) and
+  `CandidateRankingEngine` (score, then risk:reward, relative strength,
+  liquidity, trend quality, volume, strategy confidence).
+- `app/scanner/Nifty50Scanner`: one row per constituent covering market
+  context, regime, 60m/15m/5m, structure, VWAP, trend, retracement,
+  support/resistance, price action, volume, momentum, relative strength
+  and strategy, plus ranked and top candidates. The index is market
+  context, not a row.
+- `signals` table (Alembic `8c7183c8fd0d`): one row per setup episode,
+  ACTIVE while scans keep finding it, then EXPIRED; values frozen at
+  creation; a partial unique index allows one ACTIVE signal per
+  (symbol, strategy, direction). Below `SIGNAL_STORE_MIN_SCORE` (70)
+  candidates are shown but not stored.
+- `SignalService` runs after every strategy refresh and keeps scanning
+  if the database is down (signals are then not stored, reported in
+  status). Endpoints: `GET /scanner`, `GET /signals`, `GET /signals/{id}`,
+  `GET /signals/config`. Frontend: Scanner and Signals pages with
+  signal details, score breakdown and reason breakdown.
+- Strategy results now carry `strategy_version` = semver + hash of the
+  strategy's config.
+
+**Not in this phase**
+- The risk check step of the brief's scanner pipeline (Phase 10): signals
+  are not risk-validated and quantities are candidates.
+- Database-stored scoring weights: weights come from configuration and
+  environment; per-user / DB overrides come with the settings work.
 
 **Definition of Done**
-- [ ] Weights and thresholds are read from config/DB, not hardcoded.
-- [ ] Scanner produces a ranked `TradeCandidate[]` on mock data in tests.
-- [ ] Explainability payload present on every generated signal.
+- [x] Weights and thresholds are read from configuration (environment
+      overridable), not hardcoded in logic.
+- [x] Scanner produces a ranked `TradeCandidate[]` on mock data in tests
+      (unit tests with constructed contexts and an integration test on
+      the full simulated pipeline).
+- [x] Explainability payload present on every generated signal, stored
+      with it and returned by the API.
 
 ---
 
