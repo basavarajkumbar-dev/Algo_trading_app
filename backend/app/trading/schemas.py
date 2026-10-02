@@ -31,6 +31,7 @@ class TradeStatus(str, Enum):
 
 class ExitReason(str, Enum):
     STOP_LOSS = "STOP_LOSS"
+    TRAILING_STOP = "TRAILING_STOP"  # the protective stop after it was trailed
     TARGET = "TARGET"
     TIME_EXIT = "TIME_EXIT"  # square-off time
     MANUAL = "MANUAL"
@@ -70,6 +71,9 @@ class PaperTrade(BaseModel):
     unrealized_pnl: float = 0.0
     r_multiple: float | None = None  # net P&L / initial risk of the filled quantity
     exit_reason: ExitReason | None = None
+    trailing_stop: float | None = (
+        None  # current stop once trailed; stop_loss stays the initial stop
+    )
     created_at: datetime
     opened_at: datetime | None = None
     closed_at: datetime | None = None

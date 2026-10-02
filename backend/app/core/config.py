@@ -178,6 +178,12 @@ class Settings(BaseSettings):
     paper_emergency_close_positions: bool = Field(
         default=False, alias="PAPER_EMERGENCY_CLOSE_POSITIONS"
     )
+    # --- Backtesting (Phase 10) --------------------------------------------
+    # Directory of real 5-minute CSV bars (see docs/backtesting.md). Unset:
+    # only the synthetic history is available.
+    backtest_data_dir: str | None = Field(default=None, alias="BACKTEST_DATA_DIR")
+    # Worker processes for the signal replay (default: CPU count).
+    backtest_workers: int | None = Field(default=None, ge=1, le=32, alias="BACKTEST_WORKERS")
     # Optional JSON object overriding cost-model fields, e.g.
     # {"brokerage_cap_per_order": 20, "stt_sell_rate": 0.00025}.
     paper_costs: dict[str, float] | None = Field(default=None, alias="PAPER_COSTS")

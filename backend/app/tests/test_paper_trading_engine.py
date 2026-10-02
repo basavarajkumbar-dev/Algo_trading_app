@@ -621,3 +621,43 @@ async def test_many_trades_keep_the_books_consistent() -> None:
     assert e.risk.state.realized_pnl_today == pytest.approx(net, abs=0.05)
     assert e.risk.state.trades_today == len(exits)
     assert e.risk.state.wins_today == 4 and e.risk.state.losses_today == 2
+
+
+# --- trailing stop ---------------------------------------------------------------------------------
+
+
+async def test_trail_stop_only_tightens_and_never_crosses_price() -> None:
+    clock = Clock()
+    e = make_engine(clock)
+    await open_trade(e, clock)  # long 1000, stop 990
+    await price(e, clock, 1012)
+    assert not e.trail_stop(985)  # looser: refused
+    assert not e.trail_stop(1015)  # through the price: refused
+    assert e.trail_stop(1000)
+    assert e.active is not None and e.active.trailing_stop == 1000 and e.active.stop_loss == 990
+    stop = orders_of(e, OrderPurpose.STOP_LOSS)[0]
+    assert e.broker.order(stop.id).trigger_price == 1000
+    assert not e.trail_stop(995)  # cannot move back
+    await price(e, clock, 999)
+    t = e.closed[-1]
+    assert t.exit_reason == ExitReason.TRAILING_STOP
+    # filled at 999 (the next price) less charges, measured on the initial 10-point risk
+    assert t.r_multiple is not None and -0.3 < t.r_multiple < 0.05
+
+
+async def test_trail_stop_for_a_short() -> None:
+    clock = Clock()
+    e = make_engine(clock)
+    await open_trade(e, clock, side=TradeSide.SHORT)  # stop 1010
+    await price(e, clock, 990)
+    assert e.trail_stop(1000.03)  # rounded up to the tick for a short
+    assert e.active is not None and e.active.trailing_stop == 1000.05
+    assert not e.trail_stop(1005)
+
+
+async def test_trail_stop_needs_an_open_position() -> None:
+    clock = Clock()
+    e = make_engine(clock, broker={"execution_delay_seconds": 5})
+    assert not e.trail_stop(1000)
+    await open_trade(e, clock)
+    assert not e.trail_stop(995)  # entry still pending

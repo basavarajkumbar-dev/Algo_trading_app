@@ -289,6 +289,42 @@ class PaperTradingEngine:
                 continue
             self._track(self.broker.cancel(order.id))
 
+    def trail_stop(self, new_stop: float) -> bool:
+        """Tighten the protective stop of the open position (never loosen it).
+
+        Returns True when the working SL_M order was moved. The trade's
+        initial `stop_loss` is kept for R-multiple accounting; the moved
+        level is recorded in `trailing_stop`. A level already through the
+        last price is refused (the stop would fill at once)."""
+
+        trade = self.active
+        if trade is None or self.state != TradingState.POSITION_ACTIVE:
+            return False
+        stop = self._latest(OrderPurpose.STOP_LOSS)
+        if stop is None or not stop.status.is_working or stop.triggered:
+            return False
+        level = round_to_tick(
+            new_stop,
+            self.broker.config.tick_size,
+            "down" if trade.side == TradeSide.LONG else "up",
+        )
+        current = trade.trailing_stop or trade.stop_loss
+        last = self.broker.last_price(trade.symbol)
+        long = trade.side == TradeSide.LONG
+        improves = level > current if long else level < current
+        valid = last is None or (level < last if long else level > last)
+        if not (improves and valid):
+            return False
+        self._track(self.broker.modify(stop.id, OrderModification(trigger_price=level)))
+        trade.trailing_stop = level
+        self._event(
+            "STOP_TRAILED",
+            f"{trade.symbol} stop moved {current} -> {level}",
+            trade_id=str(trade.id),
+        )
+        self._touch_trade()
+        return True
+
     # --- SIGNAL -> RISK -> ORDER -------------------------------------------
 
     async def execute(self, intent: TradeIntent, conditions: MarketConditions) -> RiskDecision:
@@ -508,7 +544,7 @@ class PaperTradingEngine:
                         side=exit_side,
                         quantity=open_qty,
                         order_type=OrderType.SL_M,
-                        trigger_price=trade.stop_loss,
+                        trigger_price=trade.trailing_stop or trade.stop_loss,
                         client_order_id=f"{key}-sl-{len(self._orders(OrderPurpose.STOP_LOSS))}",
                         tag=OrderPurpose.STOP_LOSS.value,
                     ),
@@ -561,7 +597,13 @@ class PaperTradingEngine:
         target_qty = target.filled_quantity if target else 0
         if self._pending_exit_reason is not None:
             return self._pending_exit_reason
-        return ExitReason.TARGET if target_qty > stop_qty else ExitReason.STOP_LOSS
+        if target_qty > stop_qty:
+            return ExitReason.TARGET
+        return (
+            ExitReason.TRAILING_STOP
+            if self.active and self.active.trailing_stop
+            else ExitReason.STOP_LOSS
+        )
 
     async def _begin_exit(self, reason: ExitReason) -> None:
         trade = self.active

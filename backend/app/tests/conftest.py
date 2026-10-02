@@ -27,6 +27,7 @@ DATABASE_TEST_MODULES = (
     "test_signal_persistence.py",
     "test_paper_trading_persistence.py",
     "test_dashboard_api.py",
+    "test_backtest_api.py",
 )
 
 
@@ -87,7 +88,9 @@ async def _clean_tables(db_available: bool) -> AsyncGenerator[None, None]:
             await conn.execute(
                 text(
                     "TRUNCATE TABLE sessions, trading_settings, risk_configs, "
-                    "audit_logs, users, signals, paper_orders, paper_trades, system_events "
+                    "audit_logs, users, signals, paper_orders, paper_trades, system_events, "
+                    "backtest_equity_points, backtest_trades, backtest_runs, parameter_sets, "
+                    "strategy_versions "
                     "RESTART IDENTITY CASCADE"
                 )
             )

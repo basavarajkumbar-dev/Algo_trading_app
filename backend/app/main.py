@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1_router
+from app.backtesting.service import BacktestService
 from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX
 from app.core.logging import configure_logging, get_logger
@@ -128,8 +129,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await trading_service.start()
     app.state.trading_service = trading_service
 
+    backtest_service = BacktestService(
+        async_session_factory,
+        data_dir=settings.backtest_data_dir,
+        workers=settings.backtest_workers,
+    )
+    await backtest_service.start()
+    app.state.backtest_service = backtest_service
+
     yield
 
+    await backtest_service.stop()
     await trading_service.stop()
     await signal_service.stop()
     await strategy_service.stop()
