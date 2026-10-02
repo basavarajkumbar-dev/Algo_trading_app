@@ -69,7 +69,7 @@ class PaperTrade(BaseModel):
     charges: float = 0.0
     net_pnl: float = 0.0
     unrealized_pnl: float = 0.0
-    r_multiple: float | None = None  # net P&L / initial risk of the filled quantity
+    r_multiple: float | None = None  # net P&L / planned risk (planned entry to stop) x filled qty
     exit_reason: ExitReason | None = None
     trailing_stop: float | None = (
         None  # current stop once trailed; stop_loss stays the initial stop

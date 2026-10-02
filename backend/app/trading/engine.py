@@ -733,7 +733,10 @@ class PaperTradingEngine:
         trade.closed_at = now
         trade.unrealized_pnl = 0.0
         if trade.filled_quantity > 0 and trade.entry_price is not None:
-            risk_per_unit = abs(trade.entry_price - trade.stop_loss)
+            # R is measured against the risk the position was sized for (planned
+            # entry to stop). Using the fill would turn a gap toward the stop
+            # into an outsized R loss on a small rupee loss.
+            risk_per_unit = abs(trade.planned_entry - trade.stop_loss)
             initial = risk_per_unit * trade.filled_quantity
             trade.r_multiple = round(trade.net_pnl / initial, 2) if initial > 0 else None
             self.risk.record_trade_result(trade.net_pnl)

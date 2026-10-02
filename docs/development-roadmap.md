@@ -707,7 +707,7 @@ under this phase number.
   Strategy Engine, Risk Engine and Paper Broker as HEALTHY / WARNING /
   CRITICAL with reasons and metrics (`GET /system/components`), this
   browser's socket, and the event log (`GET /system/events`).
-- `/backtesting`: states that the engine is Phase 15 and shows no results.
+- `/backtesting`: stated that the engine was Phase 15 and showed no results (replaced in Phase 10 below).
 - `/positions`, `/trades`, `/risk` moved to TanStack Query; Positions has
   the position bar and duration; Trades has the complete trade table
   with filters; Risk adds daily loss, risk used, trades used, exposure,
@@ -733,6 +733,10 @@ under this phase number.
 
 ## Phase 15 — Backtesting Engine & Strategy Versioning
 
+> **Numbering note.** Delivered as "Phase 10 — Backtesting + Validation"
+> per direct instruction, together with the Backtesting page that Phase
+> 14 left as a placeholder. Details: `docs/backtesting.md`.
+
 **Scope**
 - Backtest engine (historical / out-of-sample / walk-forward) avoiding
   lookahead bias and data leakage, including brokerage/slippage/charges/
@@ -743,11 +747,32 @@ under this phase number.
 - Strategy versioning tied to parameter set, date range, and instrument
   universe.
 
+**Delivered**
+- Signal replay of the live analysis, strategies and scoring on closed
+  bars (look-ahead guard, session-anchored higher timeframes, NIFTY
+  context per decision, disk cache, process pool); execution replay
+  through the real paper engine, risk manager, broker and cost model with
+  next-open fills, a pessimistic intrabar path, gap fills and trailing
+  stops (NONE / BREAKEVEN / ATR, also added to the paper engine).
+- Historical, out-of-sample and walk-forward modes; selection by mean R
+  minus one standard error with neighbour smoothing; robustness report
+  and flags; optional no-edge control dataset.
+- Synthetic (seeded, regime-based) and CSV data sources; per-day
+  universe membership; data-quality reporting.
+- Tables `strategy_versions`, `parameter_sets`, `backtest_runs`,
+  `backtest_trades`, `backtest_equity_points`; `/backtests` API; background
+  run queue with progress, cancel and delete; Backtesting page.
+- R multiples (paper and backtest) are measured against the planned risk
+  the position was sized for.
+
 **Definition of Done**
-- [ ] A lookahead-bias regression test exists and passes.
-- [ ] Backtest results match hand-computed expectations on a fixed
-      synthetic dataset.
-- [ ] Strategy version + backtest result linkage enforced in the schema.
+- [x] A lookahead-bias regression test exists and passes (closed-bar
+      guard plus a perturbation test).
+- [x] Backtest results match hand-computed expectations on a fixed
+      synthetic dataset (hand-built bars: fills, stops, gaps, costs,
+      square-off, trailing).
+- [x] Strategy version + backtest result linkage enforced in the schema
+      (foreign keys from runs to versions and parameter sets).
 
 ---
 

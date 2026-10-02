@@ -358,8 +358,9 @@ list with entry/exit criteria. Summary:
   (Delivered with Phase 14 as "Phase 9 — Professional Trading Dashboard".)
 - **Phase 14** — Remaining frontend pages (scanner, signals, positions,
   trades, analytics, risk, settings, system health). (Delivered as part
-  of "Phase 9"; backtesting page is a placeholder until Phase 15.)
-- **Phase 15** — Backtesting engine + strategy versioning.
+  of "Phase 9"; the backtesting page was a placeholder until Phase 15.)
+- **Phase 15** — Backtesting engine + strategy versioning. (Delivered as
+  "Phase 10 — Backtesting + Validation", with the backtesting page.)
 - **Phase 16** — Broker adapter architecture + Zerodha adapter structure.
 - **Phase 17** — Hardening: full test suite pass, security review,
   documentation pass, final integration validation.

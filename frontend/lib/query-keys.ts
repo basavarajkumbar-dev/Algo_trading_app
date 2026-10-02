@@ -14,6 +14,11 @@ export const qk = {
   components: ["system", "components"] as const,
   events: ["system", "events"] as const,
   systemHealth: ["system", "health"] as const,
+  backtestOptions: ["backtests", "options"] as const,
+  backtestRuns: ["backtests", "runs"] as const,
+  backtestRun: (id: string) => ["backtests", "run", id] as const,
+  backtestTrades: (id: string) => ["backtests", "trades", id] as const,
+  backtestEquity: (id: string) => ["backtests", "equity", id] as const,
 };
 
 /** What a trading event from the WebSocket makes stale. */

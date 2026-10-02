@@ -3,7 +3,6 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AnalyticsPage from "@/app/(dashboard)/analytics/page";
-import BacktestingPage from "@/app/(dashboard)/backtesting/page";
 import RiskPage from "@/app/(dashboard)/risk/page";
 import SystemPage from "@/app/(dashboard)/system/page";
 import TradesPage from "@/app/(dashboard)/trades/page";
@@ -81,7 +80,7 @@ describe("system page (integration)", () => {
   });
 });
 
-describe("trades, risk and backtesting pages (integration)", () => {
+describe("trades and risk pages (integration)", () => {
   it("renders the complete trade table", async () => {
     mockApi();
     renderWithProviders(<TradesPage />);
@@ -100,10 +99,5 @@ describe("trades, risk and backtesting pages (integration)", () => {
     for (const label of ["Daily loss", "Risk used (open trade)", "Trades used", "Exposure", "Consecutive losses", "System"]) {
       expect(within(summary).getByText(label)).toBeInTheDocument();
     }
-  });
-
-  it("is honest that backtesting is not built yet", () => {
-    renderWithProviders(<BacktestingPage />);
-    expect(screen.getByTestId("backtesting-planned")).toHaveTextContent("No backtest results are shown here");
   });
 });

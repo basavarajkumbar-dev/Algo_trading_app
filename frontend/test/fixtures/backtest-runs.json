@@ -1,0 +1,167 @@
+{
+ "items": [
+  {
+   "id": "9a5cb74a-bb2a-4675-8202-c267e36c2289",
+   "name": "Sample 2 \u00b7 Out-of-sample \u00b7 trend continuation + grid",
+   "mode": "OUT_OF_SAMPLE",
+   "status": "COMPLETED",
+   "progress": 1.0,
+   "message": "Completed",
+   "error": null,
+   "strategy": "TREND_CONTINUATION",
+   "timeframe": "5m",
+   "start_date": "2026-06-01",
+   "end_date": "2026-08-28",
+   "symbols": [
+    "RELIANCE",
+    "HDFCBANK",
+    "INFY",
+    "TCS",
+    "ICICIBANK"
+   ],
+   "capital": 100000.0,
+   "data_source": {
+    "kind": "synthetic",
+    "seed": 42,
+    "synthetic": true,
+    "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0"
+   },
+   "headline": {
+    "total_trades": 38,
+    "win_rate": 47.4,
+    "profit_factor": 1.95,
+    "net_pnl": 6073.05,
+    "max_drawdown": -2029.54,
+    "expectancy_r": 0.172
+   },
+   "flags": 4,
+   "created_at": "2026-10-02T06:58:37.364685Z",
+   "finished_at": "2026-10-02T07:00:06.759124Z",
+   "duration_ms": 84270,
+   "estimated_seconds": null
+  },
+  {
+   "id": "4c765fa6-25dd-4a01-b20f-6b9ace6f2f83",
+   "name": "Sample 4 \u00b7 Historical \u00b7 trend continuation + null-data control",
+   "mode": "HISTORICAL",
+   "status": "COMPLETED",
+   "progress": 1.0,
+   "message": "Completed",
+   "error": null,
+   "strategy": "TREND_CONTINUATION",
+   "timeframe": "5m",
+   "start_date": "2026-06-01",
+   "end_date": "2026-08-28",
+   "symbols": [
+    "RELIANCE",
+    "HDFCBANK",
+    "INFY",
+    "TCS",
+    "ICICIBANK"
+   ],
+   "capital": 100000.0,
+   "data_source": {
+    "kind": "synthetic",
+    "seed": 42,
+    "synthetic": true,
+    "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0"
+   },
+   "headline": {
+    "total_trades": 192,
+    "win_rate": 42.2,
+    "profit_factor": 1.39,
+    "net_pnl": 14531.39,
+    "max_drawdown": -8089.56,
+    "expectancy_r": 0.103
+   },
+   "flags": 1,
+   "created_at": "2026-10-02T06:58:38.069901Z",
+   "finished_at": "2026-10-02T07:02:49.097966Z",
+   "duration_ms": 29373,
+   "estimated_seconds": null
+  },
+  {
+   "id": "839c7e10-4f67-4efa-850c-4d612bcc8e55",
+   "name": "Sample 3 \u00b7 Walk-forward \u00b7 trend continuation",
+   "mode": "WALK_FORWARD",
+   "status": "COMPLETED",
+   "progress": 1.0,
+   "message": "Completed",
+   "error": null,
+   "strategy": "TREND_CONTINUATION",
+   "timeframe": "5m",
+   "start_date": "2026-06-01",
+   "end_date": "2026-08-28",
+   "symbols": [
+    "RELIANCE",
+    "HDFCBANK",
+    "INFY",
+    "TCS",
+    "ICICIBANK"
+   ],
+   "capital": 100000.0,
+   "data_source": {
+    "kind": "synthetic",
+    "seed": 42,
+    "synthetic": true,
+    "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0"
+   },
+   "headline": {
+    "total_trades": 102,
+    "win_rate": 40.2,
+    "profit_factor": 1.39,
+    "net_pnl": 7695.32,
+    "max_drawdown": -3727.22,
+    "expectancy_r": 0.01
+   },
+   "flags": 4,
+   "created_at": "2026-10-02T06:58:37.568192Z",
+   "finished_at": "2026-10-02T07:02:19.685037Z",
+   "duration_ms": 132889,
+   "estimated_seconds": null
+  },
+  {
+   "id": "c1ce770f-b56a-44a9-bc40-d2ca63c9fa0a",
+   "name": "Sample 1 \u00b7 Historical \u00b7 all strategies",
+   "mode": "HISTORICAL",
+   "status": "COMPLETED",
+   "progress": 1.0,
+   "message": "Completed",
+   "error": null,
+   "strategy": "ALL",
+   "timeframe": "5m",
+   "start_date": "2026-06-01",
+   "end_date": "2026-08-28",
+   "symbols": [
+    "RELIANCE",
+    "HDFCBANK",
+    "INFY",
+    "TCS",
+    "ICICIBANK"
+   ],
+   "capital": 100000.0,
+   "data_source": {
+    "kind": "synthetic",
+    "seed": 42,
+    "synthetic": true,
+    "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0"
+   },
+   "headline": {
+    "total_trades": 48,
+    "win_rate": 60.4,
+    "profit_factor": 2.5,
+    "net_pnl": 9581.27,
+    "max_drawdown": -1494.81,
+    "expectancy_r": 0.524
+   },
+   "flags": 0,
+   "created_at": "2026-10-02T06:58:37.341548Z",
+   "finished_at": "2026-10-02T06:58:42.456976Z",
+   "duration_ms": 5088,
+   "estimated_seconds": null
+  }
+ ],
+ "total": 4,
+ "queued": 0,
+ "note": "Backtest results describe how these rules behaved on this history under the stated fill, slippage and cost assumptions. They do not predict or guarantee future performance."
+}

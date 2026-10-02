@@ -3,6 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  getBacktestEquityRequest,
+  getBacktestOptionsRequest,
+  getBacktestRunRequest,
+  getBacktestRunsRequest,
+  getBacktestTradesRequest,
+} from "@/lib/backtest-client";
+import {
   getComponentHealthRequest,
   getPerformanceRequest,
   getRouteRequest,
@@ -87,3 +94,42 @@ export const useSystemEvents = () =>
 
 export const useSystemHealth = () =>
   useQuery({ queryKey: qk.systemHealth, queryFn: getSystemHealthRequest, refetchInterval: 15_000 });
+
+// --- backtesting -------------------------------------------------------------
+
+const ACTIVE = new Set(["QUEUED", "RUNNING"]);
+
+export const useBacktestOptions = () =>
+  useQuery({ queryKey: qk.backtestOptions, queryFn: getBacktestOptionsRequest, staleTime: 60_000 });
+
+/** Polls quickly while any run is queued or running, slowly otherwise. */
+export const useBacktestRuns = () =>
+  useQuery({
+    queryKey: qk.backtestRuns,
+    queryFn: () => getBacktestRunsRequest(),
+    refetchInterval: (q) => (q.state.data?.items.some((r) => ACTIVE.has(r.status)) ? 1_500 : 15_000),
+  });
+
+export const useBacktestRun = (id: string | null) =>
+  useQuery({
+    queryKey: qk.backtestRun(id ?? ""),
+    queryFn: () => getBacktestRunRequest(id as string),
+    enabled: !!id,
+    refetchInterval: (q) => (q.state.data && ACTIVE.has(q.state.data.status) ? 1_500 : false),
+  });
+
+export const useBacktestTrades = (id: string | null, completed: boolean) =>
+  useQuery({
+    queryKey: qk.backtestTrades(id ?? ""),
+    queryFn: () => getBacktestTradesRequest(id as string),
+    enabled: !!id && completed,
+    staleTime: Infinity,
+  });
+
+export const useBacktestEquity = (id: string | null, completed: boolean) =>
+  useQuery({
+    queryKey: qk.backtestEquity(id ?? ""),
+    queryFn: () => getBacktestEquityRequest(id as string),
+    enabled: !!id && completed,
+    staleTime: Infinity,
+  });

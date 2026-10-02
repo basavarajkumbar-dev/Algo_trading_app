@@ -345,6 +345,20 @@ def test_a_gap_through_the_stop_fills_at_the_gap_price() -> None:
     assert trade.exit_price == 97.0 and trade.r_multiple is not None and trade.r_multiple < -2.5
 
 
+def test_r_is_measured_against_the_planned_risk_not_the_fill() -> None:
+    # planned long 100.0, stop 99.0; the entry fills lower at 99.6, then the stop hits:
+    # 0.6 a share lost on a position sized for 1.0 a share of risk is about -0.6R,
+    # not -1R as the fill-to-stop distance would say
+    bars = {
+        "AAA": _day_bars("AAA", DAY, {11: (99.6, 99.7, 99.5, 99.6), 15: (99.5, 99.5, 98.9, 99.0)})
+    }
+    t, rec = _record("AAA", 10)
+    r = _sim(bars, {t: [rec]})
+    trade = next(x for x in r.trades if x.status == TradeStatus.CLOSED)
+    assert trade.entry_price == 99.6 and trade.exit_reason == ExitReason.STOP_LOSS
+    assert trade.r_multiple is not None and -0.75 < trade.r_multiple < -0.55
+
+
 def test_positions_are_squared_off_at_1515() -> None:
     bars = {"AAA": _day_bars("AAA", DAY, {})}
     t, rec = _record("AAA", 60)  # decided 14:20 IST

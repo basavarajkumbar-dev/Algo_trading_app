@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 9 — Professional Trading Dashboard complete. Mode: PAPER only.**
+**Status: Phase 10 — Backtesting + Validation complete. Mode: PAPER only.**
 
 See:
 
@@ -84,7 +84,7 @@ See:
   Trading: state machine, active trade, controls), **`/trades`** and
   **`/risk`**; Signals has a "Paper trade this signal" button.
 
-- **Professional trading dashboard** (Phase 9, new): a command center
+- **Professional trading dashboard** (Phase 9): a command center
   (NIFTY, regime and confidence, algo status, trading mode, today's P&L,
   trade count, win/loss, system health), AI Market Brain, live scanner,
   signal panel with every scoring factor, active position with an
@@ -95,6 +95,20 @@ See:
   with live NIFTY, market session, mode, algo, health and notifications.
   Built with TanStack Query, Zustand, Recharts and shadcn/ui, live over
   one WebSocket. Every panel reads the backend; nothing is invented.
+
+- **Backtesting + validation** (Phase 10, new): historical,
+  out-of-sample and walk-forward runs that replay the live strategy,
+  scoring, risk, sizing and paper-execution code bar by bar on past data
+  (closed bars only, next-bar fills, pessimistic intrabar order, costs and
+  slippage, trailing stops). Parameter selection uses a noise-penalised,
+  neighbour-smoothed objective, never maximum profit; every run reports
+  robustness checks (confidence interval, Monte Carlo, cost stress,
+  concentration, no-edge control) and stores its strategy version,
+  parameter set, range, universe, trades and equity. **Backtesting** page
+  to configure, run and read them. See
+  [`docs/backtesting.md`](./docs/backtesting.md). Backtests describe the
+  past under stated assumptions and do not guarantee future performance;
+  the built-in data is synthetic.
 
 **Paper only.** Orders go to a simulated broker; no broker (Zerodha or any
 other) is connected, no real order can be placed and no real money is
@@ -313,6 +327,20 @@ npm run dev
   `E2E_BASE_URL` / `E2E_API_URL` for other hosts. Each run registers a
   throwaway account with a random password.
 
+## How backtesting works (Phase 10 scope)
+
+- Open **Backtesting → New backtest**: data source (synthetic, or your
+  CSV bars via `BACKTEST_DATA_DIR`), date range, entry timeframe,
+  symbols, strategy and version, parameters (with optional grid values),
+  validation mode, capital, risk and costs. Runs queue on the server and
+  show progress; results open under **Runs & results**.
+- The first run over new symbols / strategy parameters replays every
+  decision (minutes for a few symbols over a quarter on 2 CPUs); later
+  runs that change only execution settings, risk or costs reuse the
+  cached signals and take seconds.
+- Methodology, bias controls, the CSV format, limitations and four
+  sample runs: [`docs/backtesting.md`](./docs/backtesting.md).
+
 ## Environment variables
 
 See [`.env.example`](./.env.example) for the full list. New in Phases 4
@@ -341,6 +369,8 @@ and 5:
   `PAPER_EXECUTION_DELAY_SECONDS`, `PAPER_MAX_FILL_FRACTION`,
   `PAPER_ENTRY_TIMEOUT_SECONDS`, `PAPER_EMERGENCY_CLOSE_POSITIONS` and
   `PAPER_COSTS` — see `.env.example`.
+- Phase 10: `BACKTEST_DATA_DIR` (optional CSV bars), `BACKTEST_WORKERS`,
+  `BACKTEST_CACHE_DIR`; migration adds the backtest tables.
 
 `MARKET_DATA_TICK_INTERVAL_SECONDS` and everything from Phase 2
 (`TRADING_MODE`, `JWT_SECRET`, etc.) still apply unchanged.
@@ -348,10 +378,10 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 482 tests, all passing with a real Postgres;
+make test-backend    # pytest — 518 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
-make test-frontend   # tsc --noEmit + eslint + vitest (68 unit + integration tests)
-make test-e2e        # Playwright against a running stack (5 end-to-end tests)
+make test-frontend   # tsc --noEmit + eslint + vitest (83 unit + integration tests)
+make test-e2e        # Playwright against a running stack (6 end-to-end tests)
 make lint             # ruff + black (backend), eslint (frontend)
 ```
 
@@ -361,6 +391,24 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 10 (36 backend tests, 16 frontend tests,
+1 end-to-end): the session calendar, synthetic data determinism, CSV
+validation and point-in-time universes, the closed-bar look-ahead guard,
+session-anchored higher timeframes, a perturbation test (changing every
+bar after a decision does not change it), next-open fills, stop-first and
+stop-level fills inside a bar, gap fills, square-off, no late entries,
+trailing stops, score and universe filters, no re-entry of one setup,
+costs and slippage, R against planned risk, metrics, Sharpe rules,
+robustness flags, the selection objective and smoothing, parameter
+validation and grid caps, versions, all three modes and the no-edge
+control; the API with Postgres (options, validation errors, a stored run
+with trades, equity and versions, cancel, delete). Frontend: request
+building and grid parsing, and the page against captured API responses
+(runs, headline metrics, the no-guarantee note, robustness, equity,
+validation and selection tables, trades, progress, every form input, the
+posted request, role and walk-forward checks). Playwright configures,
+runs, reads and deletes a small backtest on the running stack.
 
 Test coverage added in Phase 9 (16 backend tests, 32 frontend tests,
 5 end-to-end): performance analytics (summary figures, undefined profit

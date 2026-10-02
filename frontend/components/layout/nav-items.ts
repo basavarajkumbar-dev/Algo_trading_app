@@ -32,7 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Trades", href: "/trades", icon: History },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Strategies", href: "/strategies", icon: TestTubeDiagonal },
-  { label: "Backtesting", href: "/backtesting", icon: Gauge, tag: "planned" },
+  { label: "Backtesting", href: "/backtesting", icon: Gauge },
   { label: "Risk", href: "/risk", icon: ShieldAlert },
   { label: "System", href: "/system", icon: MonitorCheck },
   { label: "Settings", href: "/settings", icon: Settings },

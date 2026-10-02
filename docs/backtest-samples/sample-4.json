@@ -1,0 +1,577 @@
+{
+ "id": "4c765fa6-25dd-4a01-b20f-6b9ace6f2f83",
+ "name": "Sample 4 \u00b7 Historical \u00b7 trend continuation + null-data control",
+ "mode": "HISTORICAL",
+ "status": "COMPLETED",
+ "progress": 1.0,
+ "message": "Completed",
+ "error": null,
+ "strategy": "TREND_CONTINUATION",
+ "timeframe": "5m",
+ "start_date": "2026-06-01",
+ "end_date": "2026-08-28",
+ "symbols": [
+  "RELIANCE",
+  "HDFCBANK",
+  "INFY",
+  "TCS",
+  "ICICIBANK"
+ ],
+ "capital": 100000.0,
+ "data_source": {
+  "kind": "synthetic",
+  "seed": 42,
+  "synthetic": true,
+  "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0"
+ },
+ "headline": {
+  "total_trades": 192,
+  "win_rate": 42.2,
+  "profit_factor": 1.39,
+  "net_pnl": 14531.39,
+  "max_drawdown": -8089.56,
+  "expectancy_r": 0.103
+ },
+ "flags": 1,
+ "created_at": "2026-10-02T06:58:38.069901Z",
+ "finished_at": "2026-10-02T07:02:49.097966Z",
+ "duration_ms": 29373,
+ "estimated_seconds": null,
+ "request": {
+  "grid": null,
+  "mode": "HISTORICAL",
+  "name": "Sample 4 \u00b7 Historical \u00b7 trend continuation + null-data control",
+  "risk": {
+   "allow_short": true,
+   "max_exposure": 50000.0,
+   "margin_multiplier": 1.0,
+   "max_position_value": 50000.0,
+   "max_trades_per_day": 5,
+   "max_consecutive_losses": 3,
+   "risk_per_trade_percent": 1.0,
+   "daily_loss_limit_percent": 3.0
+  },
+  "costs": {
+   "gst_rate": 0.18,
+   "slippage_bps": 5.0,
+   "exchange_rate": 2.97e-05,
+   "stt_sell_rate": 0.00025,
+   "brokerage_rate": 0.0003,
+   "sebi_per_crore": 10.0,
+   "stamp_buy_rate": 3e-05,
+   "brokerage_cap_per_order": 20.0
+  },
+  "capital": 100000.0,
+  "symbols": [
+   "RELIANCE",
+   "HDFCBANK",
+   "INFY",
+   "TCS",
+   "ICICIBANK"
+  ],
+  "version": null,
+  "end_date": "2026-08-28",
+  "strategy": "TREND_CONTINUATION",
+  "timeframe": "5m",
+  "parameters": {
+   "min_score": 65
+  },
+  "start_date": "2026-06-01",
+  "validation": {
+   "wf_anchored": false,
+   "null_control": true,
+   "oos_fraction": 0.3,
+   "wf_test_days": 5,
+   "wf_train_days": 20,
+   "min_trades_for_selection": 8
+  },
+  "data_source": {
+   "kind": "synthetic",
+   "seed": 42
+  },
+  "warmup_days": 15
+ },
+ "metrics": {
+  "wins": 81,
+  "losses": 111,
+  "sharpe": 3.87,
+  "charges": 9699.46,
+  "net_pnl": 14531.39,
+  "sortino": 6.99,
+  "win_rate": 42.2,
+  "expectancy": 75.68,
+  "gross_loss": -37333.99,
+  "average_win": 640.31,
+  "sharpe_note": "daily returns over 65 days, annualised with sqrt(252), risk-free rate 0",
+  "average_loss": -336.34,
+  "exit_reasons": {
+   "TARGET": 61,
+   "STOP_LOSS": 101,
+   "TIME_EXIT": 30
+  },
+  "expectancy_r": 0.103,
+  "gross_profit": 51865.38,
+  "max_drawdown": -8089.56,
+  "payoff_ratio": 1.9,
+  "total_trades": 192,
+  "trading_days": 65,
+  "ending_equity": 114531.39,
+  "profit_factor": 1.39,
+  "return_percent": 14.531,
+  "trades_per_day": 2.95,
+  "starting_capital": 100000.0,
+  "average_planned_rr": 2.08,
+  "max_consecutive_wins": 5,
+  "max_drawdown_percent": -7.873,
+  "max_consecutive_losses": 7,
+  "average_holding_minutes": 70.5
+ },
+ "robustness": {
+  "flags": [
+   "The 95% interval of the mean R includes zero: no evidence of an edge."
+  ],
+  "r_std": 1.444,
+  "mean_r": 0.103,
+  "r_ci95": [
+   -0.101,
+   0.307
+  ],
+  "t_stat": 0.99,
+  "trades": 192,
+  "by_regime": [
+   {
+    "key": "STRONG_BULLISH",
+    "wins": 33,
+    "losses": 65,
+    "trades": 98,
+    "net_pnl": -1670.39,
+    "win_rate": 33.7,
+    "average_r": -0.07,
+    "gross_loss": -22364.44,
+    "gross_profit": 20694.05,
+    "profit_factor": 0.93
+   },
+   {
+    "key": "STRONG_BEARISH",
+    "wins": 48,
+    "losses": 46,
+    "trades": 94,
+    "net_pnl": 16201.78,
+    "win_rate": 51.1,
+    "average_r": 0.28,
+    "gross_loss": -14969.55,
+    "gross_profit": 31171.33,
+    "profit_factor": 2.08
+   }
+  ],
+  "mc_net_pnl": {
+   "p5": 2000.2,
+   "p50": 14763.1,
+   "p95": 27187.67
+  },
+  "by_strategy": [
+   {
+    "key": "TREND_CONTINUATION",
+    "wins": 81,
+    "losses": 111,
+    "trades": 192,
+    "net_pnl": 14531.39,
+    "win_rate": 42.2,
+    "average_r": 0.1,
+    "gross_loss": -37333.99,
+    "gross_profit": 51865.38,
+    "profit_factor": 1.39
+   }
+  ],
+  "enough_trades": true,
+  "by_exit_reason": [
+   {
+    "key": "STOP_LOSS",
+    "wins": 0,
+    "losses": 101,
+    "trades": 101,
+    "net_pnl": -36212.02,
+    "win_rate": 0.0,
+    "average_r": -1.13,
+    "gross_loss": -36212.02,
+    "gross_profit": 0.0,
+    "profit_factor": 0.0
+   },
+   {
+    "key": "TARGET",
+    "wins": 61,
+    "losses": 0,
+    "trades": 61,
+    "net_pnl": 43759.01,
+    "win_rate": 100.0,
+    "average_r": 1.94,
+    "gross_loss": 0.0,
+    "gross_profit": 43759.01,
+    "profit_factor": null
+   },
+   {
+    "key": "TIME_EXIT",
+    "wins": 20,
+    "losses": 10,
+    "trades": 30,
+    "net_pnl": 6984.4,
+    "win_rate": 66.7,
+    "average_r": 0.52,
+    "gross_loss": -1121.97,
+    "gross_profit": 8106.37,
+    "profit_factor": 7.23
+   }
+  ],
+  "mc_max_drawdown": {
+   "p5": -8407.4,
+   "p50": -4353.49,
+   "p95": -2583.05
+  },
+  "extra_slippage_bps": 5.0,
+  "net_pnl_double_costs": 4831.93,
+  "top3_share_of_profit": 0.088,
+  "mc_probability_of_loss": 0.027,
+  "net_pnl_extra_slippage": 5387.39,
+  "net_without_best_trade": 12631.56
+ },
+ "result": {
+  "data": {
+   "kind": "synthetic",
+   "universe": "synthetic (static, unbiased)",
+   "synthetic": true,
+   "fingerprint": "synthetic-v1:regimes:seed=42:holidays=0",
+   "warmup_from": "2026-05-11",
+   "trading_days": 65,
+   "point_in_time_universe": true
+  },
+  "grid": [],
+  "mode": "HISTORICAL",
+  "note": "Backtest results describe how these rules behaved on this history under the stated fill, slippage and cost assumptions. They do not predict or guarantee future performance.",
+  "replay": {
+   "errors": 0,
+   "decisions": 22425,
+   "cache_hits": 6,
+   "decision_times_with_signals": 1342
+  },
+  "metrics": {
+   "wins": 81,
+   "losses": 111,
+   "sharpe": 3.87,
+   "charges": 9699.46,
+   "net_pnl": 14531.39,
+   "sortino": 6.99,
+   "win_rate": 42.2,
+   "expectancy": 75.68,
+   "gross_loss": -37333.99,
+   "average_win": 640.31,
+   "sharpe_note": "daily returns over 65 days, annualised with sqrt(252), risk-free rate 0",
+   "average_loss": -336.34,
+   "exit_reasons": {
+    "TARGET": 61,
+    "STOP_LOSS": 101,
+    "TIME_EXIT": 30
+   },
+   "expectancy_r": 0.103,
+   "gross_profit": 51865.38,
+   "max_drawdown": -8089.56,
+   "payoff_ratio": 1.9,
+   "total_trades": 192,
+   "trading_days": 65,
+   "ending_equity": 114531.39,
+   "profit_factor": 1.39,
+   "return_percent": 14.531,
+   "trades_per_day": 2.95,
+   "starting_capital": 100000.0,
+   "average_planned_rr": 2.08,
+   "max_consecutive_wins": 5,
+   "max_drawdown_percent": -7.873,
+   "max_consecutive_losses": 7,
+   "average_holding_minutes": 70.5
+  },
+  "segments": [
+   {
+    "end": "2026-08-28",
+    "days": 65,
+    "kind": "FULL",
+    "label": "Full range",
+    "start": "2026-06-01",
+    "params": {
+     "min_score": 65.0,
+     "min_alignment": 50.0,
+     "trailing_mode": "NONE",
+     "min_reward_risk": 1.5,
+     "stop_buffer_atr": 0.2,
+     "min_trend_quality": 40.0,
+     "max_pullback_percent": 65.0,
+     "min_pullback_percent": 30.0,
+     "min_regime_confidence": 50.0,
+     "min_relative_strength": 55.0,
+     "trailing_activation_r": 1.0,
+     "trailing_atr_multiple": 1.5
+    },
+    "metrics": {
+     "wins": 81,
+     "losses": 111,
+     "sharpe": 3.87,
+     "charges": 9699.46,
+     "net_pnl": 14531.39,
+     "sortino": 6.99,
+     "win_rate": 42.2,
+     "expectancy": 75.68,
+     "gross_loss": -37333.99,
+     "average_win": 640.31,
+     "sharpe_note": "daily returns over 65 days, annualised with sqrt(252), risk-free rate 0",
+     "average_loss": -336.34,
+     "exit_reasons": {
+      "TARGET": 61,
+      "STOP_LOSS": 101,
+      "TIME_EXIT": 30
+     },
+     "expectancy_r": 0.103,
+     "gross_profit": 51865.38,
+     "max_drawdown": -8089.56,
+     "payoff_ratio": 1.9,
+     "total_trades": 192,
+     "trading_days": 65,
+     "ending_equity": 114531.39,
+     "profit_factor": 1.39,
+     "return_percent": 14.531,
+     "trades_per_day": 2.95,
+     "starting_capital": 100000.0,
+     "average_planned_rr": 2.08,
+     "max_consecutive_wins": 5,
+     "max_drawdown_percent": -7.873,
+     "max_consecutive_losses": 7,
+     "average_holding_minutes": 70.5
+    },
+    "objective": null,
+    "params_hash": "bc285c73581727d6"
+   }
+  ],
+  "warnings": [
+   "Synthetic data: prices are simulated. A result here tests the machinery and the rules on a random process with built-in regimes, not a market edge."
+  ],
+  "execution": {
+   "attempts": 250,
+   "slippage_bps": 5.0,
+   "entry_timeframe": "5m"
+  },
+  "robustness": {
+   "flags": [
+    "The 95% interval of the mean R includes zero: no evidence of an edge."
+   ],
+   "r_std": 1.444,
+   "mean_r": 0.103,
+   "r_ci95": [
+    -0.101,
+    0.307
+   ],
+   "t_stat": 0.99,
+   "trades": 192,
+   "by_regime": [
+    {
+     "key": "STRONG_BULLISH",
+     "wins": 33,
+     "losses": 65,
+     "trades": 98,
+     "net_pnl": -1670.39,
+     "win_rate": 33.7,
+     "average_r": -0.07,
+     "gross_loss": -22364.44,
+     "gross_profit": 20694.05,
+     "profit_factor": 0.93
+    },
+    {
+     "key": "STRONG_BEARISH",
+     "wins": 48,
+     "losses": 46,
+     "trades": 94,
+     "net_pnl": 16201.78,
+     "win_rate": 51.1,
+     "average_r": 0.28,
+     "gross_loss": -14969.55,
+     "gross_profit": 31171.33,
+     "profit_factor": 2.08
+    }
+   ],
+   "mc_net_pnl": {
+    "p5": 2000.2,
+    "p50": 14763.1,
+    "p95": 27187.67
+   },
+   "by_strategy": [
+    {
+     "key": "TREND_CONTINUATION",
+     "wins": 81,
+     "losses": 111,
+     "trades": 192,
+     "net_pnl": 14531.39,
+     "win_rate": 42.2,
+     "average_r": 0.1,
+     "gross_loss": -37333.99,
+     "gross_profit": 51865.38,
+     "profit_factor": 1.39
+    }
+   ],
+   "enough_trades": true,
+   "by_exit_reason": [
+    {
+     "key": "STOP_LOSS",
+     "wins": 0,
+     "losses": 101,
+     "trades": 101,
+     "net_pnl": -36212.02,
+     "win_rate": 0.0,
+     "average_r": -1.13,
+     "gross_loss": -36212.02,
+     "gross_profit": 0.0,
+     "profit_factor": 0.0
+    },
+    {
+     "key": "TARGET",
+     "wins": 61,
+     "losses": 0,
+     "trades": 61,
+     "net_pnl": 43759.01,
+     "win_rate": 100.0,
+     "average_r": 1.94,
+     "gross_loss": 0.0,
+     "gross_profit": 43759.01,
+     "profit_factor": null
+    },
+    {
+     "key": "TIME_EXIT",
+     "wins": 20,
+     "losses": 10,
+     "trades": 30,
+     "net_pnl": 6984.4,
+     "win_rate": 66.7,
+     "average_r": 0.52,
+     "gross_loss": -1121.97,
+     "gross_profit": 8106.37,
+     "profit_factor": 7.23
+    }
+   ],
+   "mc_max_drawdown": {
+    "p5": -8407.4,
+    "p50": -4353.49,
+    "p95": -2583.05
+   },
+   "extra_slippage_bps": 5.0,
+   "net_pnl_double_costs": 4831.93,
+   "top3_share_of_profit": 0.088,
+   "mc_probability_of_loss": 0.027,
+   "net_pnl_extra_slippage": 5387.39,
+   "net_without_best_trade": 12631.56
+  },
+  "assumptions": [
+   "Decisions use only bars closed at decision time; higher timeframes only complete bars.",
+   "Entries are market orders filled at the next bar's open plus slippage.",
+   "Inside a bar the stop is assumed to be hit before the target when both are touched.",
+   "A stop crossed inside a bar fills at its level plus slippage; a gap through it fills at the open.",
+   "Charges follow the configured cost model; slippage is applied on every fill.",
+   "One trade at a time; daily loss limit, max trades and consecutive-loss stop as live.",
+   "Positions are squared off at 15:15 IST; no new entries after 15:00 IST.",
+   "Cross-symbol relative-strength rank is not used in backtests (it does not change scores)."
+  ],
+  "degradation": null,
+  "null_control": {
+   "wins": 35,
+   "losses": 110,
+   "sharpe": -10.07,
+   "charges": 7615.46,
+   "net_pnl": -29479.56,
+   "sortino": -8.97,
+   "win_rate": 24.1,
+   "expectancy": -203.31,
+   "gross_loss": -45952.09,
+   "average_win": 470.64,
+   "sharpe_note": "daily returns over 65 days, annualised with sqrt(252), risk-free rate 0",
+   "average_loss": -417.75,
+   "exit_reasons": {
+    "TARGET": 16,
+    "STOP_LOSS": 101,
+    "TIME_EXIT": 28
+   },
+   "expectancy_r": -0.551,
+   "gross_profit": 16472.53,
+   "max_drawdown": -29479.56,
+   "payoff_ratio": 1.13,
+   "total_trades": 145,
+   "trading_days": 65,
+   "ending_equity": 70520.44,
+   "profit_factor": 0.36,
+   "return_percent": -29.48,
+   "trades_per_day": 2.23,
+   "starting_capital": 100000.0,
+   "average_planned_rr": 2.05,
+   "max_consecutive_wins": 3,
+   "max_drawdown_percent": -29.48,
+   "max_consecutive_losses": 9,
+   "average_holding_minutes": 82.1
+  },
+  "walk_forward": null,
+  "primary_label": "Full range",
+  "selected_params": {
+   "min_score": 65.0,
+   "min_alignment": 50.0,
+   "trailing_mode": "NONE",
+   "min_reward_risk": 1.5,
+   "stop_buffer_atr": 0.2,
+   "min_trend_quality": 40.0,
+   "max_pullback_percent": 65.0,
+   "min_pullback_percent": 30.0,
+   "min_regime_confidence": 50.0,
+   "min_relative_strength": 55.0,
+   "trailing_activation_r": 1.0,
+   "trailing_atr_multiple": 1.5
+  },
+  "in_sample_metrics": null,
+  "strategy_versions": [
+   {
+    "config": {
+     "enabled": true,
+     "weights": {
+      "vwap": 10.0,
+      "regime": 10.0,
+      "volume": 5.0,
+      "pattern": 10.0,
+      "support": 10.0,
+      "momentum": 10.0,
+      "structure": 10.0,
+      "trend_quality": 10.0,
+      "higher_timeframe": 15.0,
+      "relative_strength": 10.0
+     },
+     "geometry": {
+      "max_stop_atr": 3.0,
+      "min_stop_atr": 0.5,
+      "min_reward_risk": 1.5,
+      "stop_buffer_atr": 0.2,
+      "default_reward_risk": 2.0
+     },
+     "min_alignment": 50.0,
+     "min_trend_quality": 40.0,
+     "max_pullback_percent": 65.0,
+     "min_pullback_percent": 30.0,
+     "confirmation_patterns": [
+      "COG",
+      "BT",
+      "TT",
+      "WRB"
+     ],
+     "min_relative_strength": 55.0,
+     "support_proximity_atr": 0.75,
+     "max_candles_since_extreme": 40
+    },
+    "semver": "1.0.0",
+    "strategy": "TREND_CONTINUATION",
+    "version_id": "1.0.0+567cf21b",
+    "config_hash": "567cf21b"
+   }
+  ],
+  "combinations_tested": 1,
+  "selected_params_hash": "bc285c73581727d6"
+ },
+ "note": "Backtest results describe how these rules behaved on this history under the stated fill, slippage and cost assumptions. They do not predict or guarantee future performance."
+}

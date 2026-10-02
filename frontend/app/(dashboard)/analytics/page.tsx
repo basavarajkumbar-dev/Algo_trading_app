@@ -1,47 +1,15 @@
 "use client";
 
 import { DrawdownChart, EquityChart, PnlBars, dayBars, tradeBars } from "@/components/analytics/charts";
+import { GroupTable } from "@/components/analytics/group-table";
 import { Figure, Panel, errorText } from "@/components/dashboard/panel";
 import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatPct, formatRatio, strategyLabel } from "@/lib/dashboard-format";
 import { usePerformance } from "@/lib/queries";
 import { EXIT_REASON_LABEL, formatInr, formatR, pnlTone } from "@/lib/trading-format";
 import { cn } from "@/lib/utils";
 import type { ExitReason } from "@/types/trading";
-import type { GroupStats } from "@/types/dashboard";
-
-function GroupTable({ groups, label }: { groups: GroupStats[]; label: (key: string) => string }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{/* group */}</TableHead>
-          <TableHead className="text-right">Trades</TableHead>
-          <TableHead className="text-right">Win rate</TableHead>
-          <TableHead className="text-right">Net P&amp;L</TableHead>
-          <TableHead className="text-right">Profit factor</TableHead>
-          <TableHead className="text-right">Avg R</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {groups.map((g) => (
-          <TableRow key={g.key}>
-            <TableCell className="font-medium">{label(g.key)}</TableCell>
-            <TableCell className="tabular text-right">
-              {g.trades} <span className="text-muted">({g.wins}W/{g.losses}L)</span>
-            </TableCell>
-            <TableCell className="tabular text-right">{formatPct(g.win_rate)}</TableCell>
-            <TableCell className={cn("tabular text-right", pnlTone(g.net_pnl))}>{formatInr(g.net_pnl, true)}</TableCell>
-            <TableCell className="tabular text-right">{formatRatio(g.profit_factor)}</TableCell>
-            <TableCell className="tabular text-right">{formatR(g.average_r)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
 
 export default function AnalyticsPage() {
   const perf = usePerformance();

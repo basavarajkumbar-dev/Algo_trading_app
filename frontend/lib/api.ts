@@ -107,3 +107,8 @@ export async function apiPatch<T>(
     options
   );
 }
+
+/** Minimal typed fetch wrapper for DELETE requests. */
+export async function apiDelete<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return request<T>(path, { method: "DELETE" }, options);
+}

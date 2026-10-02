@@ -35,6 +35,7 @@ export function lifecycleIndex(state: TradingStateValue): number {
 export const EXIT_REASON_LABEL: Record<ExitReason, string> = {
   STOP_LOSS: "Stop loss",
   TARGET: "Target",
+  TRAILING_STOP: "Trailing stop",
   TIME_EXIT: "Square-off",
   MANUAL: "Manual exit",
   EMERGENCY: "Emergency stop",

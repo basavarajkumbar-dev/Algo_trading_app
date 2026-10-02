@@ -834,3 +834,131 @@ stored (example shape):
 
 The dashboard refreshes its trading, analytics and system queries when
 one arrives.
+
+## Backtesting (Phase 10)
+
+Reads need no authentication; creating, cancelling and deleting runs
+need the TRADER or ADMIN role. Runs execute one at a time in the
+background on the server. Methodology and assumptions:
+[`docs/backtesting.md`](./backtesting.md). Every response that carries
+results also carries `note`: results describe past (or synthetic) data
+under the stated assumptions and do not predict or guarantee future
+performance.
+
+### `GET /backtests/options`
+
+Everything the form needs: `strategies` (`ALL`, `TREND_CONTINUATION`,
+`BREAKOUT_MOMENTUM`, `MEAN_REVERSION`, each with `label`, `parameters`
+— `{ key, label, scope: strategy | execution, kind: float | int | choice,
+default, minimum, maximum, step, choices, description }` — and
+`defaults`), `versions` (the current default version of each choice plus
+versions stored by earlier runs, with the strategy parameters that
+produce them), `data_sources` (`synthetic` always; `csv` when
+`BACKTEST_DATA_DIR` is set, with its date range, symbols and whether the
+universe is point-in-time), `timeframes` (`5m`, `15m` entry timeframes),
+`modes`, `limits` (`max_symbols` 20, `max_days` 250,
+`max_grid_combinations` 27), default `risk`, `costs` and `validation`,
+`assumptions` and `note`.
+
+### `POST /backtests` (TRADER / ADMIN) → 202
+
+```json
+{
+  "name": "TC out-of-sample",
+  "mode": "OUT_OF_SAMPLE",
+  "strategy": "TREND_CONTINUATION",
+  "version": "1.0.0+567cf21b",
+  "symbols": ["RELIANCE", "HDFCBANK", "INFY"],
+  "start_date": "2026-06-01",
+  "end_date": "2026-08-28",
+  "timeframe": "5m",
+  "parameters": { "min_score": 65 },
+  "grid": { "min_score": [55, 65, 75], "trailing_mode": ["NONE", "BREAKEVEN"] },
+  "capital": 100000,
+  "risk": { "risk_per_trade_percent": 1, "daily_loss_limit_percent": 3, "max_trades_per_day": 5 },
+  "costs": { "slippage_bps": 5 },
+  "validation": { "oos_fraction": 0.3, "min_trades_for_selection": 8, "null_control": false },
+  "data_source": { "kind": "synthetic", "seed": 42 }
+}
+```
+
+Only `symbols`, `start_date` and `end_date` are required. `version`, if
+given, must be one the parameters actually produce. Checked before the
+run is queued (422 with a reason): dates inside the data's range, at
+least 3 trading days (6 for out-of-sample; train + test for
+walk-forward), known symbols, parameters inside their ranges, a grid of
+at most 27 combinations, and a grid for walk-forward. Returns the run
+summary with `status: QUEUED` and `estimated_seconds`.
+
+Modes: `HISTORICAL` (your parameters over the range; a grid only yields
+a sensitivity table), `OUT_OF_SAMPLE` (time-ordered split; selection on
+the in-sample part; headline = the out-of-sample part), `WALK_FORWARD`
+(`wf_train_days` / `wf_test_days`, rolling or `wf_anchored`; headline =
+stitched test windows).
+
+### `GET /backtests?limit=50&offset=0`
+
+`{ items: [RunSummary], total, queued, note }`, newest first.
+`RunSummary`: `id, name, mode, status (QUEUED | RUNNING | COMPLETED |
+FAILED | CANCELLED), progress (0–1), message, error, strategy, timeframe,
+start_date, end_date, symbols, capital, data_source { kind, synthetic,
+fingerprint, seed }, headline { total_trades, win_rate, profit_factor,
+net_pnl, max_drawdown, expectancy_r } | null, flags (count of robustness
+flags), created_at, finished_at, duration_ms`.
+
+### `GET /backtests/{id}`
+
+The summary plus `request` (as submitted), `metrics`, `robustness` and
+`result`:
+
+- `metrics`: `total_trades, wins, losses, win_rate (%), profit_factor,
+  expectancy (₹/trade), expectancy_r, net_pnl, gross_profit, gross_loss,
+  charges, return_percent, max_drawdown, max_drawdown_percent,
+  average_win, average_loss, payoff_ratio (realised risk/reward),
+  average_planned_rr, max_consecutive_wins, max_consecutive_losses,
+  sharpe, sortino (null below 20 trading days or without variation),
+  sharpe_note, trading_days, trades_per_day, average_holding_minutes,
+  exit_reasons, starting_capital, ending_equity`.
+- `robustness`: `trades, enough_trades (30+), mean_r, r_std, r_ci95,
+  t_stat, mc_net_pnl / mc_max_drawdown ({ p5, p50, p95 } over 1,000
+  seeded bootstrap resamples), mc_probability_of_loss (0–1),
+  net_pnl_double_costs, net_pnl_extra_slippage, extra_slippage_bps,
+  top3_share_of_profit (0–1), net_without_best_trade, by_regime,
+  by_strategy, by_exit_reason, flags` (plain-English warnings).
+- `result`: `mode, primary_label` (what the headline describes),
+  `segments` (`FULL`, `IN_SAMPLE` / `OUT_OF_SAMPLE`, or `TRAIN` / `TEST`
+  per window, each with its dates, parameters, objective and metrics),
+  `grid` (`varied`, `trades`, `net_pnl`, `profit_factor`,
+  `expectancy_r`, `objective`, `smoothed`, `selected`, `window`),
+  `combinations_tested, selected_params, selected_params_hash,
+  walk_forward { windows, profitable_windows, efficiency,
+  parameter_changes, note }, in_sample_metrics, degradation (OOS ÷ IS
+  expectancy R), null_control` (metrics on no-edge data, if asked),
+  `strategy_versions, data, replay, execution, warnings, assumptions,
+  note`.
+
+### `GET /backtests/{id}/trades?limit=500&offset=0`
+
+`{ items, total }` in closing order. Each trade: `id, segment, symbol,
+side, strategy, strategy_version, regime, score, decision_time,
+opened_at, closed_at, quantity, entry_price, exit_price, stop_loss,
+trailing_stop, target, exit_reason (STOP_LOSS | TARGET | TRAILING_STOP |
+TIME_EXIT | …), gross_pnl, charges, net_pnl, r_multiple, planned_rr,
+reasons`.
+
+### `GET /backtests/{id}/equity`
+
+`{ trades: [...], days: [...] }` — equity after each closed trade (with
+`drawdown`, `drawdown_percent`, `net_pnl`) and at the end of each
+trading day; points are `{ at, equity, drawdown, drawdown_percent,
+net_pnl }`.
+
+### `POST /backtests/{id}/cancel` (TRADER / ADMIN)
+
+Cancels a queued or running run (409 otherwise). A running run stops once
+the symbols being replayed finish, or before its next simulation pass.
+
+### `DELETE /backtests/{id}` (TRADER / ADMIN) → 204
+
+Deletes a finished run with its trades and equity (409 while it is
+queued or running). Strategy versions and parameter sets stay.

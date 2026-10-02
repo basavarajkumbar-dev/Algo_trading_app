@@ -22,6 +22,7 @@ export type TradeStatus =
 export type ExitReason =
   | "STOP_LOSS"
   | "TARGET"
+  | "TRAILING_STOP"
   | "TIME_EXIT"
   | "MANUAL"
   | "EMERGENCY"

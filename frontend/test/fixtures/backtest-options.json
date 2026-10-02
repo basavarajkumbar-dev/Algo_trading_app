@@ -1,0 +1,759 @@
+{
+ "strategies": [
+  {
+   "value": "ALL",
+   "label": "All strategies (live router)",
+   "parameters": [
+    {
+     "key": "min_regime_confidence",
+     "label": "Min regime confidence",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 0.0,
+     "maximum": 95.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "router.min_regime_confidence",
+     "description": "Below this regime confidence no strategy is routed."
+    },
+    {
+     "key": "min_score",
+     "label": "Min signal score",
+     "scope": "execution",
+     "kind": "float",
+     "default": 85.0,
+     "minimum": 50.0,
+     "maximum": 100.0,
+     "step": 1.0,
+     "choices": null,
+     "path": "min_score",
+     "description": "Signals below this are not traded (live executable threshold: 85)."
+    },
+    {
+     "key": "trailing_mode",
+     "label": "Trailing stop",
+     "scope": "execution",
+     "kind": "choice",
+     "default": "NONE",
+     "minimum": null,
+     "maximum": null,
+     "step": null,
+     "choices": [
+      "NONE",
+      "BREAKEVEN",
+      "ATR"
+     ],
+     "path": null,
+     "description": "NONE, BREAKEVEN (stop to entry at +activation R) or ATR (then trail by ATR)."
+    },
+    {
+     "key": "trailing_activation_r",
+     "label": "Trailing activation (R)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.0,
+     "minimum": 0.25,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_activation_r",
+     "description": ""
+    },
+    {
+     "key": "trailing_atr_multiple",
+     "label": "Trailing distance (ATR)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 0.5,
+     "maximum": 4.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_atr_multiple",
+     "description": ""
+    }
+   ],
+   "defaults": {
+    "min_regime_confidence": 50.0,
+    "min_score": 85.0,
+    "trailing_mode": "NONE",
+    "trailing_activation_r": 1.0,
+    "trailing_atr_multiple": 1.5
+   }
+  },
+  {
+   "value": "TREND_CONTINUATION",
+   "label": "Trend continuation",
+   "parameters": [
+    {
+     "key": "min_pullback_percent",
+     "label": "Min pullback %",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 30.0,
+     "minimum": 10.0,
+     "maximum": 60.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "min_pullback_percent",
+     "description": ""
+    },
+    {
+     "key": "max_pullback_percent",
+     "label": "Max pullback %",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 65.0,
+     "minimum": 40.0,
+     "maximum": 90.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "max_pullback_percent",
+     "description": ""
+    },
+    {
+     "key": "min_trend_quality",
+     "label": "Min trend quality",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 40.0,
+     "minimum": 0.0,
+     "maximum": 80.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "min_trend_quality",
+     "description": ""
+    },
+    {
+     "key": "min_relative_strength",
+     "label": "Min relative strength",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 55.0,
+     "minimum": 50.0,
+     "maximum": 80.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "min_relative_strength",
+     "description": ""
+    },
+    {
+     "key": "min_alignment",
+     "label": "Min timeframe alignment",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 0.0,
+     "maximum": 90.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "min_alignment",
+     "description": ""
+    },
+    {
+     "key": "min_reward_risk",
+     "label": "Min reward:risk",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 1.0,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "geometry.min_reward_risk",
+     "description": ""
+    },
+    {
+     "key": "stop_buffer_atr",
+     "label": "Stop buffer (ATR)",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 0.2,
+     "minimum": 0.0,
+     "maximum": 1.0,
+     "step": 0.05,
+     "choices": null,
+     "path": "geometry.stop_buffer_atr",
+     "description": ""
+    },
+    {
+     "key": "min_regime_confidence",
+     "label": "Min regime confidence",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 0.0,
+     "maximum": 95.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "router.min_regime_confidence",
+     "description": "Below this regime confidence no strategy is routed."
+    },
+    {
+     "key": "min_score",
+     "label": "Min signal score",
+     "scope": "execution",
+     "kind": "float",
+     "default": 85.0,
+     "minimum": 50.0,
+     "maximum": 100.0,
+     "step": 1.0,
+     "choices": null,
+     "path": "min_score",
+     "description": "Signals below this are not traded (live executable threshold: 85)."
+    },
+    {
+     "key": "trailing_mode",
+     "label": "Trailing stop",
+     "scope": "execution",
+     "kind": "choice",
+     "default": "NONE",
+     "minimum": null,
+     "maximum": null,
+     "step": null,
+     "choices": [
+      "NONE",
+      "BREAKEVEN",
+      "ATR"
+     ],
+     "path": null,
+     "description": "NONE, BREAKEVEN (stop to entry at +activation R) or ATR (then trail by ATR)."
+    },
+    {
+     "key": "trailing_activation_r",
+     "label": "Trailing activation (R)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.0,
+     "minimum": 0.25,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_activation_r",
+     "description": ""
+    },
+    {
+     "key": "trailing_atr_multiple",
+     "label": "Trailing distance (ATR)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 0.5,
+     "maximum": 4.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_atr_multiple",
+     "description": ""
+    }
+   ],
+   "defaults": {
+    "min_pullback_percent": 30.0,
+    "max_pullback_percent": 65.0,
+    "min_trend_quality": 40.0,
+    "min_relative_strength": 55.0,
+    "min_alignment": 50.0,
+    "min_reward_risk": 1.5,
+    "stop_buffer_atr": 0.2,
+    "min_regime_confidence": 50.0,
+    "min_score": 85.0,
+    "trailing_mode": "NONE",
+    "trailing_activation_r": 1.0,
+    "trailing_atr_multiple": 1.5
+   }
+  },
+  {
+   "value": "BREAKOUT_MOMENTUM",
+   "label": "Breakout momentum",
+   "parameters": [
+    {
+     "key": "min_relative_volume",
+     "label": "Min relative volume",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.3,
+     "minimum": 1.0,
+     "maximum": 3.0,
+     "step": 0.1,
+     "choices": null,
+     "path": "min_relative_volume",
+     "description": ""
+    },
+    {
+     "key": "max_extension_atr",
+     "label": "Max extension (ATR)",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 0.5,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "max_extension_atr",
+     "description": ""
+    },
+    {
+     "key": "expansion_range_multiple",
+     "label": "Expansion range multiple",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.3,
+     "minimum": 1.0,
+     "maximum": 3.0,
+     "step": 0.1,
+     "choices": null,
+     "path": "expansion_range_multiple",
+     "description": ""
+    },
+    {
+     "key": "opening_range_minutes",
+     "label": "Opening range (min)",
+     "scope": "strategy",
+     "kind": "choice",
+     "default": 15,
+     "minimum": null,
+     "maximum": null,
+     "step": null,
+     "choices": [
+      5,
+      15,
+      30
+     ],
+     "path": "opening_range_minutes",
+     "description": ""
+    },
+    {
+     "key": "min_reward_risk",
+     "label": "Min reward:risk",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 1.0,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "geometry.min_reward_risk",
+     "description": ""
+    },
+    {
+     "key": "min_regime_confidence",
+     "label": "Min regime confidence",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 0.0,
+     "maximum": 95.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "router.min_regime_confidence",
+     "description": "Below this regime confidence no strategy is routed."
+    },
+    {
+     "key": "min_score",
+     "label": "Min signal score",
+     "scope": "execution",
+     "kind": "float",
+     "default": 85.0,
+     "minimum": 50.0,
+     "maximum": 100.0,
+     "step": 1.0,
+     "choices": null,
+     "path": "min_score",
+     "description": "Signals below this are not traded (live executable threshold: 85)."
+    },
+    {
+     "key": "trailing_mode",
+     "label": "Trailing stop",
+     "scope": "execution",
+     "kind": "choice",
+     "default": "NONE",
+     "minimum": null,
+     "maximum": null,
+     "step": null,
+     "choices": [
+      "NONE",
+      "BREAKEVEN",
+      "ATR"
+     ],
+     "path": null,
+     "description": "NONE, BREAKEVEN (stop to entry at +activation R) or ATR (then trail by ATR)."
+    },
+    {
+     "key": "trailing_activation_r",
+     "label": "Trailing activation (R)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.0,
+     "minimum": 0.25,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_activation_r",
+     "description": ""
+    },
+    {
+     "key": "trailing_atr_multiple",
+     "label": "Trailing distance (ATR)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 0.5,
+     "maximum": 4.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_atr_multiple",
+     "description": ""
+    }
+   ],
+   "defaults": {
+    "min_relative_volume": 1.3,
+    "max_extension_atr": 1.5,
+    "expansion_range_multiple": 1.3,
+    "opening_range_minutes": 15,
+    "min_reward_risk": 1.5,
+    "min_regime_confidence": 50.0,
+    "min_score": 85.0,
+    "trailing_mode": "NONE",
+    "trailing_activation_r": 1.0,
+    "trailing_atr_multiple": 1.5
+   }
+  },
+  {
+   "value": "MEAN_REVERSION",
+   "label": "Mean reversion",
+   "parameters": [
+    {
+     "key": "max_trend_quality",
+     "label": "Max trend quality",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 20.0,
+     "maximum": 80.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "max_trend_quality",
+     "description": ""
+    },
+    {
+     "key": "min_vwap_deviation_atr",
+     "label": "Min VWAP deviation (ATR)",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 0.5,
+     "minimum": 0.25,
+     "maximum": 2.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "min_vwap_deviation_atr",
+     "description": ""
+    },
+    {
+     "key": "boundary_proximity_atr",
+     "label": "Range-edge proximity (ATR)",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 0.5,
+     "minimum": 0.25,
+     "maximum": 1.5,
+     "step": 0.25,
+     "choices": null,
+     "path": "boundary_proximity_atr",
+     "description": ""
+    },
+    {
+     "key": "min_extension_atr",
+     "label": "Min extension (ATR)",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 0.75,
+     "minimum": 0.25,
+     "maximum": 2.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "min_extension_atr",
+     "description": ""
+    },
+    {
+     "key": "min_reward_risk",
+     "label": "Min reward:risk",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 1.0,
+     "minimum": 0.75,
+     "maximum": 2.5,
+     "step": 0.25,
+     "choices": null,
+     "path": "geometry.min_reward_risk",
+     "description": ""
+    },
+    {
+     "key": "min_regime_confidence",
+     "label": "Min regime confidence",
+     "scope": "strategy",
+     "kind": "float",
+     "default": 50.0,
+     "minimum": 0.0,
+     "maximum": 95.0,
+     "step": 5.0,
+     "choices": null,
+     "path": "router.min_regime_confidence",
+     "description": "Below this regime confidence no strategy is routed."
+    },
+    {
+     "key": "min_score",
+     "label": "Min signal score",
+     "scope": "execution",
+     "kind": "float",
+     "default": 85.0,
+     "minimum": 50.0,
+     "maximum": 100.0,
+     "step": 1.0,
+     "choices": null,
+     "path": "min_score",
+     "description": "Signals below this are not traded (live executable threshold: 85)."
+    },
+    {
+     "key": "trailing_mode",
+     "label": "Trailing stop",
+     "scope": "execution",
+     "kind": "choice",
+     "default": "NONE",
+     "minimum": null,
+     "maximum": null,
+     "step": null,
+     "choices": [
+      "NONE",
+      "BREAKEVEN",
+      "ATR"
+     ],
+     "path": null,
+     "description": "NONE, BREAKEVEN (stop to entry at +activation R) or ATR (then trail by ATR)."
+    },
+    {
+     "key": "trailing_activation_r",
+     "label": "Trailing activation (R)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.0,
+     "minimum": 0.25,
+     "maximum": 3.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_activation_r",
+     "description": ""
+    },
+    {
+     "key": "trailing_atr_multiple",
+     "label": "Trailing distance (ATR)",
+     "scope": "execution",
+     "kind": "float",
+     "default": 1.5,
+     "minimum": 0.5,
+     "maximum": 4.0,
+     "step": 0.25,
+     "choices": null,
+     "path": "trailing_atr_multiple",
+     "description": ""
+    }
+   ],
+   "defaults": {
+    "max_trend_quality": 50.0,
+    "min_vwap_deviation_atr": 0.5,
+    "boundary_proximity_atr": 0.5,
+    "min_extension_atr": 0.75,
+    "min_reward_risk": 1.0,
+    "min_regime_confidence": 50.0,
+    "min_score": 85.0,
+    "trailing_mode": "NONE",
+    "trailing_activation_r": 1.0,
+    "trailing_atr_multiple": 1.5
+   }
+  }
+ ],
+ "versions": [
+  {
+   "strategy_choice": "ALL",
+   "label": "1.0.0+567cf21b / 1.0.0+6d9da7cf / 1.0.0+861d883a (current defaults)",
+   "version_ids": [
+    "1.0.0+567cf21b",
+    "1.0.0+6d9da7cf",
+    "1.0.0+861d883a"
+   ],
+   "params": {
+    "min_regime_confidence": 50.0
+   },
+   "current_default": true,
+   "stored": false
+  },
+  {
+   "strategy_choice": "TREND_CONTINUATION",
+   "label": "1.0.0+567cf21b (current defaults)",
+   "version_ids": [
+    "1.0.0+567cf21b"
+   ],
+   "params": {
+    "min_pullback_percent": 30.0,
+    "max_pullback_percent": 65.0,
+    "min_trend_quality": 40.0,
+    "min_relative_strength": 55.0,
+    "min_alignment": 50.0,
+    "min_reward_risk": 1.5,
+    "stop_buffer_atr": 0.2,
+    "min_regime_confidence": 50.0
+   },
+   "current_default": true,
+   "stored": false
+  },
+  {
+   "strategy_choice": "BREAKOUT_MOMENTUM",
+   "label": "1.0.0+6d9da7cf (current defaults)",
+   "version_ids": [
+    "1.0.0+6d9da7cf"
+   ],
+   "params": {
+    "min_relative_volume": 1.3,
+    "max_extension_atr": 1.5,
+    "expansion_range_multiple": 1.3,
+    "opening_range_minutes": 15,
+    "min_reward_risk": 1.5,
+    "min_regime_confidence": 50.0
+   },
+   "current_default": true,
+   "stored": false
+  },
+  {
+   "strategy_choice": "MEAN_REVERSION",
+   "label": "1.0.0+861d883a (current defaults)",
+   "version_ids": [
+    "1.0.0+861d883a"
+   ],
+   "params": {
+    "max_trend_quality": 50.0,
+    "min_vwap_deviation_atr": 0.5,
+    "boundary_proximity_atr": 0.5,
+    "min_extension_atr": 0.75,
+    "min_reward_risk": 1.0,
+    "min_regime_confidence": 50.0
+   },
+   "current_default": true,
+   "stored": false
+  }
+ ],
+ "data_sources": [
+  {
+   "kind": "synthetic",
+   "label": "Synthetic NSE sessions (deterministic, seeded)",
+   "available": true,
+   "synthetic": true,
+   "first_day": "2024-01-01",
+   "last_day": "2026-10-01",
+   "symbols": [
+    "ADANIENT",
+    "ADANIPORTS",
+    "APOLLOHOSP",
+    "ASIANPAINT",
+    "AXISBANK",
+    "BAJAJ-AUTO",
+    "BAJFINANCE",
+    "BAJAJFINSV",
+    "BEL",
+    "BHARTIARTL",
+    "CIPLA",
+    "COALINDIA",
+    "DRREDDY",
+    "EICHERMOT",
+    "ETERNAL",
+    "GRASIM",
+    "HCLTECH",
+    "HDFCBANK",
+    "HDFCLIFE",
+    "HINDALCO",
+    "HINDUNILVR",
+    "ICICIBANK",
+    "ITC",
+    "INFY",
+    "INDIGO",
+    "JSWSTEEL",
+    "JIOFIN",
+    "KOTAKBANK",
+    "LT",
+    "M&M",
+    "MARUTI",
+    "MAXHEALTH",
+    "NTPC",
+    "NESTLEIND",
+    "ONGC",
+    "POWERGRID",
+    "RELIANCE",
+    "SBILIFE",
+    "SHRIRAMFIN",
+    "SBIN",
+    "SUNPHARMA",
+    "TCS",
+    "TATACONSUM",
+    "TMPV",
+    "TATASTEEL",
+    "TECHM",
+    "TITAN",
+    "TRENT",
+    "ULTRACEMCO",
+    "WIPRO"
+   ],
+   "note": "Simulated prices with regimes and a market factor. Tests the machinery, not a market edge."
+  }
+ ],
+ "timeframes": [
+  "5m",
+  "15m"
+ ],
+ "modes": [
+  "HISTORICAL",
+  "OUT_OF_SAMPLE",
+  "WALK_FORWARD"
+ ],
+ "limits": {
+  "max_symbols": 20,
+  "max_days": 250,
+  "max_grid_combinations": 27
+ },
+ "risk": {
+  "risk_per_trade_percent": 1.0,
+  "daily_loss_limit_percent": 3.0,
+  "max_trades_per_day": 5,
+  "max_consecutive_losses": 3,
+  "max_position_value": 50000.0,
+  "max_exposure": 50000.0,
+  "margin_multiplier": 1.0,
+  "allow_short": true
+ },
+ "costs": {
+  "slippage_bps": 5.0,
+  "brokerage_rate": 0.0003,
+  "brokerage_cap_per_order": 20.0,
+  "stt_sell_rate": 0.00025,
+  "exchange_rate": 2.97e-05,
+  "sebi_per_crore": 10.0,
+  "stamp_buy_rate": 3e-05,
+  "gst_rate": 0.18
+ },
+ "validation": {
+  "oos_fraction": 0.3,
+  "wf_train_days": 20,
+  "wf_test_days": 5,
+  "wf_anchored": false,
+  "min_trades_for_selection": 8,
+  "null_control": false
+ },
+ "assumptions": [
+  "Decisions use only bars closed at decision time; higher timeframes only complete bars.",
+  "Entries are market orders filled at the next bar's open plus slippage.",
+  "Inside a bar the stop is assumed to be hit before the target when both are touched.",
+  "A stop crossed inside a bar fills at its level plus slippage; a gap through it fills at the open.",
+  "Charges follow the configured cost model; slippage is applied on every fill.",
+  "One trade at a time; daily loss limit, max trades and consecutive-loss stop as live.",
+  "Positions are squared off at 15:15 IST; no new entries after 15:00 IST.",
+  "Cross-symbol relative-strength rank is not used in backtests (it does not change scores)."
+ ],
+ "note": "Backtest results describe how these rules behaved on this history under the stated fill, slippage and cost assumptions. They do not predict or guarantee future performance."
+}
