@@ -8,6 +8,7 @@ Add new models to both their own file and this list.
 from app.database.base import Base
 from app.database.models.audit_log import AuditLog
 from app.database.models.instrument import Instrument
+from app.database.models.paper_trading import PaperOrderRecord, PaperTradeRecord
 from app.database.models.risk_config import RiskConfig
 from app.database.models.session import Session
 from app.database.models.signal import Signal
@@ -21,6 +22,8 @@ __all__ = [
     "Base",
     "AuditLog",
     "Instrument",
+    "PaperOrderRecord",
+    "PaperTradeRecord",
     "RiskConfig",
     "Session",
     "Signal",

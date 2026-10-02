@@ -18,6 +18,7 @@ from app.api.v1 import (
     signals,
     strategies,
     system,
+    trading,
 )
 
 api_v1_router = APIRouter()
@@ -29,4 +30,5 @@ api_v1_router.include_router(intelligence.router)
 api_v1_router.include_router(price_action.router)
 api_v1_router.include_router(strategies.router)
 api_v1_router.include_router(signals.router)
+api_v1_router.include_router(trading.router)
 api_v1_router.include_router(market_ws.router)

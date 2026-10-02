@@ -22,7 +22,11 @@ from app.core.config import get_settings
 from app.database.session import async_session_factory, engine
 
 #: Test modules that need a reachable Postgres; skipped (not failed) without one.
-DATABASE_TEST_MODULES = ("test_auth.py", "test_signal_persistence.py")
+DATABASE_TEST_MODULES = (
+    "test_auth.py",
+    "test_signal_persistence.py",
+    "test_paper_trading_persistence.py",
+)
 
 
 async def _database_reachable() -> bool:
@@ -82,7 +86,8 @@ async def _clean_tables(db_available: bool) -> AsyncGenerator[None, None]:
             await conn.execute(
                 text(
                     "TRUNCATE TABLE sessions, trading_settings, risk_configs, "
-                    "audit_logs, users, signals RESTART IDENTITY CASCADE"
+                    "audit_logs, users, signals, paper_orders, paper_trades, system_events "
+                    "RESTART IDENTITY CASCADE"
                 )
             )
     yield

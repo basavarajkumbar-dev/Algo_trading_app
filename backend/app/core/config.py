@@ -13,6 +13,7 @@ execution at all — this setting exists now only so later phases have a
 single, typed source of truth.
 """
 
+from datetime import date, time
 from functools import lru_cache
 
 from pydantic import Field
@@ -21,6 +22,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from app.core.constants import TradingMode
 from app.market_data.schemas import Timeframe
 from app.market_data.universe import NIFTY_50_UNIVERSE, NIFTY_INDEX_SYMBOL
+from app.risk.config import SessionMode
 
 
 class Settings(BaseSettings):
@@ -132,6 +134,48 @@ class Settings(BaseSettings):
         default=70.0, ge=0, le=100, alias="SIGNAL_STORE_MIN_SCORE"
     )
     scanner_top_n: int = Field(default=10, ge=1, le=50, alias="SCANNER_TOP_N")
+
+    # --- Risk engine (Phase 8) --------------------------------------------
+    # RISK_PER_TRADE, MAX_DAILY_LOSS and MAX_TRADES_PER_DAY above are the
+    # percentage / count limits; these complete the RiskManager's set.
+    risk_max_consecutive_losses: int = Field(default=3, ge=1, alias="RISK_MAX_CONSECUTIVE_LOSSES")
+    risk_max_position_value: float = Field(default=50_000.0, gt=0, alias="RISK_MAX_POSITION_VALUE")
+    risk_max_exposure: float = Field(default=50_000.0, gt=0, alias="RISK_MAX_EXPOSURE")
+    risk_lot_size: int = Field(default=1, ge=1, alias="RISK_LOT_SIZE")
+    risk_tick_size: float = Field(default=0.05, gt=0, alias="RISK_TICK_SIZE")
+    risk_max_order_quantity: int = Field(default=100_000, ge=1, alias="RISK_MAX_ORDER_QUANTITY")
+    risk_margin_multiplier: float = Field(default=1.0, ge=1, le=5, alias="RISK_MARGIN_MULTIPLIER")
+    risk_max_data_age_seconds: float = Field(default=30.0, gt=0, alias="RISK_MAX_DATA_AGE_SECONDS")
+    risk_max_signal_age_seconds: float = Field(
+        default=120.0, gt=0, alias="RISK_MAX_SIGNAL_AGE_SECONDS"
+    )
+    risk_max_entry_deviation_r: float = Field(
+        default=0.25, ge=0, le=1, alias="RISK_MAX_ENTRY_DEVIATION_R"
+    )
+    risk_allow_short: bool = Field(default=True, alias="RISK_ALLOW_SHORT")
+    # EXCHANGE: NSE hours in IST, Mon-Fri. SIMULATED_24H: every moment is
+    # in-session, for exercising the simulated feed outside market hours.
+    trading_session_mode: SessionMode = Field(
+        default=SessionMode.EXCHANGE, alias="TRADING_SESSION_MODE"
+    )
+    trading_last_entry_time: time = Field(default=time(15, 0), alias="TRADING_LAST_ENTRY_TIME")
+    trading_square_off_time: time = Field(default=time(15, 15), alias="TRADING_SQUARE_OFF_TIME")
+    # Exchange holidays (JSON list of ISO dates); none are built in.
+    trading_holidays: list[date] = Field(default_factory=list, alias="TRADING_HOLIDAYS")
+
+    # --- Paper broker (Phase 8) ---------------------------------------------
+    # Execution assumptions. Paper results depend on them.
+    paper_slippage_bps: float = Field(default=5.0, ge=0, le=500, alias="PAPER_SLIPPAGE_BPS")
+    paper_execution_delay_seconds: float = Field(
+        default=0.0, ge=0, le=60, alias="PAPER_EXECUTION_DELAY_SECONDS"
+    )
+    paper_max_fill_fraction: float = Field(default=1.0, gt=0, le=1, alias="PAPER_MAX_FILL_FRACTION")
+    paper_entry_timeout_seconds: float = Field(
+        default=60.0, gt=0, alias="PAPER_ENTRY_TIMEOUT_SECONDS"
+    )
+    # Optional JSON object overriding cost-model fields, e.g.
+    # {"brokerage_cap_per_order": 20, "stt_sell_rate": 0.00025}.
+    paper_costs: dict[str, float] | None = Field(default=None, alias="PAPER_COSTS")
 
     # --- CORS -------------------------------------------------------------
     cors_allow_origins: list[str] = Field(

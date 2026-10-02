@@ -5,9 +5,10 @@ versioning, auth and settings, plus the background services started and
 stopped by this module's lifespan: the simulated market data feed
 (Phase 3), market intelligence (Phase 4), price action (Phase 5), the
 strategy engine (Phase 6) and the signal engine + NIFTY 50 scanner
-(Phase 7), which produce scored candidates only.
-No order, risk or broker execution code exists yet — see
-docs/development-roadmap.md for what each later phase adds.
+(Phase 7), and the paper trading service (Phase 8): the risk engine and
+a simulated paper broker. Mode is PAPER; no real broker is connected and
+automatic trading starts OFF. See docs/development-roadmap.md for what
+each later phase adds.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX
 from app.core.logging import configure_logging, get_logger
 from app.database.session import async_session_factory
+from app.execution.paper_broker import paper_broker_config_from_settings
 from app.market_data.mock_provider import MockMarketDataProvider
 from app.market_data.paper_provider import PaperMarketDataProvider
 from app.market_data.service import MarketDataService
@@ -32,9 +34,12 @@ from app.market_data.universe import NIFTY_INDEX_SYMBOL
 from app.market_intelligence.service import MarketIntelligenceService
 from app.price_action.config import MultiTimeframeConfig, PriceActionConfig
 from app.price_action.service import PriceActionService
+from app.risk.config import risk_limits_from_settings
 from app.signals.config import signal_engine_config
 from app.signals.service import SignalService
 from app.strategies.service import StrategyService
+from app.trading.engine import EngineConfig
+from app.trading.service import TradingService
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -105,8 +110,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await signal_service.start()
     app.state.signal_service = signal_service
 
+    trading_service = TradingService(
+        market_data_service,
+        signal_service,
+        starting_capital=settings.paper_capital,
+        limits=risk_limits_from_settings(settings),
+        broker_config=paper_broker_config_from_settings(settings),
+        engine_config=EngineConfig(
+            # Anything but PAPER makes every risk check fail: only paper
+            # execution exists.
+            trading_mode=settings.trading_mode.value,
+            entry_timeout_seconds=settings.paper_entry_timeout_seconds,
+        ),
+        session_factory=async_session_factory,
+    )
+    await trading_service.start()
+    app.state.trading_service = trading_service
+
     yield
 
+    await trading_service.stop()
     await signal_service.stop()
     await strategy_service.stop()
     await price_action_service.stop()
