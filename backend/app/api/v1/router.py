@@ -15,6 +15,7 @@ from app.api.v1 import (
     market_ws,
     price_action,
     settings,
+    signals,
     strategies,
     system,
 )
@@ -27,4 +28,5 @@ api_v1_router.include_router(market.router)
 api_v1_router.include_router(intelligence.router)
 api_v1_router.include_router(price_action.router)
 api_v1_router.include_router(strategies.router)
+api_v1_router.include_router(signals.router)
 api_v1_router.include_router(market_ws.router)

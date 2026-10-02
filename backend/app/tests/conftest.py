@@ -21,6 +21,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.database.session import async_session_factory, engine
 
+#: Test modules that need a reachable Postgres; skipped (not failed) without one.
+DATABASE_TEST_MODULES = ("test_auth.py", "test_signal_persistence.py")
+
 
 async def _database_reachable() -> bool:
     try:
@@ -42,7 +45,7 @@ async def _skip_if_no_database(request: pytest.FixtureRequest, db_available: boo
     # to the database) requires a reachable Postgres. test_health.py's
     # entire purpose is verifying correct behavior when the database is
     # NOT reachable, so it must never be skipped here.
-    if "test_auth.py" not in str(request.node.fspath):
+    if not any(name in str(request.node.fspath) for name in DATABASE_TEST_MODULES):
         return
     if not db_available:
         pytest.skip(
@@ -79,7 +82,7 @@ async def _clean_tables(db_available: bool) -> AsyncGenerator[None, None]:
             await conn.execute(
                 text(
                     "TRUNCATE TABLE sessions, trading_settings, risk_configs, "
-                    "audit_logs, users RESTART IDENTITY CASCADE"
+                    "audit_logs, users, signals RESTART IDENTITY CASCADE"
                 )
             )
     yield

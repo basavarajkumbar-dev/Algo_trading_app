@@ -18,7 +18,7 @@ from app.market_intelligence.moving_average import MovingAverageResult
 from app.market_intelligence.range_analysis import RangeResult
 from app.market_intelligence.relative_strength import RelativeStrengthResult
 from app.market_intelligence.schemas import Relationship, Trend
-from app.market_intelligence.structure import StructureResult
+from app.market_intelligence.structure import StructureResult, StructureState
 from app.market_intelligence.trend_quality import TrendQualityResult
 from app.market_intelligence.volatility import VolatilityResult
 from app.market_intelligence.volume import VolumeResult
@@ -156,7 +156,13 @@ def analysis(
             momentum_score=momentum, rate_of_change_percent=rocs or {3: 0.3, 10: 0.5, 20: 0.8}
         ),
         volume=VolumeResult.model_construct(relative_volume=relative_volume),
-        structure=StructureResult.model_construct(trend=structure),
+        structure=StructureResult.model_construct(
+            trend=structure,
+            confidence=70.0,
+            structure_state=(
+                StructureState.RANGING if structure == Trend.SIDEWAYS else StructureState.TRENDING
+            ),
+        ),
         range=RangeResult.model_construct(efficiency_ratio=efficiency),
         relative_strength=(
             RelativeStrengthResult.model_construct(relative_strength_score=relative_strength)
@@ -178,6 +184,16 @@ def regime(kind: MarketRegime, confidence: float = 80.0) -> RegimeResult:
         candles_analyzed=120,
         data_as_of=NOW,
         timestamp=NOW,
+    )
+
+
+def _levels_result(levels: list[PriceLevel]) -> SupportResistanceResult:
+    supports = [lvl for lvl in levels if lvl.role == LevelRole.SUPPORT]
+    resistances = [lvl for lvl in levels if lvl.role == LevelRole.RESISTANCE]
+    return SupportResistanceResult.model_construct(
+        levels=sorted(levels, key=lambda lvl: lvl.price, reverse=True),
+        nearest_support=max(supports, key=lambda lvl: lvl.price, default=None),
+        nearest_resistance=min(resistances, key=lambda lvl: lvl.price, default=None),
     )
 
 
@@ -206,7 +222,7 @@ def context(
         patterns=patterns or [],
         recent_patterns=markers or [],
         retracement=retracement,
-        support_resistance=SupportResistanceResult.model_construct(levels=levels or []),
+        support_resistance=_levels_result(levels or []),
         multi_timeframe=mtf_,
         timestamp=NOW,
     )

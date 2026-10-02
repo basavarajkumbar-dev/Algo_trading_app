@@ -3,9 +3,10 @@
 Application shell, configuration, structured logging, CORS, API
 versioning, auth and settings, plus the background services started and
 stopped by this module's lifespan: the simulated market data feed
-(Phase 3), market intelligence (Phase 4), price action (Phase 5) and the
-strategy engine (Phase 6), which produces strategy candidates only.
-No order, signal, risk or broker execution code exists yet — see
+(Phase 3), market intelligence (Phase 4), price action (Phase 5), the
+strategy engine (Phase 6) and the signal engine + NIFTY 50 scanner
+(Phase 7), which produce scored candidates only.
+No order, risk or broker execution code exists yet — see
 docs/development-roadmap.md for what each later phase adds.
 """
 
@@ -23,6 +24,7 @@ from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX
 from app.core.logging import configure_logging, get_logger
+from app.database.session import async_session_factory
 from app.market_data.mock_provider import MockMarketDataProvider
 from app.market_data.paper_provider import PaperMarketDataProvider
 from app.market_data.service import MarketDataService
@@ -30,6 +32,8 @@ from app.market_data.universe import NIFTY_INDEX_SYMBOL
 from app.market_intelligence.service import MarketIntelligenceService
 from app.price_action.config import MultiTimeframeConfig, PriceActionConfig
 from app.price_action.service import PriceActionService
+from app.signals.config import signal_engine_config
+from app.signals.service import SignalService
 from app.strategies.service import StrategyService
 
 settings = get_settings()
@@ -91,8 +95,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await strategy_service.start()
     app.state.strategy_service = strategy_service
 
+    signal_service = SignalService(
+        market_data_service,
+        strategy_service,
+        benchmark_symbol=NIFTY_INDEX_SYMBOL,
+        session_factory=async_session_factory,
+        config=signal_engine_config(settings),
+    )
+    await signal_service.start()
+    app.state.signal_service = signal_service
+
     yield
 
+    await signal_service.stop()
     await strategy_service.stop()
     await price_action_service.stop()
     await intelligence_service.stop()

@@ -62,6 +62,7 @@ class StrategyCheck(BaseModel):
 
 class StrategyResult(BaseModel):
     strategy: StrategyName
+    strategy_version: str = "unversioned"  # "<semver>+<config hash>", see BaseStrategy.version_id
     symbol: str
     timeframe: Timeframe
     eligible: bool

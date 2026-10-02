@@ -116,6 +116,23 @@ class Settings(BaseSettings):
         default=15.0, gt=0, alias="PRICE_ACTION_REFRESH_SECONDS"
     )
 
+    # --- Signals and scanner (Phase 7) ----------------------------------
+    # Score at or above which a signal is READY (executable candidate).
+    signal_executable_threshold: float = Field(
+        default=85.0, ge=0, le=100, alias="SIGNAL_EXECUTABLE_THRESHOLD"
+    )
+    # Optional JSON object overriding scoring weights, e.g.
+    # {"market_alignment": 15, "volume": 10}. Unlisted components keep
+    # their defaults (the brief's initial model).
+    signal_score_weights: dict[str, float] | None = Field(
+        default=None, alias="SIGNAL_SCORE_WEIGHTS"
+    )
+    # Candidates scoring below this are shown by the scanner but not stored.
+    signal_store_min_score: float = Field(
+        default=70.0, ge=0, le=100, alias="SIGNAL_STORE_MIN_SCORE"
+    )
+    scanner_top_n: int = Field(default=10, ge=1, le=50, alias="SCANNER_TOP_N")
+
     # --- CORS -------------------------------------------------------------
     cors_allow_origins: list[str] = Field(
         default_factory=lambda: [

@@ -150,6 +150,17 @@ class StrategyService:
     def router(self) -> StrategyRouter:
         return self._router
 
+    @property
+    def refresh_count(self) -> int:
+        return self._refresh_count
+
+    def get_state(
+        self,
+    ) -> tuple[dict[str, StrategyContext], dict[str, SymbolStrategyEvaluation]]:
+        """Contexts and evaluations from the latest refresh (one snapshot)."""
+
+        return self._contexts, self._evaluations
+
     # --- lifecycle ---------------------------------------------------------
 
     async def start(self) -> None:

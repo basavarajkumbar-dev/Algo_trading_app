@@ -21,6 +21,7 @@ strategy cannot take the others down.
 
 from __future__ import annotations
 
+import hashlib
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
@@ -62,6 +63,9 @@ def side(direction: TradeDirection) -> float:
 
 class BaseStrategy(ABC):
     name: ClassVar[StrategyName]
+    #: Bump when the strategy's logic changes. Threshold changes are
+    #: captured automatically by the config hash in `version_id`.
+    version: ClassVar[str] = "1.0.0"
     #: The strategy's concept as ordered (stage label, check key) pairs;
     #: `stage` in the result is the last stage whose check passed in an
     #: unbroken run from the start.
@@ -70,6 +74,17 @@ class BaseStrategy(ABC):
     def __init__(self, geometry: CandidateGeometry, weights: dict[str, float]) -> None:
         self.geometry = geometry
         self.weights = weights
+
+    @property
+    def version_id(self) -> str:
+        """ "<semver>+<first 8 hex of the SHA-256 of the strategy config>",
+        so a signal can always be traced to the exact logic version and
+        parameters that produced it."""
+
+        config = getattr(self, "config", None)
+        payload = config.model_dump_json() if config is not None else ""
+        digest = hashlib.sha256(payload.encode()).hexdigest()[:8]
+        return f"{self.version}+{digest}"
 
     # --- steps implemented by each strategy ------------------------------------
 
@@ -142,6 +157,7 @@ class BaseStrategy(ABC):
         except Exception as exc:  # noqa: BLE001 - a broken strategy must not break routing
             return StrategyResult(
                 strategy=self.name,
+                strategy_version=self.version_id,
                 symbol=ctx.symbol,
                 timeframe=ctx.timeframe,
                 eligible=False,
@@ -263,6 +279,7 @@ class BaseStrategy(ABC):
 
         return StrategyResult(
             strategy=self.name,
+            strategy_version=self.version_id,
             symbol=ctx.symbol,
             timeframe=ctx.timeframe,
             eligible=eligible,
