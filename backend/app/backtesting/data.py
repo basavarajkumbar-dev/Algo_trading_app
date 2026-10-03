@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import random
 import zlib
 from abc import ABC, abstractmethod
@@ -444,12 +445,25 @@ class ZerodhaHistorySource(CsvHistorySource):
     def fingerprint(self) -> str:
         return "zerodha:" + super().fingerprint().split(":", 1)[1]
 
+    def _coverage(self) -> tuple[date, date] | None:
+        """The date range that was requested from Kite (coverage.json)."""
+
+        path = self.directory / "coverage.json"
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text())
+        return date.fromisoformat(data["first"]), date.fromisoformat(data["last"])
+
+    def available_range(self) -> tuple[date, date]:
+        covered = self._coverage()
+        return covered if covered is not None else super().available_range()
+
     def holidays(self) -> list[date]:
         index = self._load(self.benchmark) if self.benchmark in self._files else []
         if not index:
             return []
         traded = {b.timestamp.astimezone(IST).date() for b in index}
-        first, last = min(traded), max(traded)
+        first, last = self._coverage() or (min(traded), max(traded))
         out: list[date] = []
         d = first
         while d <= last:

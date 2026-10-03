@@ -142,6 +142,9 @@ synthetic series, labelled simulated).
 Backtests accept `data_source.kind = "zerodha"`: the worker downloads 5-minute
 candles for the symbols and the benchmark into `BACKTEST_CACHE_DIR/zerodha/…`
 (CSV, reused) and runs on them. Needs a login; ranges must end before today.
+The cache records the range requested from Kite (`coverage.json`): a weekday
+inside it with no NIFTY 50 candles was an exchange holiday, so a range that
+starts or ends on a holiday (e.g. 2 Oct, Gandhi Jayanti) runs normally.
 The synthetic and CSV sources are unchanged.
 
 ## Storage

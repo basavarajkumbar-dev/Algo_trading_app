@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -27,6 +28,7 @@ from app.market_data.universe import NIFTY_INDEX_SYMBOL
 logger = get_logger(__name__)
 
 ProgressFn = Callable[[float, str], None]
+COVERAGE_FILE = "coverage.json"
 
 
 def cache_dir_for(
@@ -56,6 +58,7 @@ async def download_history(
     wanted = sorted({*symbols, NIFTY_INDEX_SYMBOL})
     if (
         target.is_dir()
+        and (target / COVERAGE_FILE).exists()
         and all((target / f"{s}.csv").exists() for s in wanted)
         and not str(target).endswith("-partial")
     ):
@@ -79,6 +82,13 @@ async def download_history(
             for ts, o, h, lo, c, v in rows:
                 w.writerow([ts.isoformat(), o, h, lo, c, v])
         tmp.replace(target / f"{symbol}.csv")
+    # The range Kite was asked for. A weekday inside it without index candles
+    # was an exchange holiday (e.g. 2 Oct, Gandhi Jayanti) - including at the
+    # ends of the range - not missing data. Written last: a cache directory
+    # without it is incomplete and gets downloaded again.
+    (target / COVERAGE_FILE).write_text(
+        json.dumps({"first": fetch_start.isoformat(), "last": end.isoformat()})
+    )
     logger.info(
         "Zerodha history for %d symbols (%s..%s) written to %s",
         len(wanted),
@@ -89,4 +99,4 @@ async def download_history(
     return target
 
 
-__all__ = ["cache_dir_for", "download_history"]
+__all__ = ["COVERAGE_FILE", "cache_dir_for", "download_history"]

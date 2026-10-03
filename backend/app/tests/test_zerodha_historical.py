@@ -157,4 +157,47 @@ async def test_zerodha_backtest_data_is_cached_as_csv(tmp_path: Path) -> None:
     assert isinstance(source, ZerodhaHistorySource) and source.kind == "zerodha"
     assert not source.synthetic and source.fingerprint().startswith("zerodha:")
     assert len(source.bars("RELIANCE", date(2026, 9, 28), date(2026, 9, 30))) == 3 * 75
-    assert source.holidays() == []
+    # the fixture has candles only for its three sessions: every other weekday
+    # in the downloaded range (warm-up included) had none, i.e. no session
+    assert not set(days) & set(source.holidays())
+    assert all(d.weekday() < 5 for d in source.holidays())
+
+
+async def test_a_range_ending_on_an_exchange_holiday_is_not_an_error(tmp_path: Path) -> None:
+    """Regression: 2 Oct 2026 (Gandhi Jayanti) had no session, so Kite's data
+    ended on 1 Oct and preflight refused a backtest ending on 2 Oct."""
+
+    from app.backtesting.runner import preflight
+
+    fake = FakeKite()
+    traded = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1)]
+    for token, base in ((RELIANCE, 1400.0), (NIFTY, 25000.0)):
+        fake.candles[(token, "5minute")] = [r for d in traded for r in session_rows(d, 5, base)]
+    p = provider(fake, now=datetime(2026, 10, 3, 8, 0, tzinfo=UTC))
+    path = await download_history(
+        p, ["RELIANCE"], date(2026, 9, 28), date(2026, 10, 2), tmp_path, warmup_days=8
+    )
+    req = BacktestRequest(
+        symbols=["RELIANCE"],
+        start_date=date(2026, 9, 28),
+        end_date=date(2026, 10, 2),
+        data_source={"kind": "zerodha"},  # type: ignore[arg-type]
+    )
+    source, days = preflight(req, str(path))
+    assert date(2026, 10, 2) in source.holidays()
+    assert days == traded  # the holiday is skipped, not reported as missing data
+    first, last = source.available_range()
+    assert last == date(2026, 10, 2) and first < date(2026, 9, 28)
+
+
+async def test_a_cache_without_its_coverage_record_is_downloaded_again(tmp_path: Path) -> None:
+    fake = FakeKite()
+    fake.candles[(RELIANCE, "5minute")] = session_rows(date(2026, 9, 30), 5, 1400.0)
+    fake.candles[(NIFTY, "5minute")] = session_rows(date(2026, 9, 30), 5, 25000.0)
+    p = provider(fake, now=datetime(2026, 10, 3, 8, 0, tzinfo=UTC))
+    args = (p, ["RELIANCE"], date(2026, 9, 30), date(2026, 9, 30), tmp_path)
+    path = await download_history(*args)
+    calls = len(fake.historical_calls)
+    (path / "coverage.json").unlink()  # e.g. a cache written before this fix
+    await download_history(*args)
+    assert len(fake.historical_calls) > calls and (path / "coverage.json").exists()
