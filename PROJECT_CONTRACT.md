@@ -362,6 +362,8 @@ list with entry/exit criteria. Summary:
 - **Phase 15** — Backtesting engine + strategy versioning. (Delivered as
   "Phase 10 — Backtesting + Validation", with the backtesting page.)
 - **Phase 16** — Broker adapter architecture + Zerodha adapter structure.
+  (Delivered as "Phase 11 — Zerodha Broker Adapter"; read-only, live
+  orders never armed.)
 - **Phase 17** — Hardening: full test suite pass, security review,
   documentation pass, final integration validation.
 

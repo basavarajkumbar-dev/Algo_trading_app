@@ -14,6 +14,7 @@ export const qk = {
   components: ["system", "components"] as const,
   events: ["system", "events"] as const,
   systemHealth: ["system", "health"] as const,
+  brokerStatus: ["system", "broker"] as const,
   backtestOptions: ["backtests", "options"] as const,
   backtestRuns: ["backtests", "runs"] as const,
   backtestRun: (id: string) => ["backtests", "run", id] as const,

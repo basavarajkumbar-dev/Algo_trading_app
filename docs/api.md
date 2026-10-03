@@ -962,3 +962,68 @@ the symbols being replayed finish, or before its next simulation pass.
 
 Deletes a finished run with its trades and equity (409 while it is
 queued or running). Strategy versions and parameter sets stay.
+
+## Broker (Phase 11)
+
+PAPER mode: orders execute on the paper broker. Zerodha, when configured,
+is connected read-only; **no endpoint places, modifies or cancels a live
+order**. Details: [`docs/broker.md`](./broker.md). No response ever
+contains the API secret or access token.
+
+### `GET /broker/status`
+
+`{ execution_broker: "paper", trading_mode, live_trading_possible: false,
+live_blockers: [reasons], zerodha: { configured, state (NOT_CONFIGURED |
+DISCONNECTED | CONNECTING | CONNECTED | DEGRADED | AUTH_REQUIRED), healthy,
+detail, checked_at, latency_ms, last_success_at, last_error,
+consecutive_failures, session_expires_at, live_orders_armed,
+market_protection, orders_per_second, supervisor_running, paused_by_user,
+supervisor_error }, order_manager: { tracked, working, unresolved,
+external_orders, resync_pending, last_reconcile_at, last_reconcile_ok,
+last_reconcile_error }, note }`. No authentication required.
+
+### `GET /broker/events?limit=50`
+
+Recent order and broker events, newest first: `{ items: [{ kind,
+severity, message, at, order_id, client_order_id, broker_order_id,
+symbol, status, filled_delta, metadata }] }`. Kinds: `ORDER_SENT`,
+`ORDER_BLOCKED`, `ORDER_ACCEPTED`, `ORDER_PARTIAL_FILL`, `ORDER_FILLED`,
+`ORDER_REJECTED`, `ORDER_CANCELLED`, `ORDER_MODIFIED`, `ORDER_UNKNOWN`,
+`ORDER_RECOVERED`, `ORDER_LOST`, `ORDER_REAPPEARED`, `ORDER_MISSING`,
+`EXTERNAL_ORDER`, `CANCEL_FAILED`, `BROKER_DISCONNECTED`,
+`BROKER_CONNECTED`. They are also stored as system events with a
+`BROKER_` prefix.
+
+### `POST /broker/reconcile` (TRADER / ADMIN)
+
+Reconciles tracked orders with the Zerodha order book now: `{ ok, at,
+checked, changed, recovered, lost, external, error }`. 409 when Zerodha
+is not configured.
+
+### `POST /broker/connect`, `POST /broker/disconnect` (ADMIN)
+
+(Re)connect and re-check health, or stop using the session (no automatic
+reconnect until `connect`). Both return the status above. `connect` is
+409 when not configured.
+
+### `GET /broker/zerodha/login-url` (ADMIN)
+
+`{ login_url }` — the Kite login page for the configured API key.
+
+### `POST /broker/zerodha/session` (ADMIN)
+
+`{ "request_token": "…" }` from the login redirect. Exchanges it
+(`checksum = sha256(api_key + request_token + api_secret)`), keeps the
+access token in memory only, connects, and returns `{ profile, status }`
+with a masked user id.
+
+### `GET /broker/zerodha/{profile,balance,positions,orders}` (TRADER / ADMIN)
+
+Read-only account data mapped to the broker-neutral models (`Balance`,
+`Position`, `Order`). Errors: 409 not configured or login required, 429
+rate limited, 503 unreachable, 502 refused by Zerodha.
+
+The system components (`GET /system/components`) gain `live_broker`:
+HEALTHY when not configured (PAPER needs no live broker) or connected;
+WARNING when configured but unusable or orders are being reconciled;
+CRITICAL only if live trading were enabled.

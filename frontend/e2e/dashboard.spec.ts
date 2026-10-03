@@ -78,13 +78,17 @@ test("the command center is live over the WebSocket and filled from the APIs", a
   expect(errors).toEqual([]);
 });
 
-test("system page reports all eight components", async ({ page }) => {
+test("system page reports every component and the broker", async ({ page }) => {
   await login(page);
   await page.goto("/system");
-  for (const key of ["market_data", "backend", "database", "redis", "websocket", "strategy_engine", "risk_engine", "paper_broker"]) {
+  for (const key of ["market_data", "backend", "database", "redis", "websocket", "strategy_engine", "risk_engine", "paper_broker", "live_broker"]) {
     await expect(page.getByTestId(`component-${key}`)).toContainText(/HEALTHY|WARNING|CRITICAL/);
   }
   await expect(page.getByTestId("browser-socket")).toContainText("open");
+  // no credentials in this stack: orders stay on the paper broker, live orders disabled
+  await expect(page.getByTestId("broker-execution")).toContainText("PAPER");
+  await expect(page.getByTestId("broker-live-orders")).toContainText("disabled");
+  await expect(page.getByTestId("broker-blockers")).toContainText("LIVE_MODE_ENABLED");
 });
 
 test("automatic paper trading can be switched on and off from Positions", async ({ page }) => {

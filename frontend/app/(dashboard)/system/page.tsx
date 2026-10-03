@@ -1,5 +1,6 @@
 "use client";
 
+import { BrokerPanel } from "@/components/dashboard/broker-panel";
 import { errorText, Figure, Panel } from "@/components/dashboard/panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -85,6 +86,8 @@ export default function SystemPage() {
         {data?.components.map((c) => <ComponentCard key={c.key} c={c} />)}
       </div>
 
+      <BrokerPanel />
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <Panel title="This browser">
           <div className="grid grid-cols-2 gap-4">
@@ -135,7 +138,7 @@ export default function SystemPage() {
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       <span className={cn("mr-1.5 inline-block h-1.5 w-1.5 rounded-full", SEVERITY_DOT[e.severity] ?? "bg-muted")} />
-                      {e.event_type.replace(/^PAPER_/, "").replace(/_/g, " ").toLowerCase()}
+                      {e.event_type.replace(/^(PAPER|BROKER)_/, "").replace(/_/g, " ").toLowerCase()}
                     </TableCell>
                     <TableCell className="text-muted">{e.message}</TableCell>
                   </TableRow>

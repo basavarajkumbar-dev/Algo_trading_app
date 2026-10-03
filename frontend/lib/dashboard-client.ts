@@ -1,3 +1,4 @@
+import type { BrokerStatus } from "@/types/broker";
 import { apiGet } from "@/lib/api";
 import type { ComponentHealthResponse, PerformanceReport, SystemEventList } from "@/types/dashboard";
 import type { MarketRegime } from "@/types/intelligence";
@@ -22,4 +23,8 @@ export function getPerformanceRequest(): Promise<PerformanceReport> {
 
 export function getRouteRequest(regime: MarketRegime, confidence: number): Promise<RouterDecision> {
   return apiGet<RouterDecision>(`/strategies/route?regime=${regime}&confidence=${confidence}`);
+}
+
+export function getBrokerStatusRequest(): Promise<BrokerStatus> {
+  return apiGet<BrokerStatus>("/broker/status");
 }

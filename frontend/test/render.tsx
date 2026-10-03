@@ -6,6 +6,7 @@ import { vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { initialMarketState, useMarketStore } from "@/lib/stores/market-store";
 
+import brokerStatus from "./fixtures/broker-status.json";
 import components from "./fixtures/components.json";
 import events from "./fixtures/events.json";
 import intelligenceNifty from "./fixtures/intelligence-nifty.json";
@@ -27,6 +28,7 @@ export const FIXTURES: Record<string, unknown> = {
   "/system/components": components,
   "/system/events": events,
   "/system/health": systemHealth,
+  "/broker/status": brokerStatus,
   "/analytics/performance": performance,
   "/scanner": scanner,
   "/market/intelligence": intelligence,

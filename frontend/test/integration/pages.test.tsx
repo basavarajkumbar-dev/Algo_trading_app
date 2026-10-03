@@ -47,10 +47,23 @@ describe("analytics page (integration)", () => {
 });
 
 describe("system page (integration)", () => {
+  it("shows that orders execute on the paper broker and why live trading is blocked", async () => {
+    mockApi();
+    renderWithProviders(<SystemPage />);
+    const panel = await screen.findByTestId("broker-panel");
+    await waitFor(() => expect(within(panel).getByTestId("broker-execution")).toHaveTextContent("PAPER"));
+    expect(within(panel).getByTestId("broker-zerodha-state")).toHaveTextContent("not configured");
+    expect(within(panel).getByTestId("broker-live-orders")).toHaveTextContent("disabled");
+    const blockers = within(panel).getByTestId("broker-blockers");
+    expect(blockers).toHaveTextContent("LIVE_MODE_ENABLED");
+    expect(blockers).toHaveTextContent("not been armed");
+    expect(screen.getByTestId("component-live_broker")).toHaveTextContent("HEALTHY");
+  });
+
   it("lists all eight components with their level", async () => {
     mockApi();
     renderWithProviders(<SystemPage />);
-    for (const key of ["market_data", "backend", "database", "redis", "websocket", "strategy_engine", "risk_engine", "paper_broker"]) {
+    for (const key of ["market_data", "backend", "database", "redis", "websocket", "strategy_engine", "risk_engine", "paper_broker", "live_broker"]) {
       const card = await screen.findByTestId(`component-${key}`);
       expect(card).toHaveTextContent(/HEALTHY|WARNING|CRITICAL/);
     }

@@ -778,6 +778,9 @@ under this phase number.
 
 ## Phase 16 — Broker Adapter Architecture & Zerodha Structure
 
+> **Numbering note.** Delivered as "Phase 11 — Zerodha Broker Adapter" per
+> direct instruction. Details: `docs/broker.md`.
+
 **Scope**
 - `BrokerAdapter` abstract interface; `PaperBrokerAdapter`,
   `MockBrokerAdapter`, `ZerodhaBrokerAdapter` (structure only — real
@@ -786,10 +789,26 @@ under this phase number.
   requirements; current official Zerodha developer docs consulted before
   implementing any live call.
 
+**Delivered**
+- Interface: connect, disconnect, health_check, get_profile, get_balance,
+  get_positions, get_orders, get_order_status, place_order, modify_order,
+  cancel_order, get_instruments — implemented by all three adapters.
+- Zerodha (Kite Connect v3, verified October 2026 incl. the 1 April 2026
+  static-IP, 10 orders/second and market-protection rules): login flow,
+  token expiry, rate limiting, error mapping, status mapping, tags for
+  idempotency; read-only unless armed by the execution gate.
+- `OrderManager` + `ExecutionGate` (contract §9 conditions), duplicate
+  protection, reconciliation, partial fills, failed-order, network-failure
+  and disconnect handling; `BrokerService` supervision; `/broker` API;
+  `live_broker` health component; Broker panel on the System page.
+
 **Definition of Done**
-- [ ] App runs with `ZerodhaBrokerAdapter` unconfigured, falling back to
+- [x] App runs with `ZerodhaBrokerAdapter` unconfigured, falling back to
       Paper/Mock with a clear system-health message.
-- [ ] No credential is hardcoded anywhere in the diff.
+- [x] No credential is hardcoded anywhere in the diff (checked by a test).
+
+**Not in this phase:** an arming action or any live-order endpoint,
+routing the paper engine to Zerodha, Kite WebSocket order updates.
 
 ---
 

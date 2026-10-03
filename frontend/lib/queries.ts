@@ -10,6 +10,7 @@ import {
   getBacktestTradesRequest,
 } from "@/lib/backtest-client";
 import {
+  getBrokerStatusRequest,
   getComponentHealthRequest,
   getPerformanceRequest,
   getRouteRequest,
@@ -133,3 +134,6 @@ export const useBacktestEquity = (id: string | null, completed: boolean) =>
     enabled: !!id && completed,
     staleTime: Infinity,
   });
+
+export const useBrokerStatus = () =>
+  useQuery({ queryKey: qk.brokerStatus, queryFn: getBrokerStatusRequest, refetchInterval: 10_000 });

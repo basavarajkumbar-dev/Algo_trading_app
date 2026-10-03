@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 10 — Backtesting + Validation complete. Mode: PAPER only.**
+**Status: Phase 11 — Zerodha Broker Adapter complete. Mode: PAPER only.**
 
 See:
 
@@ -96,7 +96,7 @@ See:
   Built with TanStack Query, Zustand, Recharts and shadcn/ui, live over
   one WebSocket. Every panel reads the backend; nothing is invented.
 
-- **Backtesting + validation** (Phase 10, new): historical,
+- **Backtesting + validation** (Phase 10): historical,
   out-of-sample and walk-forward runs that replay the live strategy,
   scoring, risk, sizing and paper-execution code bar by bar on past data
   (closed bars only, next-bar fills, pessimistic intrabar order, costs and
@@ -110,8 +110,21 @@ See:
   past under stated assumptions and do not guarantee future performance;
   the built-in data is synthetic.
 
-**Paper only.** Orders go to a simulated broker; no broker (Zerodha or any
-other) is connected, no real order can be placed and no real money is
+- **Broker adapter layer + Zerodha** (Phase 11, new): one
+  `BrokerAdapter` interface (connect, disconnect, health, profile,
+  balance, positions, orders, order status, place, modify, cancel,
+  instruments) implemented by the paper, mock and Zerodha (Kite Connect
+  v3) adapters, behind an `OrderManager` with a fail-closed execution
+  gate, duplicate-order protection, order reconciliation, status mapping,
+  partial-fill, failed-order, network-failure and disconnect handling.
+  Built against the current Kite docs and Zerodha's April 2026 SEBI
+  changes (static IP for order APIs, 10 orders/second, market protection
+  for MARKET and SL-M). Credentials come from environment variables only;
+  without them the app runs in PAPER mode. **Zerodha is read-only: live
+  orders are never armed.** See [`docs/broker.md`](./docs/broker.md).
+
+**Paper only.** Orders go to a simulated broker; Zerodha can be connected
+read-only (Phase 11) but never receives an order, no real order can be placed and no real money is
 involved. Automatic trading is **off** at every start. Fills, slippage and
 charges are configurable assumptions, so paper results will differ from
 live results, and nothing here claims a win rate or profitability.
@@ -369,6 +382,11 @@ and 5:
   `PAPER_EXECUTION_DELAY_SECONDS`, `PAPER_MAX_FILL_FRACTION`,
   `PAPER_ENTRY_TIMEOUT_SECONDS`, `PAPER_EMERGENCY_CLOSE_POSITIONS` and
   `PAPER_COSTS` — see `.env.example`.
+- Phase 11: `ZERODHA_API_KEY`, `ZERODHA_API_SECRET`,
+  `ZERODHA_ACCESS_TOKEN` (all optional; never commit them),
+  `ZERODHA_MARKET_PROTECTION`, `ZERODHA_ORDERS_PER_SECOND`,
+  `ZERODHA_TIMEOUT_SECONDS`, `ZERODHA_API_BASE_URL`,
+  `BROKER_HEALTH_INTERVAL_SECONDS`, `BROKER_RECONCILE_INTERVAL_SECONDS`.
 - Phase 10: `BACKTEST_DATA_DIR` (optional CSV bars), `BACKTEST_WORKERS`,
   `BACKTEST_CACHE_DIR`; migration adds the backtest tables.
 
@@ -378,9 +396,9 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 518 tests, all passing with a real Postgres;
+make test-backend    # pytest — 602 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
-make test-frontend   # tsc --noEmit + eslint + vitest (83 unit + integration tests)
+make test-frontend   # tsc --noEmit + eslint + vitest (84 unit + integration tests)
 make test-e2e        # Playwright against a running stack (6 end-to-end tests)
 make lint             # ruff + black (backend), eslint (frontend)
 ```
@@ -391,6 +409,22 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 11 (84 backend tests, 1 frontend, 1
+end-to-end assertion set): the Zerodha adapter against a fake Kite
+server (headers, login checksum, token expiry, parameters, market
+protection, duplicate ids, lost responses reconciled by tag, connection
+failures, no retried writes, rejections, 429s, partial fills, modify /
+cancel, the 25-modification cap, disconnects, secrets kept out of logs
+and repr, status mapping), the order manager with mock, paper and
+Zerodha brokers (gate conditions, idempotent and concurrent submissions,
+duplicate window, partial fills, exchange rejections and cancellations,
+lost / recovered / re-appearing orders, external orders, disconnect and
+reconnect with reconciliation, expired sessions, emergency cancel), one
+conformance suite run against all three adapters, architecture rules
+(no broker access from strategy, signal or risk code; no committed
+credentials), and the broker API with Postgres (PAPER fallback, health
+component, roles, no secret in any response).
 
 Test coverage added in Phase 10 (36 backend tests, 16 frontend tests,
 1 end-to-end): the session calendar, synthetic data determinism, CSV

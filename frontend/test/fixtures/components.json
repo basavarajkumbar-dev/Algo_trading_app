@@ -1,90 +1,104 @@
 {
- "status": "HEALTHY",
- "components": [
-  {
-   "key": "market_data",
-   "name": "Market Data",
-   "status": "HEALTHY",
-   "detail": "Simulated feed streaming, last tick 0.8s ago",
-   "metrics": {
-    "provider": "CONNECTED",
-    "simulated": true,
-    "last_tick_age_seconds": 0.75,
-    "ticks_accepted": 7174,
-    "ticks_rejected": 0,
-    "symbols": 51
-   }
-  },
-  {
-   "key": "backend",
-   "name": "Backend",
-   "status": "HEALTHY",
-   "detail": "API answering (development)",
-   "metrics": {
-    "uptime_seconds": 425
-   }
-  },
-  {
-   "key": "database",
-   "name": "Database",
-   "status": "HEALTHY",
-   "detail": "PostgreSQL reachable",
-   "metrics": {}
-  },
-  {
-   "key": "redis",
-   "name": "Redis",
-   "status": "HEALTHY",
-   "detail": "Redis reachable",
-   "metrics": {}
-  },
-  {
-   "key": "websocket",
-   "name": "WebSocket",
-   "status": "HEALTHY",
-   "detail": "/ws/market broadcasting to 0 client(s)",
-   "metrics": {
-    "connected_clients": 0
-   }
-  },
-  {
-   "key": "strategy_engine",
-   "name": "Strategy Engine",
-   "status": "HEALTHY",
-   "detail": "All analysis services refreshing on time",
-   "metrics": {
-    "intelligence": "HEALTHY",
-    "price_action": "HEALTHY",
-    "strategies": "HEALTHY",
-    "signals": "HEALTHY"
-   }
-  },
-  {
-   "key": "risk_engine",
-   "name": "Risk Engine",
-   "status": "HEALTHY",
-   "detail": "Evaluating every order before it is placed",
-   "metrics": {
-    "trades_today": 3,
-    "daily_loss_remaining": 2853.5,
-    "blocked_reasons": []
-   }
-  },
-  {
-   "key": "paper_broker",
-   "name": "Paper Broker",
-   "status": "HEALTHY",
-   "detail": "Simulating fills; trades are being stored",
-   "metrics": {
-    "state": "SCANNING",
-    "working_orders": 0,
-    "open_positions": 0,
-    "slippage_bps": 5.0
-   }
-  }
- ],
- "demo_mode": true,
- "trading_mode": "PAPER",
- "checked_at": "2026-10-02T05:48:06.534876Z",
- "note": "Market data is simulated. HEALTHY means a component is running as designed; it says nothing about trading results."
+    "status": "HEALTHY",
+    "components": [
+        {
+            "key": "market_data",
+            "name": "Market Data",
+            "status": "HEALTHY",
+            "detail": "Simulated feed streaming, last tick 0.6s ago",
+            "metrics": {
+                "provider": "CONNECTED",
+                "simulated": true,
+                "last_tick_age_seconds": 0.58,
+                "ticks_accepted": 153,
+                "ticks_rejected": 0,
+                "symbols": 51
+            }
+        },
+        {
+            "key": "backend",
+            "name": "Backend",
+            "status": "HEALTHY",
+            "detail": "API answering (development)",
+            "metrics": {
+                "uptime_seconds": 11
+            }
+        },
+        {
+            "key": "database",
+            "name": "Database",
+            "status": "HEALTHY",
+            "detail": "PostgreSQL reachable",
+            "metrics": {}
+        },
+        {
+            "key": "redis",
+            "name": "Redis",
+            "status": "HEALTHY",
+            "detail": "Redis reachable",
+            "metrics": {}
+        },
+        {
+            "key": "websocket",
+            "name": "WebSocket",
+            "status": "HEALTHY",
+            "detail": "/ws/market broadcasting to 0 client(s)",
+            "metrics": {
+                "connected_clients": 0
+            }
+        },
+        {
+            "key": "strategy_engine",
+            "name": "Strategy Engine",
+            "status": "HEALTHY",
+            "detail": "All analysis services refreshing on time",
+            "metrics": {
+                "intelligence": "HEALTHY",
+                "price_action": "HEALTHY",
+                "strategies": "HEALTHY",
+                "signals": "HEALTHY"
+            }
+        },
+        {
+            "key": "risk_engine",
+            "name": "Risk Engine",
+            "status": "HEALTHY",
+            "detail": "Evaluating every order before it is placed",
+            "metrics": {
+                "trades_today": 0,
+                "daily_loss_remaining": 3000.0,
+                "blocked_reasons": []
+            }
+        },
+        {
+            "key": "paper_broker",
+            "name": "Paper Broker",
+            "status": "HEALTHY",
+            "detail": "Simulating fills; trades are being stored",
+            "metrics": {
+                "state": "IDLE",
+                "working_orders": 0,
+                "open_positions": 0,
+                "slippage_bps": 5.0
+            }
+        },
+        {
+            "key": "live_broker",
+            "name": "Live Broker (Zerodha)",
+            "status": "HEALTHY",
+            "detail": "Not configured: PAPER mode, no live broker needed",
+            "metrics": {
+                "configured": false,
+                "state": "NOT_CONFIGURED",
+                "live_orders_armed": false,
+                "execution_broker": "paper",
+                "last_error": null,
+                "unresolved_orders": 0
+            }
+        }
+    ],
+    "demo_mode": true,
+    "trading_mode": "PAPER",
+    "checked_at": "2026-10-03T02:30:59.848228Z",
+    "note": "Market data is simulated. HEALTHY means a component is running as designed; it says nothing about trading results."
 }

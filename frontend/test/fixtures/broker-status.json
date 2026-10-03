@@ -1,0 +1,40 @@
+{
+    "execution_broker": "paper",
+    "trading_mode": "PAPER",
+    "live_trading_possible": false,
+    "live_blockers": [
+        "broker is NOT_CONFIGURED",
+        "live trading is not enabled (TRADING_MODE=LIVE and LIVE_MODE_ENABLED)",
+        "live orders have not been armed by the user",
+        "system health is not HEALTHY"
+    ],
+    "zerodha": {
+        "configured": false,
+        "state": "NOT_CONFIGURED",
+        "healthy": false,
+        "detail": "Zerodha not configured: running in PAPER mode (no live broker needed)",
+        "checked_at": "2026-10-03T02:30:52.215380Z",
+        "latency_ms": null,
+        "last_success_at": null,
+        "last_error": null,
+        "consecutive_failures": 0,
+        "session_expires_at": null,
+        "live_orders_armed": false,
+        "market_protection": -1.0,
+        "orders_per_second": 8,
+        "supervisor_running": false,
+        "paused_by_user": false,
+        "supervisor_error": null
+    },
+    "order_manager": {
+        "tracked": 0,
+        "working": 0,
+        "unresolved": 0,
+        "external_orders": 0,
+        "resync_pending": false,
+        "last_reconcile_at": null,
+        "last_reconcile_ok": null,
+        "last_reconcile_error": null
+    },
+    "note": "PAPER mode: orders execute on the simulated paper broker. Zerodha, when configured, is connected read-only; live orders are not enabled."
+}
