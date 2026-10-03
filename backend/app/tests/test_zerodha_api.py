@@ -214,3 +214,15 @@ def test_full_login_callback_and_logout(mock_data_with_kite: TestClient) -> None
     out = c.post("/api/v1/broker/zerodha/logout", headers=admin).json()
     assert out["auth"] == "LOGGED_OUT" and not out["connected"]
     assert fake.posts() == []  # no order was ever sent
+
+
+def test_zerodha_backtest_source_lists_symbols_and_dates(configured: TestClient) -> None:
+    """Regression: the Zerodha source offered no symbols to pick."""
+
+    trader = _user(configured)
+    opts = configured.get("/api/v1/backtests/options", headers=trader).json()
+    z = next(s for s in opts["data_sources"] if s["kind"] == "zerodha")
+    assert len(z["symbols"]) == 50 and "RELIANCE" in z["symbols"]
+    assert "NIFTY50" not in z["symbols"]  # the benchmark is added automatically
+    assert z["first_day"] and z["last_day"] < datetime.now().date().isoformat()
+    assert z["available"] is False  # no Kite login in this test

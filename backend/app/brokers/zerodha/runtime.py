@@ -76,6 +76,11 @@ class ZerodhaRuntime:
 
     async def start(self) -> None:
         if self.configured:
+            try:
+                # the last synced instrument master, before any login
+                await self.resolver.reload()
+            except Exception:  # noqa: BLE001 - no DB yet: loaded again at login
+                logger.warning("Instrument master not loaded from the database")
             await self.auth.start()  # validates KITE_ACCESS_TOKEN, if one is set
 
     async def stop(self) -> None:

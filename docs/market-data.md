@@ -139,7 +139,9 @@ requests/s; retries 429s; drops in-progress candles; trading days from the
 NIFTY 50 index's daily candles) and `MockHistoricalDataProvider` (the
 synthetic series, labelled simulated).
 
-Backtests accept `data_source.kind = "zerodha"`: the worker downloads 5-minute
+Backtests accept `data_source.kind = "zerodha"`: the form offers the NIFTY 50
+constituents found in the instrument master (all 50 before the first sync),
+completed sessions from three years back to the last weekday, and the worker downloads 5-minute
 candles for the symbols and the benchmark into `BACKTEST_CACHE_DIR/zerodha/…`
 (CSV, reused) and runs on them. Needs a login; ranges must end before today.
 The cache records the range requested from Kite (`coverage.json`): a weekday

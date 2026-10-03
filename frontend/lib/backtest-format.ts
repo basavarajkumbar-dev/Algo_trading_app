@@ -61,7 +61,7 @@ export interface BacktestForm {
   risk: RiskSpec;
   costs: CostSpec;
   validation: ValidationSpec;
-  dataKind: "synthetic" | "csv";
+  dataKind: "synthetic" | "csv" | "zerodha";
   seed: number;
 }
 

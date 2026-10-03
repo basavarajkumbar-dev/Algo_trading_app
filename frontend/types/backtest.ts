@@ -37,7 +37,7 @@ export interface VersionOption {
 }
 
 export interface DataSourceOption {
-  kind: "synthetic" | "csv";
+  kind: "synthetic" | "csv" | "zerodha";
   label: string;
   available: boolean;
   synthetic: boolean;
@@ -107,7 +107,7 @@ export interface BacktestRequest {
   risk: RiskSpec;
   costs: CostSpec;
   validation: ValidationSpec;
-  data_source: { kind: "synthetic" | "csv"; seed: number };
+  data_source: { kind: "synthetic" | "csv" | "zerodha"; seed: number };
   warmup_days?: number;
 }
 

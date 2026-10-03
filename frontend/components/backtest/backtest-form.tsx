@@ -203,7 +203,7 @@ export function BacktestFormCard({
         <CardTitle>New backtest</CardTitle>
         {source && (
           <Badge variant={source.synthetic ? "pending" : "neutral"} title={source.note}>
-            {source.synthetic ? "synthetic data" : "your data"}
+            {source.synthetic ? "synthetic data" : source.kind === "zerodha" ? "real NSE data" : "your data"}
           </Badge>
         )}
       </CardHeader>
@@ -214,7 +214,16 @@ export function BacktestFormCard({
               <select
                 className={inputCls}
                 value={form.dataKind}
-                onChange={(e) => set("dataKind", e.target.value as BacktestForm["dataKind"])}
+                onChange={(e) => {
+                  const kind = e.target.value as BacktestForm["dataKind"];
+                  const next = options.data_sources.find((x) => x.kind === kind);
+                  // keep only the selected symbols the new source has
+                  setForm((f) => ({
+                    ...f,
+                    dataKind: kind,
+                    symbols: next ? f.symbols.filter((sym) => next.symbols.includes(sym)) : f.symbols,
+                  }));
+                }}
                 aria-label="Data source"
               >
                 {options.data_sources.map((s) => (

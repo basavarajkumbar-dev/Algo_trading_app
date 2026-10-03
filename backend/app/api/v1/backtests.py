@@ -17,7 +17,7 @@ stated assumptions. They do not predict or guarantee future performance.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -59,11 +59,13 @@ from app.backtesting.schemas import (
     ValidationSpec,
 )
 from app.backtesting.service import BacktestService
+from app.brokers.zerodha.instruments import InstrumentNotFound
 from app.core.config import Settings, get_settings
 from app.core.constants import UserRole
 from app.database.models.backtest import BacktestRun
 from app.database.models.user import User
 from app.database.session import get_db
+from app.market_data.universe import NIFTY_50_UNIVERSE
 
 router = APIRouter(prefix="/backtests", tags=["backtesting"])
 _operator = require_role(UserRole.TRADER, UserRole.ADMIN)
@@ -240,21 +242,31 @@ async def options(
             )
     rt = getattr(request.app.state, "zerodha", None)
     if rt is not None and rt.configured:
+        symbols, missing = zerodha_symbols(rt)
+        today = date.today()
+        last = today - timedelta(days=1)
+        while last.weekday() >= 5:
+            last -= timedelta(days=1)
+        note = (
+            "Downloaded from Kite Connect for the chosen range (rate-limited; cached). "
+            "Universe = the symbols you pick: survivorship bias possible."
+        )
+        if missing:
+            note += f" Not in the instrument master: {', '.join(missing)}."
+        if not rt.auth.authenticated:
+            note = "Log in to Zerodha (Settings) to use real history. " + note
         sources.append(
             DataSourceOption(
                 kind=DataSourceKind.ZERODHA,
                 label="Zerodha historical (real NSE 5-minute candles)",
                 available=bool(rt.auth.authenticated),
                 synthetic=False,
-                first_day=None,
-                last_day=None,
-                symbols=[],
-                note=(
-                    "Downloaded from Kite Connect for the chosen range (rate-limited; "
-                    "cached). Universe = the symbols you pick: survivorship bias possible."
-                    if rt.auth.authenticated
-                    else "Log in to Zerodha (Settings) to use real history."
-                ),
+                # completed sessions only; Kite serves several years of
+                # 5-minute history, three are offered here
+                first_day=today - timedelta(days=3 * 365),
+                last_day=last,
+                symbols=symbols,
+                note=note,
             )
         )
     return BacktestOptions(
@@ -402,6 +414,13 @@ async def create(
             validate_params(body.strategy, body.parameters)
         except ParameterError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        known, _ = zerodha_symbols(rt)
+        unknown = [x for x in body.symbols if x not in known]
+        if unknown:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"Not available from Zerodha: {', '.join(unknown)}",
+            )
         days = trading_days(body.start_date, body.end_date)
         data: dict[str, Any] = {
             "kind": "zerodha",
@@ -428,6 +447,25 @@ async def create(
     out = RunSummary(**_summary(row, svc))
     out.estimated_seconds = estimate_seconds(body, len(days))
     return out
+
+
+def zerodha_symbols(rt: Any) -> tuple[list[str], list[str]]:
+    """The NIFTY 50 constituents Kite can serve: those in the instrument
+    master (all of them while the master is not loaded yet; a symbol that
+    turns out to be unknown is refused when the run is created)."""
+
+    names = [i.symbol for i in NIFTY_50_UNIVERSE]
+    if rt.resolver.size == 0:
+        return sorted(names), []
+    ok: list[str] = []
+    missing: list[str] = []
+    for name in names:
+        try:
+            rt.resolver.resolve_nse_equity(name)
+            ok.append(name)
+        except InstrumentNotFound:
+            missing.append(name)
+    return sorted(ok), missing
 
 
 async def _row(db: AsyncSession, run_id: uuid.UUID) -> BacktestRun:
