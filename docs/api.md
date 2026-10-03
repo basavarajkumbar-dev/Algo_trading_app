@@ -1027,3 +1027,58 @@ The system components (`GET /system/components`) gain `live_broker`:
 HEALTHY when not configured (PAPER needs no live broker) or connected;
 WARNING when configured but unusable or orders are being reconciled;
 CRITICAL only if live trading were enabled.
+
+
+## Approvals (Phase 12)
+
+APPROVAL mode: `ALGO -> SIGNAL -> SCORE -> RISK CHECK -> PENDING APPROVAL
+-> USER REVIEWS -> APPROVE / REJECT -> ORDER`. Approving places a PAPER
+order only. Details: [`docs/approval-mode.md`](./approval-mode.md).
+
+### `POST /trading/mode` (TRADER / ADMIN)
+
+`{ "mode": "PAPER" | "APPROVAL" }` → `TradingStatus`. Audited as
+`TRADING_MODE_CHANGED`. `LIVE` → 422. Leaving APPROVAL cancels open
+requests. `GET /trading/status` reports `mode`.
+
+### `GET /approvals?status=&limit=100&offset=0`
+
+`{ items, total, counts: {STATUS: n}, mode, ttl_seconds, server_time,
+note }`, newest first; `status` may repeat. Each item: `id, status
+(PENDING | APPROVED | REJECTED | EXPIRED | CANCELLED | EXECUTED | FAILED),
+source (ALGO | MANUAL), signal_id, symbol, direction, side, entry,
+stop_loss, target, quantity, risk_amount, risk_per_share, position_value,
+reward_risk, strategy, strategy_version, score, category, market_regime,
+regime_confidence, reasons, risk_checks, signal_timestamp, created_at,
+expires_at, requested_by_email, approved_by, approved_by_email,
+approved_at, rejected_by, rejected_by_email, rejected_at, expired_at,
+executed_at, reason, note, trade_id, execution_reasons,
+seconds_remaining`. No authentication required to read.
+
+### `GET /approvals/{id}`
+
+One request (404 if unknown).
+
+### `POST /approvals` (TRADER / ADMIN)
+
+`{ "signal_id": "…" }`: runs the risk check as a preview and creates a
+PENDING request (201), or returns the open one for that signal. 409 when
+not in APPROVAL mode or the signal is not ACTIVE; 404 unknown signal; 422
+`{message, reasons}` when the risk check refuses.
+
+### `POST /approvals/{id}/approve` (TRADER / ADMIN)
+
+Optional `{ "note": "…" }`. Re-runs the risk check (approved quantity as
+the cap) and places the paper entry: returns the request as EXECUTED (with
+`trade_id`) or FAILED (with `reason`, `execution_reasons`). 409 when it is
+not PENDING, has expired (it becomes EXPIRED), its signal expired, the
+mode is not APPROVAL, a paper trade is already open (it stays PENDING),
+or someone else decided first.
+
+### `POST /approvals/{id}/reject` (TRADER / ADMIN)
+
+`{ "reason": "…" }` (3–500 characters, required) → REJECTED with
+`rejected_by`, `rejected_at`, `reason`. 409 when not PENDING.
+
+Every change is written to `audit_logs` (`APPROVAL_*`) and
+`system_events`, and pushed as a `trading_event` on `WS /ws/market`.

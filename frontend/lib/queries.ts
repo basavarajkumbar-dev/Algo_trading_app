@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { getApprovalsRequest } from "@/lib/approvals-client";
 import {
   getBacktestEquityRequest,
   getBacktestOptionsRequest,
@@ -137,3 +138,7 @@ export const useBacktestEquity = (id: string | null, completed: boolean) =>
 
 export const useBrokerStatus = () =>
   useQuery({ queryKey: qk.brokerStatus, queryFn: getBrokerStatusRequest, refetchInterval: 10_000 });
+
+/** Approval requests; polled quickly so countdowns and new requests stay current. */
+export const useApprovals = () =>
+  useQuery({ queryKey: qk.approvals, queryFn: () => getApprovalsRequest(), refetchInterval: 3_000 });

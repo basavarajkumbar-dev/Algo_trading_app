@@ -103,12 +103,13 @@ describe("small formatters", () => {
 });
 
 describe("navigation", () => {
-  it("has the twelve sections in order", () => {
+  it("has the thirteen sections in order", () => {
     expect(NAV_ITEMS.map((i) => i.label)).toEqual([
       "Dashboard",
       "Market",
       "Scanner",
       "Signals",
+      "Approvals",
       "Positions",
       "Trades",
       "Analytics",

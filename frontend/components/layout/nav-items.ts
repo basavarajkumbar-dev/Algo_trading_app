@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   BarChart3,
+  ClipboardCheck,
   Gauge,
   History,
   LayoutDashboard,
@@ -28,6 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Market", href: "/market", icon: LineChart },
   { label: "Scanner", href: "/scanner", icon: Radar },
   { label: "Signals", href: "/signals", icon: Activity },
+  { label: "Approvals", href: "/approvals", icon: ClipboardCheck },
   { label: "Positions", href: "/positions", icon: ListTree },
   { label: "Trades", href: "/trades", icon: History },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },

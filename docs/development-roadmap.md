@@ -616,7 +616,8 @@ under this phase number.
   a real broker (there is none); resuming an open paper trade after a
   restart (marked INTERRUPTED instead).
 - Any real broker connection: no Zerodha code path exists. LIVE and
-  APPROVAL modes make every risk check fail.
+  APPROVAL modes make every risk check fail. (APPROVAL mode was added in
+  the "Phase 12" delivery below; LIVE still fails every check.)
 
 **Definition of Done**
 - [x] Full lifecycle test: signal -> risk-approved -> paper order -> fill
@@ -809,6 +810,34 @@ under this phase number.
 
 **Not in this phase:** an arming action or any live-order endpoint,
 routing the paper engine to Zerodha, Kite WebSocket order updates.
+
+---
+
+## Approval mode (delivered as "Phase 12 — Approval Mode")
+
+> **Numbering note.** Not a separate phase in the original roadmap list;
+> delivered per direct instruction after the Zerodha adapter. Details:
+> `docs/approval-mode.md`.
+
+**Delivered**
+- `APPROVAL` trading mode (env `TRADING_MODE` or the audited runtime
+  switch): ALGO -> SIGNAL -> SCORE -> RISK CHECK -> PENDING APPROVAL ->
+  USER REVIEWS -> APPROVE / REJECT -> paper ORDER.
+- `trade_approvals` table with an explicit state machine, configurable
+  expiry (`APPROVAL_TTL_SECONDS`), approved_by / approved_at, rejected_by
+  / rejected_at, reason; one open request per signal; every change
+  audited.
+- Risk engine: `APPROVAL_REQUIRED` refusal without an approval, preview
+  evaluation, re-check at approval with the approved quantity as a cap.
+- Approvals page (every field, countdown, APPROVE TRADE / REJECT TRADE,
+  mode switch, decision history), top-bar count, Signals "Request
+  approval".
+
+**Definition of Done**
+- [x] Complete approval lifecycle tested (propose, approve -> paper
+      order, reject, expire, cancel, fail at re-check, races).
+- [x] An expired request is never executed (tested by time and by signal).
+- [x] No automatic live execution.
 
 ---
 

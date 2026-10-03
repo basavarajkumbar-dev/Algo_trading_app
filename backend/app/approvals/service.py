@@ -190,9 +190,13 @@ class ApprovalService:
                 return False
         try:
             await self.propose(signal_id, source=ApprovalSource.ALGO, actor=SYSTEM, locked=True)
-        except (ApprovalRefused, ApprovalConflict, SignalNotFound) as exc:
+        except ApprovalRefused as exc:
+            # e.g. a trade is open or a daily limit is reached: try again on a later scan
+            logger.debug("Signal %s not queued for approval yet: %s", signal_id, exc)
+            return False
+        except (ApprovalConflict, SignalNotFound) as exc:
             logger.info("Signal %s not queued for approval: %s", signal_id, exc)
-        return True  # handled (queued, or refused by the risk check): not proposed again
+        return True  # queued, or the signal is gone: not proposed again
 
     async def propose(
         self,

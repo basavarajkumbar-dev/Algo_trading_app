@@ -364,6 +364,9 @@ list with entry/exit criteria. Summary:
 - **Phase 16** — Broker adapter architecture + Zerodha adapter structure.
   (Delivered as "Phase 11 — Zerodha Broker Adapter"; read-only, live
   orders never armed.)
+- **Approval mode** — delivered as "Phase 12 — Approval Mode": human
+  approval between the risk check and the (paper) order; see
+  `docs/approval-mode.md`.
 - **Phase 17** — Hardening: full test suite pass, security review,
   documentation pass, final integration validation.
 

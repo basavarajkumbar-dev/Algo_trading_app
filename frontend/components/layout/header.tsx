@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { NotificationsMenu } from "@/components/layout/notifications-menu";
+import { PendingApprovals } from "@/components/approvals/pending-badge";
 import { RegimeBadge } from "@/components/market/regime-badge";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -89,6 +90,7 @@ export function Header() {
           <Badge variant="accent" data-testid="topbar-mode">
             {trading?.mode ?? health?.trading_mode ?? "PAPER"}
           </Badge>
+          {trading?.mode === "APPROVAL" && <PendingApprovals />}
         </Item>
         <Item label="Algo">
           <Link href="/positions">

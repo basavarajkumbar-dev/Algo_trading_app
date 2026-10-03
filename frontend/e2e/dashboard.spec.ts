@@ -12,6 +12,7 @@ const PAGES: [string, string, RegExp][] = [
   ["Market", "/market", /Market Intelligence/],
   ["Scanner", "/scanner", /Scanner/],
   ["Signals", "/signals", /Signals/],
+  ["Approvals", "/approvals", /Approvals/],
   ["Positions", "/positions", /Positions/],
   ["Trades", "/trades", /Trades/],
   ["Analytics", "/analytics", /Analytics/],

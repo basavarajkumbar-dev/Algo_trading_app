@@ -5,11 +5,13 @@ import { usePathname } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { NAV_ITEMS, activeNavHref } from "@/components/layout/nav-items";
+import { useTradingStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
   const active = activeNavHref(pathname);
+  const mode = useTradingStatus().data?.mode ?? "PAPER";
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-surface">
@@ -47,9 +49,13 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border px-4 py-3">
-        <Badge variant="accent">PAPER MODE</Badge>
+        <Badge variant="accent" data-testid="sidebar-mode">
+          {mode === "APPROVAL" ? "APPROVAL MODE" : "PAPER MODE"}
+        </Badge>
         <p className="mt-2 text-[10px] leading-snug text-muted">
-          Simulated market data. No broker connected; no real orders.
+          {mode === "APPROVAL"
+            ? "Every trade waits for your approval, then runs on the paper broker. Simulated data; no real orders."
+            : "Simulated market data. No broker connected; no real orders."}
         </p>
       </div>
     </aside>

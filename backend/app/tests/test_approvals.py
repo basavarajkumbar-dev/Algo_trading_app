@@ -363,3 +363,26 @@ def test_the_state_machine_only_allows_documented_transitions() -> None:
     ]:
         with pytest.raises(InvalidTransition):
             check_transition(current, new)
+
+
+async def test_a_signal_the_risk_check_refused_is_proposed_on_a_later_scan() -> None:
+    clock = Clock()
+    sid, signal = await _signal(clock)
+    scan = SimpleNamespace(candidates=[SimpleNamespace(status="READY", signal_id=sid)])
+    counter = {"n": 1}
+    stub = SimpleNamespace(
+        status=lambda: SimpleNamespace(scan_count=counter["n"], last_error=None),
+        get_scan=lambda: scan,
+    )
+    svc, approvals, clock, market = await setup(signals=stub)
+    await svc.set_auto_trading(True)
+    await svc.tick()  # no price for RELIANCE yet: the risk check refuses, nothing queued
+    assert (await approvals.list())[1] == 0
+    market.set("RELIANCE", signal.entry)
+    await svc.tick()  # same scan: not re-evaluated
+    assert (await approvals.list())[1] == 0
+    counter["n"] += 1
+    await svc.tick()  # a later scan: now it passes and is queued
+    items, total = await approvals.list()
+    assert total == 1 and items[0].status is ApprovalStatus.PENDING
+    assert svc.engine.active is None

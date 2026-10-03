@@ -24,7 +24,7 @@ describe("trading formatting", () => {
 
   it("labels every exit and rejection reason", () => {
     expect(Object.keys(EXIT_REASON_LABEL)).toHaveLength(8);
-    expect(Object.keys(REJECTION_LABEL)).toHaveLength(18);
+    expect(Object.keys(REJECTION_LABEL)).toHaveLength(19);
     expect(REJECTION_LABEL.ACTIVE_POSITION_EXISTS).toMatch(/already active/);
   });
 

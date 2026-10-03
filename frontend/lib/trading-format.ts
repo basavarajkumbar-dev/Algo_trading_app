@@ -45,6 +45,7 @@ export const EXIT_REASON_LABEL: Record<ExitReason, string> = {
 
 export const REJECTION_LABEL: Record<RejectionReason, string> = {
   TRADING_MODE_NOT_PAPER: "Not in PAPER mode",
+  APPROVAL_REQUIRED: "Needs approval (APPROVAL mode)",
   EMERGENCY_STOP: "Emergency stop active",
   SYSTEM_UNHEALTHY: "System unhealthy",
   MARKET_CLOSED: "Market closed",

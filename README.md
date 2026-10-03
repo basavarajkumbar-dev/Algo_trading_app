@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 11 — Zerodha Broker Adapter complete. Mode: PAPER only.**
+**Status: Phase 12 — Approval Mode complete. Modes: PAPER (default) and APPROVAL, both on the paper broker.**
 
 See:
 
@@ -110,7 +110,7 @@ See:
   past under stated assumptions and do not guarantee future performance;
   the built-in data is synthetic.
 
-- **Broker adapter layer + Zerodha** (Phase 11, new): one
+- **Broker adapter layer + Zerodha** (Phase 11): one
   `BrokerAdapter` interface (connect, disconnect, health, profile,
   balance, positions, orders, order status, place, modify, cancel,
   instruments) implemented by the paper, mock and Zerodha (Kite Connect
@@ -122,6 +122,19 @@ See:
   for MARKET and SL-M). Credentials come from environment variables only;
   without them the app runs in PAPER mode. **Zerodha is read-only: live
   orders are never armed.** See [`docs/broker.md`](./docs/broker.md).
+
+- **Approval mode** (Phase 12, new): `TRADING_MODE=APPROVAL` or the
+  audited PAPER / APPROVAL switch. The algo's READY signals are scored
+  and risk-checked, then wait on the **Approvals** page with stock,
+  direction, entry, stop loss, target, quantity, risk, risk/reward,
+  strategy, score, market regime, reasons and timestamps, for **APPROVE
+  TRADE** or **REJECT TRADE**. Requests expire after
+  `APPROVAL_TTL_SECONDS` (default 120) and an expired one is never
+  executed. Approval re-runs the risk check and places a **paper** order
+  of at most the approved quantity; the risk engine refuses any
+  APPROVAL-mode trade without an approval. approved_by / approved_at,
+  rejected_by / rejected_at and the reason are stored and every decision
+  is audited. See [`docs/approval-mode.md`](./docs/approval-mode.md).
 
 **Paper only.** Orders go to a simulated broker; Zerodha can be connected
 read-only (Phase 11) but never receives an order, no real order can be placed and no real money is
@@ -382,6 +395,8 @@ and 5:
   `PAPER_EXECUTION_DELAY_SECONDS`, `PAPER_MAX_FILL_FRACTION`,
   `PAPER_ENTRY_TIMEOUT_SECONDS`, `PAPER_EMERGENCY_CLOSE_POSITIONS` and
   `PAPER_COSTS` — see `.env.example`.
+- Phase 12: `TRADING_MODE` accepts `APPROVAL`; `APPROVAL_TTL_SECONDS`
+  (default `120`). Migration adds `trade_approvals`.
 - Phase 11: `ZERODHA_API_KEY`, `ZERODHA_API_SECRET`,
   `ZERODHA_ACCESS_TOKEN` (all optional; never commit them),
   `ZERODHA_MARKET_PROTECTION`, `ZERODHA_ORDERS_PER_SECOND`,
@@ -396,10 +411,10 @@ and 5:
 ## Tests and checks
 
 ```bash
-make test-backend    # pytest — 602 tests, all passing with a real Postgres;
+make test-backend    # pytest — 622 tests, all passing with a real Postgres;
                       # auth/settings tests skip cleanly (not fail) without one
-make test-frontend   # tsc --noEmit + eslint + vitest (84 unit + integration tests)
-make test-e2e        # Playwright against a running stack (6 end-to-end tests)
+make test-frontend   # tsc --noEmit + eslint + vitest (92 unit + integration tests)
+make test-e2e        # Playwright against a running stack (7 end-to-end tests)
 make lint             # ruff + black (backend), eslint (frontend)
 ```
 
@@ -409,6 +424,18 @@ Or directly:
 cd backend && python -m pytest -q
 cd frontend && npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+Test coverage added in Phase 12 (20 backend tests, 8 frontend, 1
+end-to-end): the complete approval lifecycle with Postgres (algo proposes
+and nothing executes, approve -> paper order with approved_by /
+approved_at, reject with reason, expiry by time and by signal, sweep,
+no execution without approval, refused signals retried later, re-check
+at approval, approved-quantity cap, active-trade wait, one request per
+signal, simultaneous approvals, emergency stop and mode change
+cancel, state machine) and the API (mode switch audit, LIVE refused,
+roles, validation, expired requests). The Approvals page is tested on
+captured API responses; Playwright switches to APPROVAL mode and
+reviews and rejects a real queued trade.
 
 Test coverage added in Phase 11 (84 backend tests, 1 frontend, 1
 end-to-end assertion set): the Zerodha adapter against a fake Kite

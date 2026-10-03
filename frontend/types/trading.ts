@@ -31,6 +31,7 @@ export type ExitReason =
 
 export type RejectionReason =
   | "TRADING_MODE_NOT_PAPER"
+  | "APPROVAL_REQUIRED"
   | "EMERGENCY_STOP"
   | "SYSTEM_UNHEALTHY"
   | "MARKET_CLOSED"
@@ -252,7 +253,7 @@ export interface PaperBrokerConfig {
 }
 
 export interface TradingStatus {
-  mode: "PAPER";
+  mode: "PAPER" | "APPROVAL" | "LIVE";
   state: TradingStateValue;
   state_since: string;
   auto_trading: boolean;

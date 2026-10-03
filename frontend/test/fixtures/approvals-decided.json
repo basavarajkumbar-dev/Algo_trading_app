@@ -1,0 +1,515 @@
+{
+    "items": [
+        {
+            "id": "9144546f-04dc-477d-9a8f-500f2335a7e1",
+            "status": "PENDING",
+            "source": "ALGO",
+            "signal_id": "6ac42f49-45cf-49ba-b0f8-b87190c86a26",
+            "symbol": "GRASIM",
+            "direction": "SELL",
+            "side": "SHORT",
+            "entry": 3210.25,
+            "stop_loss": 3222.2,
+            "target": 3179.25,
+            "quantity": 15,
+            "risk_amount": 179.25,
+            "risk_per_share": 11.95,
+            "position_value": 48153.75,
+            "reward_risk": 2.59,
+            "strategy": "TREND_CONTINUATION",
+            "strategy_version": "1.0.0+567cf21b",
+            "score": 60.5,
+            "category": "IGNORE",
+            "market_regime": "STRONG_BEARISH",
+            "regime_confidence": 85.0,
+            "reasons": [
+                "\u2713 Market alignment: NIFTY 50 bias -80, own timeframe bias -76 (with the trade), timeframe alignment 100/100 (15.8/15.8)",
+                "\u2717 Relative strength: RS score 62, rank 41/50 (0.0/15.8)",
+                "\u2713 Trend quality: 83 (down) (13.2/15.8)",
+                "\u2713 VWAP: price below VWAP (10.5/10.5)",
+                "\u2713 Market structure: lower highs / lower lows (trend weakness) (6.3/10.5)",
+                "\u2713 Retracement: deepest pullback 45% (healthy pullback) (10.5/10.5)",
+                "\u2717 Volume: 0.72x average volume (0.0/10.5)",
+                "\u2713 Momentum: score 26 (4.2/5.3)",
+                "\u2717 Price action: no aligned pattern on the latest candle (0.0/5.3)",
+                "Final score 60 / 100 (IGNORE)"
+            ],
+            "risk_checks": [
+                {
+                    "name": "trading_mode",
+                    "detail": "mode APPROVAL",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "approval",
+                    "detail": "previewed for approval",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "emergency_stop",
+                    "detail": "not active",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "system_health",
+                    "detail": "market data, scanner and trade storage healthy",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "market_hours",
+                    "detail": "simulated 24h session (exchange hours not enforced)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "data_freshness",
+                    "detail": "price and signal are current",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "one_active_trade",
+                    "detail": "no active trade",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "duplicate_order",
+                    "detail": "no matching order",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "daily_loss_limit",
+                    "detail": "realized today \u20b90.00; \u20b93,000.00 of \u20b93,000.00 left",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_trades",
+                    "detail": "0 of 5 trades taken today",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "consecutive_losses",
+                    "detail": "0 in a row (limit 3)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "signal_score",
+                    "detail": "score 60.5, executable threshold 60",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "short_allowed",
+                    "detail": "short selling allowed",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "stop_validity",
+                    "detail": "stop 3222.17 is above entry 3207.86 and price 3210.23",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "target_validity",
+                    "detail": "target 3179.25 vs price 3210.23",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "entry_deviation",
+                    "detail": "price 3210.23 is 0.00 worse than planned entry 3207.86 (allowed 3.58 = 0.25R)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "quantity_validity",
+                    "detail": "15 shares (raw 83.68; rounded down to lot size 1, capped by max position value)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "sufficient_capital",
+                    "detail": "needs \u20b948,204.82, available \u20b9100,000.00",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_exposure",
+                    "detail": "exposure would be \u20b948,153.75 (limit \u20b950,000.00)",
+                    "passed": true,
+                    "reason": null
+                }
+            ],
+            "signal_timestamp": "2026-10-03T03:01:33.302392Z",
+            "created_at": "2026-10-03T03:01:41.426592Z",
+            "expires_at": "2026-10-03T03:06:41.426592Z",
+            "requested_by": null,
+            "requested_by_email": null,
+            "approved_by": null,
+            "approved_by_email": null,
+            "approved_at": null,
+            "rejected_by": null,
+            "rejected_by_email": null,
+            "rejected_at": null,
+            "expired_at": null,
+            "executed_at": null,
+            "reason": null,
+            "note": null,
+            "trade_id": null,
+            "execution_reasons": [],
+            "seconds_remaining": 289.0
+        },
+        {
+            "id": "fbcaf973-2765-472b-878a-f29aadc7d6fd",
+            "status": "REJECTED",
+            "source": "ALGO",
+            "signal_id": "90b39745-785d-4550-bc84-ba009892a50f",
+            "symbol": "ETERNAL",
+            "direction": "BUY",
+            "side": "LONG",
+            "entry": 326.65,
+            "stop_loss": 325.35,
+            "target": 329.83,
+            "quantity": 153,
+            "risk_amount": 198.9,
+            "risk_per_share": 1.3,
+            "position_value": 49977.45,
+            "reward_risk": 2.45,
+            "strategy": "BREAKOUT_MOMENTUM",
+            "strategy_version": "1.0.0+6d9da7cf",
+            "score": 62.2,
+            "category": "IGNORE",
+            "market_regime": "BREAKOUT",
+            "regime_confidence": 72.5,
+            "reasons": [
+                "\u2717 Market alignment: NIFTY 50 bias -80, own timeframe bias +32 (with the trade), timeframe alignment 74/100 (6.6/17.6)",
+                "\u2713 Relative strength: RS score 86, rank 20/50 (17.6/17.6)",
+                "\u2717 Trend quality: 3 (sideways) (0.1/17.6)",
+                "\u2713 VWAP: price above VWAP (11.8/11.8)",
+                "\u2713 Market structure: higher highs / higher lows (trend continuation) (9.4/11.8)",
+                "\u2013 Retracement: not part of this strategy",
+                "\u2713 Volume: 1.53x average volume (7.2/11.8)",
+                "\u2713 Momentum: score 72 (4.3/5.9)",
+                "\u2713 Price action: WRB on the latest candle (5.3/5.9)",
+                "Final score 62 / 100 (IGNORE)"
+            ],
+            "risk_checks": [
+                {
+                    "name": "trading_mode",
+                    "detail": "mode APPROVAL",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "approval",
+                    "detail": "previewed for approval",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "emergency_stop",
+                    "detail": "not active",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "system_health",
+                    "detail": "market data, scanner and trade storage healthy",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "market_hours",
+                    "detail": "simulated 24h session (exchange hours not enforced)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "data_freshness",
+                    "detail": "price and signal are current",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "one_active_trade",
+                    "detail": "no active trade",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "duplicate_order",
+                    "detail": "no matching order",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "daily_loss_limit",
+                    "detail": "realized today \u20b90.00; \u20b93,000.00 of \u20b93,000.00 left",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_trades",
+                    "detail": "0 of 5 trades taken today",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "consecutive_losses",
+                    "detail": "0 in a row (limit 3)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "signal_score",
+                    "detail": "score 62.2, executable threshold 60",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "stop_validity",
+                    "detail": "stop 325.36 is below entry 326.85 and price 326.64",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "target_validity",
+                    "detail": "target 329.83 vs price 326.64",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "entry_deviation",
+                    "detail": "price 326.64 is 0.00 worse than planned entry 326.85 (allowed 0.37 = 0.25R)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "quantity_validity",
+                    "detail": "153 shares (raw 769.23; rounded down to lot size 1, capped by max position value)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "sufficient_capital",
+                    "detail": "needs \u20b950,030.45, available \u20b9100,000.00",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_exposure",
+                    "detail": "exposure would be \u20b949,977.45 (limit \u20b950,000.00)",
+                    "passed": true,
+                    "reason": null
+                }
+            ],
+            "signal_timestamp": "2026-10-03T03:01:33.302392Z",
+            "created_at": "2026-10-03T03:01:41.414549Z",
+            "expires_at": "2026-10-03T03:06:41.414549Z",
+            "requested_by": null,
+            "requested_by_email": null,
+            "approved_by": null,
+            "approved_by_email": null,
+            "approved_at": null,
+            "rejected_by": "b758f0b1-bd95-4064-ae44-70061dcb8015",
+            "rejected_by_email": "phase4check@example.com",
+            "rejected_at": "2026-10-03T03:01:52.420869Z",
+            "expired_at": null,
+            "executed_at": null,
+            "reason": "Sector looks weak today",
+            "note": null,
+            "trade_id": null,
+            "execution_reasons": [],
+            "seconds_remaining": 0.0
+        },
+        {
+            "id": "38c6b45f-2e91-4714-8906-218a1a97032e",
+            "status": "EXECUTED",
+            "source": "ALGO",
+            "signal_id": "0d748452-66b4-4a91-abc0-3f2ef807d7a9",
+            "symbol": "SBIN",
+            "direction": "SELL",
+            "side": "SHORT",
+            "entry": 996.0,
+            "stop_loss": 1000.1,
+            "target": 987.42,
+            "quantity": 50,
+            "risk_amount": 205.0,
+            "risk_per_share": 4.1,
+            "position_value": 49800.0,
+            "reward_risk": 2.09,
+            "strategy": "TREND_CONTINUATION",
+            "strategy_version": "1.0.0+567cf21b",
+            "score": 64.2,
+            "category": "IGNORE",
+            "market_regime": "STRONG_BEARISH",
+            "regime_confidence": 95.0,
+            "reasons": [
+                "\u2713 Market alignment: NIFTY 50 bias -80, own timeframe bias -90 (with the trade), timeframe alignment 100/100 (15.8/15.8)",
+                "\u2717 Relative strength: RS score 51, rank 46/50 (0.0/15.8)",
+                "\u2713 Trend quality: 90 (down) (14.2/15.8)",
+                "\u2713 VWAP: price below VWAP (10.5/10.5)",
+                "\u2713 Market structure: lower highs / lower lows (trending) (8.4/10.5)",
+                "\u2713 Retracement: deepest pullback 45% (healthy pullback) (10.5/10.5)",
+                "\u2717 Volume: 0.70x average volume (0.0/10.5)",
+                "\u2713 Momentum: score 23 (4.8/5.3)",
+                "\u2717 Price action: no aligned pattern on the latest candle (0.0/5.3)",
+                "Final score 64 / 100 (IGNORE)"
+            ],
+            "risk_checks": [
+                {
+                    "name": "trading_mode",
+                    "detail": "mode APPROVAL",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "approval",
+                    "detail": "previewed for approval",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "emergency_stop",
+                    "detail": "not active",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "system_health",
+                    "detail": "market data, scanner and trade storage healthy",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "market_hours",
+                    "detail": "simulated 24h session (exchange hours not enforced)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "data_freshness",
+                    "detail": "price and signal are current",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "one_active_trade",
+                    "detail": "no active trade",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "duplicate_order",
+                    "detail": "no matching order",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "daily_loss_limit",
+                    "detail": "realized today \u20b90.00; \u20b93,000.00 of \u20b93,000.00 left",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_trades",
+                    "detail": "0 of 5 trades taken today",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "consecutive_losses",
+                    "detail": "0 in a row (limit 3)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "signal_score",
+                    "detail": "score 64.2, executable threshold 60",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "short_allowed",
+                    "detail": "short selling allowed",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "stop_validity",
+                    "detail": "stop 1000.08 is above entry 995.86 and price 996.01",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "target_validity",
+                    "detail": "target 987.42 vs price 996.01",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "entry_deviation",
+                    "detail": "price 996.01 is 0.00 worse than planned entry 995.86 (allowed 1.06 = 0.25R)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "quantity_validity",
+                    "detail": "50 shares (raw 243.90; rounded down to lot size 1, capped by max position value)",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "sufficient_capital",
+                    "detail": "needs \u20b949,852.81, available \u20b9100,000.00",
+                    "passed": true,
+                    "reason": null
+                },
+                {
+                    "name": "max_exposure",
+                    "detail": "exposure would be \u20b949,800.00 (limit \u20b950,000.00)",
+                    "passed": true,
+                    "reason": null
+                }
+            ],
+            "signal_timestamp": "2026-10-03T03:01:33.302392Z",
+            "created_at": "2026-10-03T03:01:41.375157Z",
+            "expires_at": "2026-10-03T03:06:41.375157Z",
+            "requested_by": null,
+            "requested_by_email": null,
+            "approved_by": "b758f0b1-bd95-4064-ae44-70061dcb8015",
+            "approved_by_email": "phase4check@example.com",
+            "approved_at": "2026-10-03T03:01:52.378941Z",
+            "rejected_by": null,
+            "rejected_by_email": null,
+            "rejected_at": null,
+            "expired_at": null,
+            "executed_at": "2026-10-03T03:01:52.403755Z",
+            "reason": null,
+            "note": "demo approval",
+            "trade_id": "6d3bc882-cef1-4558-8d1d-e5fca41df49e",
+            "execution_reasons": [],
+            "seconds_remaining": 0.0
+        }
+    ],
+    "total": 3,
+    "counts": {
+        "EXECUTED": 1,
+        "PENDING": 1,
+        "REJECTED": 1
+    },
+    "mode": "APPROVAL",
+    "ttl_seconds": 300,
+    "server_time": "2026-10-03T03:01:52.452832Z",
+    "note": "Approving sends a PAPER order (simulated broker, no real money). The risk checks run again at approval time; an expired request is never executed. A score is not a prediction of profit."
+}
