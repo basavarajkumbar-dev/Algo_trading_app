@@ -96,3 +96,51 @@ class MarketDataProviderStatus(str, Enum):
     CONNECTING = "CONNECTING"
     CONNECTED = "CONNECTED"
     ERROR = "ERROR"
+
+
+class DepthLevel(BaseModel):
+    price: float
+    quantity: int
+    orders: int
+
+
+class NormalizedTick(BaseModel):
+    """A broker-independent tick (Phase 13). Feeds build these from their
+    own packets; everything downstream consumes this (or the derived
+    `Tick`), never a raw broker payload."""
+
+    instrument_token: int
+    symbol: str
+    exchange: str
+    timestamp: datetime  # the time this tick is filed under (UTC)
+    received_at: datetime  # when this process received it (UTC)
+    exchange_timestamp: datetime | None = None  # only in FULL mode / index packets
+    last_trade_time: datetime | None = None
+    last_price: float
+    last_quantity: int | None = None
+    average_price: float | None = None
+    volume: int | None = None  # cumulative for the day
+    volume_delta: int = 0  # volume since the previous tick of this instrument
+    buy_quantity: int | None = None
+    sell_quantity: int | None = None
+    open: float | None = None
+    high: float | None = None
+    low: float | None = None
+    close: float | None = None  # previous day's close
+    open_interest: int | None = None
+    bid: float | None = None
+    ask: float | None = None
+    depth_buy: list[DepthLevel] | None = None
+    depth_sell: list[DepthLevel] | None = None
+    mode: str = "quote"
+    tradable: bool = True
+
+    def to_tick(self) -> Tick:
+        """The pipeline tick the candle builder and engines consume."""
+
+        return Tick(
+            symbol=self.symbol,
+            price=self.last_price,
+            volume=max(self.volume_delta, 0),
+            timestamp=self.timestamp,
+        )

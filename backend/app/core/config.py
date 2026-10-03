@@ -16,10 +16,10 @@ single, typed source of truth.
 from datetime import date, time
 from functools import lru_cache
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.constants import TradingMode
+from app.core.constants import ExecutionMode, MarketDataMode, TradingMode
 from app.market_data.schemas import Timeframe
 from app.market_data.universe import NIFTY_50_UNIVERSE, NIFTY_INDEX_SYMBOL
 from app.risk.config import SessionMode
@@ -74,15 +74,70 @@ class Settings(BaseSettings):
 
     # --- Broker (Zerodha) — optional, app must run without these --------
     # Secrets are SecretStr: they never appear in repr(), logs or API output.
-    zerodha_api_key: str | None = Field(default=None, alias="ZERODHA_API_KEY")
-    zerodha_api_secret: SecretStr | None = Field(default=None, alias="ZERODHA_API_SECRET")
-    zerodha_access_token: SecretStr | None = Field(default=None, alias="ZERODHA_ACCESS_TOKEN")
+    # KITE_* names (Phase 13) and the Phase 11 ZERODHA_* names are both accepted.
+    zerodha_api_key: str | None = Field(
+        default=None, validation_alias=AliasChoices("KITE_API_KEY", "ZERODHA_API_KEY")
+    )
+    zerodha_api_secret: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("KITE_API_SECRET", "ZERODHA_API_SECRET")
+    )
+    zerodha_access_token: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("KITE_ACCESS_TOKEN", "ZERODHA_ACCESS_TOKEN")
+    )
+    # Must equal the redirect URL registered for the Kite Connect app; point it
+    # at GET /api/v1/broker/zerodha/callback.
+    kite_redirect_url: str | None = Field(default=None, alias="KITE_REDIRECT_URL")
+    # Where the browser goes after the Kite login callback (the frontend).
+    frontend_url: str = Field(default="http://localhost:3000", alias="FRONTEND_URL")
     zerodha_api_base_url: str = Field(
-        default="https://api.kite.trade", alias="ZERODHA_API_BASE_URL"
+        default="https://api.kite.trade",
+        validation_alias=AliasChoices("KITE_API_BASE_URL", "ZERODHA_API_BASE_URL"),
     )
     zerodha_login_url: str = Field(
-        default="https://kite.zerodha.com/connect/login", alias="ZERODHA_LOGIN_URL"
+        default="https://kite.zerodha.com/connect/login",
+        validation_alias=AliasChoices("KITE_LOGIN_URL", "ZERODHA_LOGIN_URL"),
     )
+    kite_ws_url: str = Field(default="wss://ws.kite.trade", alias="KITE_WS_URL")
+
+    # --- Market data source and execution (Phase 13) ------------------------
+    # MOCK: simulated feed. ZERODHA: Kite Connect live data. Unset: ZERODHA
+    # when Kite credentials are configured, otherwise MOCK.
+    market_data_mode: MarketDataMode | None = Field(default=None, alias="MARKET_DATA_MODE")
+    # PAPER: simulated fills. ZERODHA: real orders, which additionally need
+    # LIVE_TRADING_ENABLED=true and the contract section 9 conditions; this
+    # build has no live order path, so ZERODHA still executes on paper.
+    execution_mode: ExecutionMode = Field(default=ExecutionMode.PAPER, alias="EXECUTION_MODE")
+    live_trading_enabled: bool = Field(default=False, alias="LIVE_TRADING_ENABLED")
+    # A feed (or symbol) with no tick for this long is STALE: no executable
+    # signal and no new order from it.
+    data_stale_threshold_seconds: float = Field(
+        default=10.0, gt=0, le=600, alias="DATA_STALE_THRESHOLD_SECONDS"
+    )
+    default_timeframe: Timeframe = Field(default=Timeframe.M5, alias="DEFAULT_TIMEFRAME")
+    candle_timeframes: list[Timeframe] = Field(
+        default_factory=lambda: [
+            Timeframe.M1,
+            Timeframe.M3,
+            Timeframe.M5,
+            Timeframe.M15,
+            Timeframe.M30,
+            Timeframe.M60,
+        ],
+        alias="CANDLE_TIMEFRAMES",
+    )
+    # Kite ticker mode for equities: quote (default, no depth) or full (depth
+    # and exchange timestamps). Indices are always subscribed in full mode,
+    # which adds their exchange timestamp (used for the latency figure).
+    kite_tick_mode: str = Field(default="quote", pattern="^(ltp|quote|full)$", alias="KITE_TICK_MODE")
+    # Instrument master: exchanges to download, and whether to sync at login.
+    instrument_exchanges: list[str] = Field(
+        default_factory=lambda: ["NSE", "NFO"], alias="INSTRUMENT_EXCHANGES"
+    )
+    instrument_sync_on_login: bool = Field(default=True, alias="INSTRUMENT_SYNC_ON_LOGIN")
+    # Largest accepted move between consecutive ticks of one instrument.
+    tick_max_move_percent: float = Field(default=20.0, gt=0, le=100, alias="TICK_MAX_MOVE_PERCENT")
+    persist_candles: bool = Field(default=True, alias="PERSIST_CANDLES")
+    persist_raw_ticks: bool = Field(default=False, alias="PERSIST_RAW_TICKS")
     # Market orders and SL-M need market protection (Zerodha rejects 0 since
     # 1 April 2026). -1 = Zerodha's automatic protection; 0 < x <= 100 = custom %.
     zerodha_market_protection: float = Field(
@@ -120,6 +175,23 @@ class Settings(BaseSettings):
         """API key and secret present (an access token can come from a login later)."""
 
         return bool(self.zerodha_api_key and self.zerodha_api_secret)
+
+    @property
+    def effective_market_data_mode(self) -> MarketDataMode:
+        """MARKET_DATA_MODE, or ZERODHA when Kite credentials exist, else MOCK."""
+
+        if self.market_data_mode is not None:
+            return self.market_data_mode
+        return MarketDataMode.ZERODHA if self.zerodha_configured else MarketDataMode.MOCK
+
+    @property
+    def effective_execution_mode(self) -> ExecutionMode:
+        """PAPER unless EXECUTION_MODE=ZERODHA *and* LIVE_TRADING_ENABLED=true.
+        Credentials alone never change it."""
+
+        if self.execution_mode == ExecutionMode.ZERODHA and self.live_trading_enabled:
+            return ExecutionMode.ZERODHA
+        return ExecutionMode.PAPER
 
     # --- Market data (Phase 3, extended in Phase 4) ------------------------
     market_data_tick_interval_seconds: float = Field(

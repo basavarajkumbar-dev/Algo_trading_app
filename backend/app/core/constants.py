@@ -22,6 +22,20 @@ class TradingMode(str, Enum):
     LIVE = "LIVE"
 
 
+class MarketDataMode(str, Enum):
+    """Where market data comes from (Phase 13)."""
+
+    MOCK = "MOCK"  # simulated feed, always labelled SIMULATED
+    ZERODHA = "ZERODHA"  # Kite Connect live data
+
+
+class ExecutionMode(str, Enum):
+    """Where orders go (Phase 13). Independent of the market data source."""
+
+    PAPER = "PAPER"
+    ZERODHA = "ZERODHA"
+
+
 class SystemHealthStatus(str, Enum):
     """Overall system health values surfaced on /system/health and the
     frontend system status panel."""

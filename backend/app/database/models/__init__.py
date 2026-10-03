@@ -15,6 +15,12 @@ from app.database.models.backtest import (
     StrategyVersion,
 )
 from app.database.models.instrument import Instrument
+from app.database.models.market_data import (
+    BrokerInstrument,
+    InstrumentSyncRun,
+    MarketCandle,
+    MarketTick,
+)
 from app.database.models.paper_trading import PaperOrderRecord, PaperTradeRecord
 from app.database.models.risk_config import RiskConfig
 from app.database.models.session import Session
@@ -35,6 +41,10 @@ __all__ = [
     "ParameterSet",
     "StrategyVersion",
     "Instrument",
+    "BrokerInstrument",
+    "InstrumentSyncRun",
+    "MarketCandle",
+    "MarketTick",
     "PaperOrderRecord",
     "PaperTradeRecord",
     "RiskConfig",

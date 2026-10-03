@@ -41,7 +41,8 @@ from typing import Any
 import httpx
 
 from app.brokers.zerodha import mapping
-from app.brokers.zerodha.client import KiteClient, KiteNetworkError, KiteRejectedError
+from app.brokers.zerodha.exceptions import KiteNetworkError, KiteRejectedError
+from app.brokers.zerodha.kite_client import KiteClient
 from app.core.logging import get_logger
 from app.execution.broker import (
     BrokerAdapter,
@@ -90,7 +91,11 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
         transport: httpx.AsyncBaseTransport | None = None,
         clock: Callable[[], datetime] = utcnow,
         sleep: Any = None,
+        client: KiteClient | None = None,
     ) -> None:
+        """`client`: the app-wide KiteClient owned by KiteAuthService (Phase 13).
+        Without one the adapter builds its own (tests, scripts)."""
+
         if market_protection == 0:
             raise ValueError("market_protection cannot be 0 (Zerodha rejects it)")
         self._api_key = api_key or None
@@ -98,8 +103,10 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
         self._login_url = login_url
         self.market_protection = market_protection
         self._clock = clock
-        self._client: KiteClient | None = None
-        if self.configured:
+        self._client: KiteClient | None = client
+        if client is not None:
+            access_token = access_token or client.access_token_for_ticker()
+        elif self.configured:
             assert self._api_key is not None
             kwargs: dict[str, Any] = {}
             if sleep is not None:
@@ -111,6 +118,8 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
                 timeout=timeout,
                 orders_per_second=orders_per_second,
                 transport=transport,
+                # this private client is gated by the adapter's own arming
+                orders_allowed=True,
                 **kwargs,
             )
         self._state = (
@@ -156,6 +165,22 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
     @property
     def session_expires_at(self) -> datetime | None:
         return self._session_expires_at
+
+    def attach_session(self, expires_at: datetime | None) -> None:
+        """KiteAuthService logged in (the shared client now has a token)."""
+
+        self._session_expires_at = expires_at
+        self._manual_disconnect = False
+        if self.configured and self._state is ConnectionState.AUTH_REQUIRED:
+            self._state = ConnectionState.DISCONNECTED
+
+    def detach_session(self) -> None:
+        """Logged out or the token expired."""
+
+        self.disarm_live_orders()
+        self._session_expires_at = None
+        if self.configured:
+            self._state = ConnectionState.AUTH_REQUIRED
 
     def login_url(self) -> str:
         if not self.configured:
