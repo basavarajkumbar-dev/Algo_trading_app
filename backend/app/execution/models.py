@@ -28,7 +28,29 @@ class OrderType(str, Enum):
     SL_M = "SL_M"  # stop-market: becomes a market order once the trigger trades
 
 
+class Product(str, Enum):
+    """Broker product. Intraday (MIS) is the only one the trading engine uses."""
+
+    MIS = "MIS"  # intraday, squared off by the broker
+    CNC = "CNC"  # delivery
+
+
+class ConnectionState(str, Enum):
+    """Explicit broker connection states (contract section 9.4)."""
+
+    NOT_CONFIGURED = "NOT_CONFIGURED"  # no credentials: the app runs in PAPER mode
+    DISCONNECTED = "DISCONNECTED"  # configured, not connected (yet / any more)
+    CONNECTING = "CONNECTING"
+    CONNECTED = "CONNECTED"
+    DEGRADED = "DEGRADED"  # connected, but recent calls failed
+    AUTH_REQUIRED = "AUTH_REQUIRED"  # token missing, expired or rejected: log in again
+
+
 class OrderStatus(str, Enum):
+    # sent, accepted by the broker, not yet confirmed working at the exchange;
+    # also the state of an order whose placement outcome is unknown (network
+    # failure) until reconciliation finds it at the broker or gives up
+    SUBMITTED = "SUBMITTED"
     OPEN = "OPEN"  # working (MARKET/LIMIT), or waiting out the execution delay
     TRIGGER_PENDING = "TRIGGER_PENDING"  # SL_M waiting for its trigger
     PARTIALLY_FILLED = "PARTIALLY_FILLED"
@@ -39,6 +61,7 @@ class OrderStatus(str, Enum):
     @property
     def is_working(self) -> bool:
         return self in (
+            OrderStatus.SUBMITTED,
             OrderStatus.OPEN,
             OrderStatus.TRIGGER_PENDING,
             OrderStatus.PARTIALLY_FILLED,
@@ -54,6 +77,11 @@ class OrderRequest(BaseModel):
     trigger_price: float | None = None  # SL_M trigger
     client_order_id: str | None = None  # idempotency key: a repeat is rejected
     tag: str | None = None  # free-form purpose label (ENTRY / STOP_LOSS / TARGET / EXIT)
+    exchange: str = "NSE"
+    product: Product = Product.MIS
+    # live brokers: price band for MARKET / SL_M orders. Zerodha rejects 0 since
+    # 1 April 2026; -1 asks for the broker's automatic protection.
+    market_protection: float | None = None
 
 
 class OrderModification(BaseModel):
@@ -117,6 +145,17 @@ class Order(BaseModel):
     placed_at: datetime
     updated_at: datetime
     executable_after: datetime  # placed_at + execution delay
+    # live brokers
+    exchange: str = "NSE"
+    product: Product = Product.MIS
+    broker_order_id: str | None = None
+    exchange_order_id: str | None = None
+    broker_status: str | None = None  # the broker's own status text, unmapped
+    broker_tag: str | None = None  # what the broker sees (idempotency tag)
+    cancelled_quantity: int = 0
+    status_message: str | None = None
+    modifications: int = 0
+    needs_reconciliation: bool = False  # placement outcome unknown (network failure)
 
     @property
     def remaining_quantity(self) -> int:
@@ -146,3 +185,37 @@ class Balance(BaseModel):
     unrealized_pnl: float
     charges_paid: float
     equity: float  # cash + unrealized P&L
+
+
+class BrokerProfile(BaseModel):
+    broker: str
+    user_id: str | None = None  # masked for live brokers
+    user_name: str | None = None
+    exchanges: list[str] = Field(default_factory=list)
+    products: list[str] = Field(default_factory=list)
+    order_types: list[str] = Field(default_factory=list)
+    is_paper: bool
+
+
+class Instrument(BaseModel):
+    symbol: str  # trading symbol
+    exchange: str
+    instrument_token: int | None = None
+    name: str | None = None
+    segment: str | None = None
+    instrument_type: str | None = None
+    tick_size: float = 0.05
+    lot_size: int = 1
+
+
+class BrokerHealth(BaseModel):
+    broker: str
+    state: ConnectionState
+    healthy: bool  # usable for orders right now
+    detail: str
+    checked_at: datetime
+    latency_ms: float | None = None
+    last_success_at: datetime | None = None
+    last_error: str | None = None
+    consecutive_failures: int = 0
+    session_expires_at: datetime | None = None

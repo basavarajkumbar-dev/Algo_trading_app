@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -23,6 +24,7 @@ from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1_router
 from app.backtesting.service import BacktestService
+from app.brokers.service import BrokerService, ensure_not_live_by_accident
 from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX
 from app.core.logging import configure_logging, get_logger
@@ -129,6 +131,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await trading_service.start()
     app.state.trading_service = trading_service
 
+    def _session_open() -> bool:
+        ok, _ = trading_service.engine.risk.entries_allowed(datetime.now(UTC))
+        return bool(ok)
+
+    broker_service = BrokerService(
+        settings,
+        session_factory=async_session_factory,
+        system_healthy=lambda: getattr(app.state, "last_overall_health", None) == "HEALTHY",
+        session_open=_session_open,
+        emergency_stop=lambda: trading_service.engine.emergency_stop_active,
+        broadcast=market_data_service.connection_manager.broadcast,
+    )
+    ensure_not_live_by_accident(settings)
+    await broker_service.start()
+    app.state.broker_service = broker_service
+
     backtest_service = BacktestService(
         async_session_factory,
         data_dir=settings.backtest_data_dir,
@@ -140,6 +158,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     await backtest_service.stop()
+    await broker_service.stop()
     await trading_service.stop()
     await signal_service.stop()
     await strategy_service.stop()

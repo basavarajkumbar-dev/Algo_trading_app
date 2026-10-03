@@ -28,6 +28,7 @@ DATABASE_TEST_MODULES = (
     "test_paper_trading_persistence.py",
     "test_dashboard_api.py",
     "test_backtest_api.py",
+    "test_broker_api.py",
 )
 
 

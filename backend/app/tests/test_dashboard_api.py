@@ -26,6 +26,7 @@ COMPONENT_KEYS = [
     "strategy_engine",
     "risk_engine",
     "paper_broker",
+    "live_broker",
 ]
 
 
@@ -46,6 +47,7 @@ def test_components_cover_every_subsystem(client: TestClient) -> None:
     assert by_key["database"]["status"] == "HEALTHY"
     assert by_key["market_data"]["metrics"]["simulated"] is True
     assert by_key["paper_broker"]["status"] == "HEALTHY"
+    assert by_key["live_broker"]["metrics"]["execution_broker"] == "paper"
     assert body["status"] in ("HEALTHY", "WARNING", "CRITICAL")
     assert body["trading_mode"] == "PAPER"
 

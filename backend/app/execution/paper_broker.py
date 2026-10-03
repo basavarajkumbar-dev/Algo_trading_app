@@ -36,7 +36,11 @@ from app.execution.broker import BrokerAdapter, BrokerError
 from app.execution.costs import CostModel
 from app.execution.models import (
     Balance,
+    BrokerHealth,
+    BrokerProfile,
+    ConnectionState,
     Fill,
+    Instrument,
     Order,
     OrderModification,
     OrderRequest,
@@ -46,6 +50,7 @@ from app.execution.models import (
     Side,
 )
 from app.market_data.base import utcnow
+from app.market_data.universe import NIFTY_50_UNIVERSE
 from app.risk.position_sizing import floor_to_lot, round_to_tick
 
 if TYPE_CHECKING:
@@ -118,6 +123,59 @@ class PaperBrokerAdapter(BrokerAdapter):
         self._charges = 0.0
 
     # --- BrokerAdapter ----------------------------------------------------
+    # The simulator lives in this process, so it is always "connected".
+
+    @property
+    def connection_state(self) -> ConnectionState:
+        return ConnectionState.CONNECTED
+
+    async def connect(self) -> ConnectionState:
+        return ConnectionState.CONNECTED
+
+    async def disconnect(self) -> None:
+        return None
+
+    async def health_check(self) -> BrokerHealth:
+        now = self._clock()
+        return BrokerHealth(
+            broker=self.name,
+            state=ConnectionState.CONNECTED,
+            healthy=True,
+            detail="Simulated broker in this process; no real orders",
+            checked_at=now,
+            latency_ms=0.0,
+            last_success_at=now,
+        )
+
+    async def get_profile(self) -> BrokerProfile:
+        return BrokerProfile(
+            broker=self.name,
+            user_id="PAPER",
+            user_name="Paper account",
+            exchanges=["NSE"],
+            products=["MIS"],
+            order_types=[t.value for t in OrderType],
+            is_paper=True,
+        )
+
+    async def get_orders(self) -> list[Order]:
+        return self.orders()
+
+    async def get_instruments(self, exchange: str | None = None) -> list[Instrument]:
+        if exchange not in (None, "NSE"):
+            return []
+        return [
+            Instrument(
+                symbol=i.symbol,
+                exchange="NSE",
+                name=i.name,
+                segment="NSE",
+                instrument_type="EQ",
+                tick_size=self.config.tick_size,
+                lot_size=self.config.lot_size,
+            )
+            for i in NIFTY_50_UNIVERSE
+        ]
 
     async def place_order(self, request: OrderRequest) -> Order:
         return self.submit(request)
@@ -163,6 +221,8 @@ class PaperBrokerAdapter(BrokerAdapter):
             placed_at=now,
             updated_at=now,
             executable_after=now + timedelta(seconds=cfg.execution_delay_seconds),
+            exchange=request.exchange,
+            product=request.product,
         )
         reason = self._validate(order)
         if request.client_order_id is not None:

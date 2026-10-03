@@ -276,6 +276,11 @@ async def emergency_stop(
     reason = (body.reason if body else None) or "operator request"
     close = body.close_position if body else None
     await service.emergency_stop(f"{reason} ({user.email})", close_position=close)
+    # also cancel working orders at the live broker, if any (none are placed in
+    # this phase); positions there are never closed by an emergency stop
+    broker = getattr(request.app.state, "broker_service", None)
+    if broker is not None and broker.orders.working():
+        await broker.orders.cancel_all_working(f"emergency stop: {reason}")
     await _audit(db, user, "PAPER_EMERGENCY_STOP", {"reason": reason, "close_position": close})
     return await service.status()
 

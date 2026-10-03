@@ -13,6 +13,10 @@ detail and the metrics it was judged on:
     risk_engine      the RiskManager inside the paper trading service; WARNING
                      while new entries are blocked (emergency stop, limits)
     paper_broker     the paper broker and trade storage
+    live_broker      Zerodha (Phase 11): HEALTHY when not configured (PAPER
+                     mode needs no live broker) or connected; WARNING when
+                     configured but not usable or orders are unreconciled;
+                     CRITICAL only if live trading were enabled
 
 Read-only: this module observes the services, it never changes them.
 """
@@ -329,10 +333,82 @@ async def get_component_health(state: Any, settings: Settings) -> ComponentHealt
             )
         )
 
+    reports.append(live_broker_report(getattr(state, "broker_service", None), settings))
+
+    overall = worst([r.status for r in reports])
+    state.last_overall_health = overall.value  # read by the live-order execution gate
     return ComponentHealthResponse(
-        status=worst([r.status for r in reports]),
+        status=overall,
         components=reports,
         demo_mode=settings.demo_mode,
         trading_mode=settings.trading_mode.value,
         checked_at=now,
+    )
+
+
+def classify_live_broker(
+    *,
+    service_running: bool,
+    configured: bool,
+    connection: str | None,
+    unresolved_orders: int,
+    live_enabled: bool,
+) -> tuple[HealthLevel, str]:
+    """Zerodha health. Without live trading a broken live connection does
+    not affect what the app does (orders go to the paper broker), so it is
+    a WARNING; with live trading enabled it would be CRITICAL."""
+
+    bad = HealthLevel.CRITICAL if live_enabled else HealthLevel.WARNING
+    if not configured:
+        return HealthLevel.HEALTHY, "Not configured: PAPER mode, no live broker needed"
+    if not service_running:
+        return bad, "Broker service is not running"
+    if unresolved_orders:
+        return bad, f"{unresolved_orders} order(s) with unknown outcome are being reconciled"
+    if connection == "CONNECTED":
+        return HealthLevel.HEALTHY, "Zerodha connected read-only; live orders are not armed"
+    detail = {
+        "AUTH_REQUIRED": "Zerodha login required (access token missing, expired or rejected)",
+        "DEGRADED": "Zerodha reachable with recent failures",
+        "DISCONNECTED": "Zerodha unreachable or disconnected",
+        "CONNECTING": "Connecting to Zerodha",
+    }.get(connection or "", f"Zerodha state {connection}")
+    return bad, detail + "; paper trading is unaffected" if not live_enabled else detail
+
+
+def live_broker_report(service: Any, settings: Settings) -> ComponentReport:
+    if service is None:
+        level, detail = classify_live_broker(
+            service_running=False,
+            configured=settings.zerodha_configured,
+            connection=None,
+            unresolved_orders=0,
+            live_enabled=settings.is_live_trading_possible,
+        )
+        return ComponentReport(
+            key="live_broker", name="Live Broker (Zerodha)", status=level, detail=detail
+        )
+    st = service.status()
+    z = st["zerodha"]
+    om = st["order_manager"]
+    level, detail = classify_live_broker(
+        service_running=True,
+        configured=z["configured"],
+        connection=z["state"],
+        unresolved_orders=om["unresolved"],
+        live_enabled=settings.is_live_trading_possible,
+    )
+    return ComponentReport(
+        key="live_broker",
+        name="Live Broker (Zerodha)",
+        status=level,
+        detail=detail,
+        metrics={
+            "configured": z["configured"],
+            "state": z["state"],
+            "live_orders_armed": z["live_orders_armed"],
+            "execution_broker": st["execution_broker"],
+            "last_error": z["last_error"],
+            "unresolved_orders": om["unresolved"],
+        },
     )

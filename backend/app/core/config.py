@@ -16,7 +16,7 @@ single, typed source of truth.
 from datetime import date, time
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import TradingMode
@@ -70,9 +70,53 @@ class Settings(BaseSettings):
     max_trades_per_day: int = Field(default=5, alias="MAX_TRADES_PER_DAY")
 
     # --- Broker (Zerodha) — optional, app must run without these --------
+    # Secrets are SecretStr: they never appear in repr(), logs or API output.
     zerodha_api_key: str | None = Field(default=None, alias="ZERODHA_API_KEY")
-    zerodha_api_secret: str | None = Field(default=None, alias="ZERODHA_API_SECRET")
-    zerodha_access_token: str | None = Field(default=None, alias="ZERODHA_ACCESS_TOKEN")
+    zerodha_api_secret: SecretStr | None = Field(default=None, alias="ZERODHA_API_SECRET")
+    zerodha_access_token: SecretStr | None = Field(default=None, alias="ZERODHA_ACCESS_TOKEN")
+    zerodha_api_base_url: str = Field(
+        default="https://api.kite.trade", alias="ZERODHA_API_BASE_URL"
+    )
+    zerodha_login_url: str = Field(
+        default="https://kite.zerodha.com/connect/login", alias="ZERODHA_LOGIN_URL"
+    )
+    # Market orders and SL-M need market protection (Zerodha rejects 0 since
+    # 1 April 2026). -1 = Zerodha's automatic protection; 0 < x <= 100 = custom %.
+    zerodha_market_protection: float = Field(
+        default=-1, ge=-1, le=100, alias="ZERODHA_MARKET_PROTECTION"
+    )
+    # Client-side order rate cap; Zerodha enforces 10/s per account without
+    # an exchange-registered strategy.
+    zerodha_orders_per_second: int = Field(
+        default=8, ge=1, le=10, alias="ZERODHA_ORDERS_PER_SECOND"
+    )
+    zerodha_timeout_seconds: float = Field(
+        default=10.0, gt=0, le=60, alias="ZERODHA_TIMEOUT_SECONDS"
+    )
+    broker_health_interval_seconds: float = Field(
+        default=30.0, ge=5, le=600, alias="BROKER_HEALTH_INTERVAL_SECONDS"
+    )
+    broker_reconcile_interval_seconds: float = Field(
+        default=10.0, ge=2, le=600, alias="BROKER_RECONCILE_INTERVAL_SECONDS"
+    )
+
+    @field_validator("zerodha_market_protection")
+    @classmethod
+    def _market_protection_not_zero(cls, value: float) -> float:
+        if value == 0:
+            raise ValueError("ZERODHA_MARKET_PROTECTION cannot be 0 (Zerodha rejects it)")
+        return value
+
+    @field_validator("zerodha_api_key", "zerodha_api_secret", "zerodha_access_token", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, value: object) -> object:
+        return None if isinstance(value, str) and not value.strip() else value
+
+    @property
+    def zerodha_configured(self) -> bool:
+        """API key and secret present (an access token can come from a login later)."""
+
+        return bool(self.zerodha_api_key and self.zerodha_api_secret)
 
     # --- Market data (Phase 3, extended in Phase 4) ------------------------
     market_data_tick_interval_seconds: float = Field(
