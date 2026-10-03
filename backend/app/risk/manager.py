@@ -193,11 +193,20 @@ class RiskManager:
             )
 
         mode = conditions.trading_mode
+        live_ok = mode == "LIVE" and conditions.live_authorized
         check(
             "trading_mode",
-            mode in ("PAPER", "APPROVAL"),
+            mode in ("PAPER", "APPROVAL") or live_ok,
             f"mode {mode}"
-            + ("" if mode in ("PAPER", "APPROVAL") else "; only paper execution exists"),
+            + (
+                ""
+                if mode in ("PAPER", "APPROVAL")
+                else (
+                    "; authorised by the live safety layer"
+                    if live_ok
+                    else "; live execution is not authorised"
+                )
+            ),
             RejectionReason.TRADING_MODE_NOT_PAPER,
         )
         if mode == "APPROVAL":

@@ -69,6 +69,19 @@ class FakeKite:
         self.historical_calls: list[tuple[int, str, str, str]] = []
         self.trades: list[dict[str, Any]] = []
         self.login_time = "2026-10-01 09:00:00"  # IST, as Kite sends it
+        self.margins: dict[str, Any] | None = None  # None: the default equity margins
+        self.net_positions: list[dict[str, Any]] = [
+            {
+                "tradingsymbol": "RELIANCE",
+                "exchange": "NSE",
+                "product": "MIS",
+                "quantity": -10,
+                "average_price": 1400.5,
+                "last_price": 1395.0,
+                "realised": 0,
+                "unrealised": 55.0,
+            }
+        ]
 
     # --- helpers -----------------------------------------------------------------
 
@@ -189,6 +202,8 @@ class FakeKite:
                     "order_types": ["MARKET", "LIMIT", "SL", "SL-M"],
                 }
             )
+        if method == "GET" and path == "/user/margins/equity" and self.margins is not None:
+            return lambda *_: self._ok(self.margins)
         if method == "GET" and path == "/user/margins/equity":
             return lambda *_: self._ok(
                 {
@@ -203,23 +218,9 @@ class FakeKite:
                 }
             )
         if method == "GET" and path == "/portfolio/positions":
-            return lambda *_: self._ok(
-                {
-                    "net": [
-                        {
-                            "tradingsymbol": "RELIANCE",
-                            "exchange": "NSE",
-                            "product": "MIS",
-                            "quantity": -10,
-                            "average_price": 1400.5,
-                            "last_price": 1395.0,
-                            "realised": 0,
-                            "unrealised": 55.0,
-                        }
-                    ],
-                    "day": [],
-                }
-            )
+            return lambda *_: self._ok({"net": list(self.net_positions), "day": []})
+        if method == "GET" and path == "/user/margins/equity" and self.margins is not None:
+            return lambda *_: self._ok(self.margins)
         if method == "GET" and path == "/orders":
             return lambda *_: self._ok(list(self.orders.values()))
         if method == "GET" and path == "/trades":

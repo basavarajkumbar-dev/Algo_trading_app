@@ -1122,3 +1122,15 @@ market_data_source, execution_mode, checked_at, checks: [{name, ok, status, deta
 
 `GET /market/status` additionally reports `source`, `data_source` and `data_status`;
 backtests accept `data_source.kind = "zerodha"`.
+
+## Live trading safety layer (Phase 14)
+
+See `docs/live-trading.md`. `GET /live/status` (arming, kill switch, health,
+active trade, limits, arm blockers) · `POST /live/arm` (ADMIN;
+`{confirmation: "ARM LIVE TRADING", password}`) · `POST /live/disarm` ·
+`POST /live/preflight {signal_id}` (report only, never an order) ·
+`POST /live/execute {signal_id}` (ADMIN; order only if every check passes) ·
+`POST /live/auto {enabled}` (ADMIN, needs arming) · `POST /live/exit` ·
+`POST /live/kill-switch {reason, close_positions?}` ·
+`POST /live/kill-switch/reset` (ADMIN) · `POST /live/recovery/acknowledge {note}`
+(ADMIN) · `GET /live/audit?limit=`.

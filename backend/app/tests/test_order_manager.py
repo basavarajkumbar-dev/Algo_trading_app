@@ -370,4 +370,4 @@ async def test_the_default_gate_never_allows_live_orders() -> None:
     order = await om.submit(req("default"), risk_approved=True)
     assert order.status is OrderStatus.REJECTED and kite.posts() == []
     reasons = order.rejection_reason or ""
-    assert "LIVE_MODE_ENABLED" in reasons and "armed" in reasons
+    assert "LIVE_TRADING_ENABLED" in reasons and "armed" in reasons

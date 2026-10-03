@@ -26,13 +26,13 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("sidebar", () => {
-  it("lists the thirteen sections and marks the current one", () => {
+  it("lists the fourteen sections and marks the current one", () => {
     mockApi();
     renderWithProviders(<Sidebar />);
     const links = screen.getAllByRole("link");
     expect(links.map((a) => a.textContent?.replace("planned", "").trim())).toEqual([
       "Dashboard", "Market", "Scanner", "Signals", "Approvals", "Positions", "Trades",
-      "Analytics", "Strategies", "Backtesting", "Risk", "System", "Settings",
+      "Analytics", "Strategies", "Backtesting", "Risk", "Live", "System", "Settings",
     ]);
     expect(screen.getByRole("link", { name: /Analytics/ })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /Dashboard/ })).not.toHaveAttribute("aria-current");

@@ -89,7 +89,7 @@ test("system page reports every component and the broker", async ({ page }) => {
   // no credentials in this stack: orders stay on the paper broker, live orders disabled
   await expect(page.getByTestId("broker-execution")).toContainText("PAPER");
   await expect(page.getByTestId("broker-live-orders")).toContainText("disabled");
-  await expect(page.getByTestId("broker-blockers")).toContainText("LIVE_MODE_ENABLED");
+  await expect(page.getByTestId("broker-blockers")).toContainText("LIVE_TRADING_ENABLED");
 });
 
 test("automatic paper trading can be switched on and off from Positions", async ({ page }) => {
@@ -111,4 +111,13 @@ test("notifications open from the top bar", async ({ page }) => {
   await page.getByTestId("notifications-trigger").click();
   await expect(page.getByText("Notifications", { exact: true })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: /System health and event log/ })).toBeVisible();
+});
+
+test("live page: PAPER by default, cannot be armed, kill switch available", async ({ page }) => {
+  await login(page);
+  await page.goto("/live");
+  await expect(page.getByTestId("live-state")).toContainText("PAPER");
+  await expect(page.getByTestId("live-arm")).toContainText("Not available");
+  await expect(page.getByTestId("live-kill-engage")).toBeVisible();
+  await expect(page.getByTestId("topbar-live")).toHaveCount(0); // nothing live to show in the top bar
 });

@@ -52,6 +52,7 @@ class BrokerService:
         emergency_stop: Callable[[], bool] = lambda: False,
         broadcast: Callable[[dict[str, Any]], Any] | None = None,
         auth: KiteAuthService | None = None,
+        user_armed: Callable[[], bool] = lambda: False,
     ) -> None:
         self.settings = settings
         self.auth = auth
@@ -69,7 +70,7 @@ class BrokerService:
         self._broadcast = broadcast
         self.gate = ExecutionGate(
             live_mode_configured=lambda: settings.is_live_trading_possible,
-            user_armed=lambda: False,  # no arming action exists in this phase
+            user_armed=user_armed,  # Phase 14: an admin's explicit arming action
             system_healthy=system_healthy,
             session_open=session_open,
             emergency_stop=emergency_stop,
@@ -179,7 +180,7 @@ class BrokerService:
         return {
             "execution_broker": "paper",
             "trading_mode": self.settings.trading_mode.value,
-            "live_trading_possible": False,
+            "live_trading_possible": self.settings.is_live_trading_possible,
             "live_blockers": self.live_blockers(),
             "zerodha": {
                 "configured": a.configured,

@@ -15,6 +15,7 @@ from app.api.v1 import (
     backtests,
     broker,
     intelligence,
+    live,
     market,
     market_ws,
     price_action,
@@ -39,4 +40,5 @@ api_v1_router.include_router(approvals.router)
 api_v1_router.include_router(analytics.router)
 api_v1_router.include_router(backtests.router)
 api_v1_router.include_router(broker.router)
+api_v1_router.include_router(live.router)
 api_v1_router.include_router(market_ws.router)

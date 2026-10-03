@@ -10,7 +10,11 @@ import { PendingApprovals } from "@/components/approvals/pending-badge";
 import { DataSourceBadge } from "@/components/market/data-source-badge";
 import { RegimeBadge } from "@/components/market/regime-badge";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   HEALTH_VARIANT,
   NIFTY_SYMBOL,
@@ -18,14 +22,30 @@ import {
   marketStatus,
 } from "@/lib/dashboard-format";
 import { formatPrice } from "@/lib/intelligence-format";
-import { useComponentHealth, useMarketIntelligence, useTradingStatus } from "@/lib/queries";
+import { liveState } from "@/lib/live-format";
+import {
+  useComponentHealth,
+  useLiveStatus,
+  useMarketIntelligence,
+  useTradingStatus,
+} from "@/lib/queries";
 import { useMarketStore } from "@/lib/stores/market-store";
 import { cn } from "@/lib/utils";
 
-function Item({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+function Item({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+}) {
   const body = (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-[10px] uppercase tracking-wide text-muted">
+        {label}
+      </span>
       {children}
     </div>
   );
@@ -56,6 +76,7 @@ export function Header() {
   const intelligence = useMarketIntelligence().data;
   const nifty = useMarketStore((s) => s.snapshots[NIFTY_SYMBOL]);
   const socket = useMarketStore((s) => s.status);
+  const live = liveState(useLiveStatus().data);
 
   const algo = algoStatus(trading);
   const market = marketStatus(trading);
@@ -65,18 +86,30 @@ export function Header() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-5">
       <div className="flex min-w-0 items-center gap-5 overflow-x-auto text-sm">
-        <Item label="NIFTY 50" hint="NIFTY 50 index, streamed over the WebSocket (see DATA SOURCE)">
+        <Item
+          label="NIFTY 50"
+          hint="NIFTY 50 index, streamed over the WebSocket (see DATA SOURCE)"
+        >
           <span className="tabular font-medium" data-testid="topbar-nifty">
             {nifty ? formatPrice(nifty.price) : "—"}
           </span>
           {change !== null && (
-            <span className={cn("tabular text-xs", change >= 0 ? "text-profit" : "text-loss")}>
+            <span
+              className={cn(
+                "tabular text-xs",
+                change >= 0 ? "text-profit" : "text-loss",
+              )}
+            >
               {change >= 0 ? "+" : ""}
               {change.toFixed(2)}%
             </span>
           )}
           {intelligence?.snapshot && (
-            <RegimeBadge regime={intelligence.snapshot.market_regime} short className="text-[10px]" />
+            <RegimeBadge
+              regime={intelligence.snapshot.market_regime}
+              short
+              className="text-[10px]"
+            />
           )}
         </Item>
         <Item label="Market" hint={market.detail || "Market session"}>
@@ -90,6 +123,13 @@ export function Header() {
             {trading?.mode ?? health?.trading_mode ?? "PAPER"}
           </Badge>
           {trading?.mode === "APPROVAL" && <PendingApprovals />}
+          {live.text !== "PAPER" && live.text !== "…" && (
+            <Link href="/live" title={live.detail}>
+              <Badge variant={live.variant} data-testid="topbar-live">
+                {live.text}
+              </Badge>
+            </Link>
+          )}
         </Item>
         <Item label="Algo">
           <Link href="/positions">
@@ -111,14 +151,22 @@ export function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <span className="flex items-center gap-1.5 text-[11px] text-muted" data-testid="socket-status">
-          <span className={cn("h-1.5 w-1.5 rounded-full", sock.dot)} aria-hidden />
+        <span
+          className="flex items-center gap-1.5 text-[11px] text-muted"
+          data-testid="socket-status"
+        >
+          <span
+            className={cn("h-1.5 w-1.5 rounded-full", sock.dot)}
+            aria-hidden
+          />
           {sock.text}
         </span>
         <NotificationsMenu />
         <div className="hidden items-center gap-2 text-sm text-muted lg:flex">
           <CircleUserRound className="h-5 w-5" aria-hidden />
-          <span className="max-w-40 truncate">{user?.email ?? "Unknown user"}</span>
+          <span className="max-w-40 truncate">
+            {user?.email ?? "Unknown user"}
+          </span>
         </div>
         <button
           type="button"

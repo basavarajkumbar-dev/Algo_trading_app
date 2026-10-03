@@ -30,6 +30,7 @@ import {
   getMarketDataStatusRequest,
   getZerodhaStatusRequest,
 } from "@/lib/market-data-client";
+import { getLiveStatusRequest } from "@/lib/live-client";
 import { qk } from "@/lib/query-keys";
 import {
   getOrdersRequest,
@@ -156,3 +157,6 @@ export const useZerodhaStatus = () =>
 
 export const useBrokerHealth = () =>
   useQuery({ queryKey: qk.brokerHealth, queryFn: getBrokerHealthRequest, refetchInterval: 15_000 });
+
+export const useLiveStatus = () =>
+  useQuery({ queryKey: qk.liveStatus, queryFn: getLiveStatusRequest, refetchInterval: 3_000 });

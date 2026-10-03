@@ -69,6 +69,10 @@ class MarketConditions(BaseModel):
     system_healthy: bool
     health_detail: str = ""
     trading_mode: str = "PAPER"
+    # Phase 14: LIVE passes the mode check only when the live safety layer
+    # authorised it (LIVE_TRADING_ENABLED, EXECUTION_MODE=ZERODHA, armed
+    # by a person, kill switch off). Never set by paper code.
+    live_authorized: bool = False
     # Phase 13: the market data layer's own verdict (feed down, no tick for
     # DATA_STALE_THRESHOLD_SECONDS); None when the data is fresh.
     data_stale: str | None = None

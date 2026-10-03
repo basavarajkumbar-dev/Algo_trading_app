@@ -874,6 +874,28 @@ routing the paper engine to Zerodha, Kite WebSocket order updates.
 
 ---
 
+## Live safety layer (delivered as "Phase 14 — Live Auto Trading Safety Layer")
+
+Details: `docs/live-trading.md`.
+
+**Delivered**
+- Live needs `LIVE_TRADING_ENABLED=true` + `EXECUTION_MODE=ZERODHA` and an
+  admin's arming (confirmation + password, session-scoped, never automatic).
+- PreTradeValidator (20 checks), LiveOrderManager (entry, SL-M + target,
+  OCO, timeout, square-off, reduce-only exits), OrderReconciliation in the
+  loop, BrokerHealthMonitor feeding the gate, KillSwitch.
+- One active trade; idempotent, correlated order ids; unknown outcomes
+  reconciled, never re-sent; restart recovery requires acknowledgement.
+- Every live action in `audit_logs`; Live page, header indicator.
+
+**Definition of Done**
+- [x] Every check blocks the order when it fails (tested).
+- [x] Full lifecycle, partial fills, OCO, timeout, square-off, kill switch,
+      lost responses, duplicates — tested against the fake Kite server.
+- [ ] A first live order on a real account (manual; see the doc's checklist).
+
+---
+
 ## Phase 17 — Hardening & Final Validation
 
 **Scope**

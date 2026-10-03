@@ -12,6 +12,7 @@ import {
   Radar,
   Settings,
   ShieldAlert,
+  Siren,
   TestTubeDiagonal,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Strategies", href: "/strategies", icon: TestTubeDiagonal },
   { label: "Backtesting", href: "/backtesting", icon: Gauge },
   { label: "Risk", href: "/risk", icon: ShieldAlert },
+  { label: "Live", href: "/live", icon: Siren },
   { label: "System", href: "/system", icon: MonitorCheck },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

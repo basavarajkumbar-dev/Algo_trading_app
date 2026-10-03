@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 13 — Zerodha Kite Connect market data complete (built and tested against protocol fakes; not yet verified with a live Kite account). Market data: SIMULATED or ZERODHA; execution: PAPER (default) and APPROVAL, both on the paper broker.**
+**Status: Phase 14 — Live trading safety layer complete (tested against a fake Kite server; no real order has been placed). Default execution: PAPER. Live orders need configuration, an admin's arming and every pre-trade check.**
 
 See:
 
@@ -149,7 +149,17 @@ See:
   Smoke test: `python -m app.scripts.test_zerodha_connection`. See
   [`docs/market-data.md`](./docs/market-data.md).
 
-**Paper only.** Orders go to a simulated broker; Zerodha can be connected
+- **Live trading safety layer** (Phase 14, new): real Zerodha orders only
+  when `EXECUTION_MODE=ZERODHA` + `LIVE_TRADING_ENABLED=true`, an ADMIN
+  arms it on the **Live** page (typed confirmation + password, until 15:30
+  IST) and all 20 pre-trade checks pass (broker, market open, data,
+  WebSocket, DB, Redis, health, risk, kill switch, balance, duplicates,
+  signal age, quantity, stop, target). One active trade; entry → SL-M stop
+  + target, one-cancels-other; kill switch (never closes positions unless
+  configured or asked); no blind retries; every action audited. See
+  [`docs/live-trading.md`](./docs/live-trading.md).
+
+**Paper by default.** Orders go to a simulated broker unless live trading is configured and armed (above); Zerodha can be connected
 read-only (Phase 11) but never receives an order, no real order can be placed and no real money is
 involved. Automatic trading is **off** at every start. Fills, slippage and
 charges are configurable assumptions, so paper results will differ from

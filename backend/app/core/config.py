@@ -108,6 +108,31 @@ class Settings(BaseSettings):
     # build has no live order path, so ZERODHA still executes on paper.
     execution_mode: ExecutionMode = Field(default=ExecutionMode.PAPER, alias="EXECUTION_MODE")
     live_trading_enabled: bool = Field(default=False, alias="LIVE_TRADING_ENABLED")
+    # --- Live safety layer (Phase 14) -------------------------------------
+    # Live orders additionally need an admin's explicit arming action (with
+    # a typed confirmation and their password); arming lasts until the end
+    # of the trading day, a disarm, the kill switch, a restart or a logout.
+    live_max_active_positions: int = Field(
+        default=1, ge=1, le=1, alias="LIVE_MAX_ACTIVE_POSITIONS"
+    )  # one active trade; values above 1 are refused in this build
+    live_entry_timeout_seconds: float = Field(
+        default=60.0, gt=0, le=900, alias="LIVE_ENTRY_TIMEOUT_SECONDS"
+    )
+    live_max_position_value: float = Field(
+        default=25_000.0, gt=0, alias="LIVE_MAX_POSITION_VALUE"
+    )  # rupees per trade, also capped by the available margin
+    live_max_order_quantity: int = Field(default=5_000, ge=1, alias="LIVE_MAX_ORDER_QUANTITY")
+    live_max_stop_percent: float = Field(
+        default=3.0, gt=0, le=20, alias="LIVE_MAX_STOP_PERCENT"
+    )  # stop farther than this from entry is refused
+    live_min_risk_reward: float = Field(default=1.0, gt=0, le=10, alias="LIVE_MIN_RISK_REWARD")
+    live_signal_max_age_seconds: float = Field(
+        default=120.0, gt=0, le=3600, alias="LIVE_SIGNAL_MAX_AGE_SECONDS"
+    )
+    live_close_positions_on_kill: bool = Field(
+        default=False, alias="LIVE_CLOSE_POSITIONS_ON_KILL"
+    )  # the kill switch never closes positions unless this or the request says so
+    live_poll_seconds: float = Field(default=2.0, gt=0.2, le=30, alias="LIVE_POLL_SECONDS")
     # A feed (or symbol) with no tick for this long is STALE: no executable
     # signal and no new order from it.
     data_stale_threshold_seconds: float = Field(
@@ -327,7 +352,10 @@ class Settings(BaseSettings):
         phases that implement them and must ALSO pass.
         """
 
-        return self.trading_mode == TradingMode.LIVE and self.live_mode_enabled
+        # Phase 14: the explicit live configuration is EXECUTION_MODE=ZERODHA
+        # together with LIVE_TRADING_ENABLED=true. Still not sufficient: an
+        # admin must arm live trading and every pre-trade check must pass.
+        return self.effective_execution_mode == ExecutionMode.ZERODHA
 
 
 @lru_cache

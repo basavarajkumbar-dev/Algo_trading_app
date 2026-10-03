@@ -78,7 +78,7 @@ def test_without_credentials_the_app_runs_in_paper_mode(unconfigured: TestClient
     assert body["zerodha"]["configured"] is False
     assert body["zerodha"]["state"] == "NOT_CONFIGURED"
     assert body["zerodha"]["live_orders_armed"] is False
-    assert any("LIVE_MODE_ENABLED" in r for r in body["live_blockers"])
+    assert any("LIVE_TRADING_ENABLED" in r for r in body["live_blockers"])
     comps = unconfigured.get("/api/v1/system/components").json()
     live = next(c for c in comps["components"] if c["key"] == "live_broker")
     assert live["status"] == "HEALTHY" and "PAPER" in live["detail"]

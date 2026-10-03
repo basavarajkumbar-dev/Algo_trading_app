@@ -18,6 +18,8 @@ export const qk = {
   marketData: ["system", "market-data"] as const,
   zerodhaStatus: ["system", "zerodha"] as const,
   brokerHealth: ["system", "broker-health"] as const,
+  liveStatus: ["live", "status"] as const,
+  liveAudit: ["live", "audit"] as const,
   approvals: ["approvals"] as const,
   backtestOptions: ["backtests", "options"] as const,
   backtestRuns: ["backtests", "runs"] as const,

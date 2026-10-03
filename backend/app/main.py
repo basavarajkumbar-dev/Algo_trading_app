@@ -27,6 +27,7 @@ from fastapi.responses import JSONResponse
 from app.api.v1.router import api_v1_router
 from app.approvals.service import ApprovalService
 from app.backtesting.service import BacktestService
+from app.brokers.health import broker_health
 from app.brokers.service import BrokerService, ensure_not_live_by_accident
 from app.brokers.zerodha.backtest_data import download_history
 from app.brokers.zerodha.runtime import build_zerodha_runtime
@@ -35,6 +36,8 @@ from app.core.constants import API_V1_PREFIX, MarketDataMode
 from app.core.logging import configure_logging, get_logger
 from app.database.session import async_session_factory
 from app.execution.paper_broker import paper_broker_config_from_settings
+from app.live.config import live_config_from_settings, live_risk_limits
+from app.live.service import LiveTradingService
 from app.market_data.base import MarketDataProvider
 from app.market_data.mock_provider import MockMarketDataProvider
 from app.market_data.paper_provider import PaperMarketDataProvider
@@ -201,22 +204,63 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await approval_service.start()
     app.state.approval_service = approval_service
 
+    # Phase 14 live safety layer. The gate's live conditions read it lazily:
+    # it needs the broker service's OrderManager, so it is built just after.
+    live: dict[str, LiveTradingService] = {}
+    live_config = live_config_from_settings(settings)
+    live_limits = live_risk_limits(settings, live_config)
+
     def _session_open() -> bool:
-        ok, _ = trading_service.engine.risk.entries_allowed(datetime.now(UTC))
+        # live entries: the real NSE session, never SIMULATED_24H
+        svc = live.get("svc")
+        if svc is None:
+            return False
+        ok, _ = svc.risk.entries_allowed(datetime.now(UTC))
         return bool(ok)
 
     broker_service = BrokerService(
         settings,
         session_factory=async_session_factory,
-        system_healthy=lambda: getattr(app.state, "last_overall_health", None) == "HEALTHY",
+        system_healthy=lambda: bool(live.get("svc") and live["svc"].monitor.healthy),
         session_open=_session_open,
-        emergency_stop=lambda: trading_service.engine.emergency_stop_active,
+        emergency_stop=lambda: trading_service.engine.emergency_stop_active
+        or bool(live.get("svc") and live["svc"].kill_switch.engaged),
         broadcast=market_data_service.connection_manager.broadcast,
         auth=zerodha.auth if zerodha.configured else None,
+        user_armed=lambda: bool(live.get("svc") and live["svc"].arming.is_armed),
     )
     ensure_not_live_by_accident(settings)
     await broker_service.start()
     app.state.broker_service = broker_service
+
+    def _tick_size(symbol: str) -> float:
+        record = zerodha.resolver.find_by_symbol(symbol)
+        return float(record.tick_size) if record is not None and record.tick_size else 0.05
+
+    live_service = LiveTradingService(
+        config=live_config,
+        limits=live_limits,
+        orders=broker_service.orders,
+        market_data=market_data_service,
+        trading=trading_service,
+        signals=signal_service,
+        health_probe=lambda: broker_health(app.state, settings),
+        kite_authenticated=lambda: zerodha.auth.authenticated,
+        tick_size=_tick_size,
+        session_factory=async_session_factory,
+    )
+    live["svc"] = live_service
+    # the paper emergency stop also engages the live kill switch
+    paper_stop_hook = trading_service.on_emergency_stop
+
+    async def _emergency_stop(reason: str) -> None:
+        if paper_stop_hook is not None:
+            await paper_stop_hook(reason)
+        await live_service.on_paper_emergency_stop(reason)
+
+    trading_service.on_emergency_stop = _emergency_stop
+    await live_service.start()
+    app.state.live_service = live_service
 
     history_fetcher = None
     if zerodha.configured and zerodha.historical is not None:
@@ -253,6 +297,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
     await backtest_service.stop()
+    await live_service.stop()
     await broker_service.stop()
     await approval_service.stop()
     await trading_service.stop()

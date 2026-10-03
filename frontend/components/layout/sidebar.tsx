@@ -5,13 +5,16 @@ import { usePathname } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { NAV_ITEMS, activeNavHref } from "@/components/layout/nav-items";
-import { useTradingStatus } from "@/lib/queries";
+import { liveState } from "@/lib/live-format";
+import { useLiveStatus, useTradingStatus } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
   const active = activeNavHref(pathname);
   const mode = useTradingStatus().data?.mode ?? "PAPER";
+  const live = liveState(useLiveStatus().data);
+  const liveOn = live.text === "LIVE ARMED";
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-surface">
@@ -35,12 +38,19 @@ export function Sidebar() {
                     "flex items-center gap-2.5 rounded px-3 py-2 text-sm",
                     isActive
                       ? "bg-surface-alt font-medium text-foreground"
-                      : "text-muted hover:bg-surface-alt/60 hover:text-foreground"
+                      : "text-muted hover:bg-surface-alt/60 hover:text-foreground",
                   )}
                 >
-                  <Icon className={cn("h-4 w-4", isActive ? "text-accent" : "")} aria-hidden />
+                  <Icon
+                    className={cn("h-4 w-4", isActive ? "text-accent" : "")}
+                    aria-hidden
+                  />
                   <span className="flex-1">{item.label}</span>
-                  {item.tag && <span className="text-[10px] text-muted/70">{item.tag}</span>}
+                  {item.tag && (
+                    <span className="text-[10px] text-muted/70">
+                      {item.tag}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -49,13 +59,22 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border px-4 py-3">
-        <Badge variant="accent" data-testid="sidebar-mode">
-          {mode === "APPROVAL" ? "APPROVAL MODE" : "PAPER MODE"}
+        <Badge
+          variant={liveOn ? "caution" : "accent"}
+          data-testid="sidebar-mode"
+        >
+          {liveOn
+            ? "LIVE ARMED"
+            : mode === "APPROVAL"
+              ? "APPROVAL MODE"
+              : "PAPER MODE"}
         </Badge>
         <p className="mt-2 text-[10px] leading-snug text-muted">
-          {mode === "APPROVAL"
-            ? "Every trade waits for your approval, then runs on the paper broker. No real orders."
-            : "Orders run on the paper broker; no real orders. See DATA SOURCE for the market data."}
+          {liveOn
+            ? "Live trading is armed: entries that pass every pre-trade check go to Zerodha with real money."
+            : mode === "APPROVAL"
+              ? "Every trade waits for your approval, then runs on the paper broker. No real orders."
+              : "Orders run on the paper broker; no real orders. See DATA SOURCE for the market data."}
         </p>
       </div>
     </aside>

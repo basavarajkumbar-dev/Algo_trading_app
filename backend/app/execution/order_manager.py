@@ -92,12 +92,23 @@ class ExecutionGate:
     emergency_stop: Callable[[], bool] = lambda: False
 
     def evaluate(
-        self, broker: BrokerAdapter, *, risk_approved: bool, resync_pending: bool
+        self,
+        broker: BrokerAdapter,
+        *,
+        risk_approved: bool,
+        resync_pending: bool,
+        reduce_only: bool = False,
     ) -> GateDecision:
+        """`reduce_only`: an order that only protects or closes an existing
+        position (stop loss, target, exit). It must still go out under an
+        emergency stop, after a disarm or outside the entry window, so those
+        conditions are not applied to it; the broker connection, the
+        reconciliation state and the live configuration still are."""
+
         reasons: list[str] = []
         if not risk_approved:
             reasons.append("not approved by the risk engine")
-        if self.emergency_stop():
+        if self.emergency_stop() and not reduce_only:
             reasons.append("emergency stop is active")
         state = broker.connection_state
         if state is not ConnectionState.CONNECTED:
@@ -107,8 +118,11 @@ class ExecutionGate:
         if not broker.is_paper:
             if not self.live_mode_configured():
                 reasons.append(
-                    "live trading is not enabled (TRADING_MODE=LIVE and LIVE_MODE_ENABLED)"
+                    "live trading is not enabled (LIVE_TRADING_ENABLED=true and "
+                    "EXECUTION_MODE=ZERODHA)"
                 )
+            if reduce_only:
+                return GateDecision(allowed=not reasons, reasons=reasons)
             if not self.user_armed():
                 reasons.append("live orders have not been armed by the user")
             if not self.system_healthy():
@@ -240,7 +254,9 @@ class OrderManager:
                 return o
         return None
 
-    async def submit(self, request: OrderRequest, *, risk_approved: bool) -> Order:
+    async def submit(
+        self, request: OrderRequest, *, risk_approved: bool, reduce_only: bool = False
+    ) -> Order:
         """Send an order the risk engine approved. Returns the tracked order
         (REJECTED with a reason when blocked or refused)."""
 
@@ -253,14 +269,21 @@ class OrderManager:
             existing = self._by_client_id.get(cid)
             if existing is not None:  # idempotent: the same intent is not sent twice
                 return self.order(existing)
-            order = await self._submit_locked(request, risk_approved=risk_approved)
+            order = await self._submit_locked(
+                request, risk_approved=risk_approved, reduce_only=reduce_only
+            )
         await self._flush()
         return order
 
-    async def _submit_locked(self, request: OrderRequest, *, risk_approved: bool) -> Order:
+    async def _submit_locked(
+        self, request: OrderRequest, *, risk_approved: bool, reduce_only: bool = False
+    ) -> Order:
         now = self._clock()
         decision = self.gate.evaluate(
-            self.broker, risk_approved=risk_approved, resync_pending=self.resync_pending
+            self.broker,
+            risk_approved=risk_approved,
+            resync_pending=self.resync_pending,
+            reduce_only=reduce_only,
         )
         duplicate = self._possible_duplicate(request) if decision.allowed else None
         if not decision.allowed or duplicate is not None:

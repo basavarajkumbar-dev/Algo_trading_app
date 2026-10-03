@@ -15,6 +15,7 @@ from app.database.models.backtest import (
     StrategyVersion,
 )
 from app.database.models.instrument import Instrument
+from app.database.models.live_trade import LiveTradeRecord
 from app.database.models.market_data import (
     BrokerInstrument,
     InstrumentSyncRun,
@@ -43,6 +44,7 @@ __all__ = [
     "Instrument",
     "BrokerInstrument",
     "InstrumentSyncRun",
+    "LiveTradeRecord",
     "MarketCandle",
     "MarketTick",
     "PaperOrderRecord",
