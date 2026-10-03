@@ -1082,3 +1082,43 @@ or someone else decided first.
 
 Every change is written to `audit_logs` (`APPROVAL_*`) and
 `system_events`, and pushed as a `trading_event` on `WS /ws/market`.
+
+## Market data & Kite login (Phase 13)
+
+No response contains the API secret, an access token or a request token.
+
+### `GET /broker/zerodha/status`
+Safe status: `{broker, configured, connected, auth, user_id (masked), user_name,
+login_time, expires_at, last_error, redirect_url_configured, market_data
+(CONNECTED | STALE | DISCONNECTED | SIMULATED), execution_mode (PAPER)}`.
+
+### `GET /broker/zerodha/login` (ADMIN)
+`{login_url}` — the Kite login URL with a one-time `state` (10 min). `?redirect=true`
+answers 307 to it instead.
+
+### `GET /broker/zerodha/callback`
+Kite's redirect target (`KITE_REDIRECT_URL`). Validates `state`, exchanges
+`request_token` server-side, then 303 to `FRONTEND_URL/settings?zerodha=connected`
+or `?zerodha=error&reason=state|login|token_exchange|not_configured`.
+
+### `POST /broker/zerodha/logout` (ADMIN)
+Invalidates the Kite session and forgets the token; returns the safe status.
+
+### `GET /broker/reconciliation`, `POST /broker/reconciliation` (TRADER / ADMIN)
+Last / new read-only comparison of local and broker orders, trades and positions:
+`{result: {ok, at, orders_compared, positions_compared, trades_compared,
+mismatches: [{kind, symbol, order_id, broker_order_id, local, broker, detail}]}}`.
+
+### `GET /system/market-data`
+`{provider, mode (SIMULATED | ZERODHA_LIVE), simulated, status (LIVE | STALE |
+WAITING | DISCONNECTED), websocket, feed_state, rest_api, last_tick,
+last_tick_age_seconds, latency_ms, subscribed_instruments, unresolved_symbols,
+stale, stale_threshold_seconds, ticks_accepted, ticks_rejected,
+rejected_by_issue, warmup_in_progress, last_warmup_at, candles {5m,15m,60m}}`.
+
+### `GET /system/broker-health`
+`{status (HEALTHY | DEGRADED | DISCONNECTED | AUTH_REQUIRED | ERROR), configured,
+market_data_source, execution_mode, checked_at, checks: [{name, ok, status, detail}]}`.
+
+`GET /market/status` additionally reports `source`, `data_source` and `data_status`;
+backtests accept `data_source.kind = "zerodha"`.

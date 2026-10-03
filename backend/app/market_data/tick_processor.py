@@ -106,7 +106,12 @@ class TickProcessor:
         price = raw.get("last_price")
         if price is None:
             return self._reject(token, TickIssue.MISSING_FIELDS)
-        if not isinstance(price, int | float) or math.isnan(price) or math.isinf(price) or price <= 0:
+        if (
+            not isinstance(price, int | float)
+            or math.isnan(price)
+            or math.isinf(price)
+            or price <= 0
+        ):
             return self._reject(token, TickIssue.INVALID_PRICE)
 
         quantities = {
@@ -136,12 +141,20 @@ class TickProcessor:
         volume = raw.get("volume_traded")
         last = self._last.get(token)
         if last is not None:
-            if exchange_ts is not None and last.exchange_ts is not None and exchange_ts < last.exchange_ts:
+            if (
+                exchange_ts is not None
+                and last.exchange_ts is not None
+                and exchange_ts < last.exchange_ts
+            ):
                 return self._reject(token, TickIssue.OUT_OF_ORDER)
             if timestamp < last.timestamp:
                 return self._reject(token, TickIssue.OUT_OF_ORDER)
             same_time = exchange_ts is not None and exchange_ts == last.exchange_ts
-            if price == last.price and volume == last.volume and (same_time or exchange_ts is None and volume is not None):
+            if (
+                price == last.price
+                and volume == last.volume
+                and (same_time or exchange_ts is None and volume is not None)
+            ):
                 return self._reject(token, TickIssue.DUPLICATE_TICK)
             if abs(price / last.price - 1) * 100 > self.max_move_percent:
                 return self._reject(token, TickIssue.PRICE_JUMP)
@@ -166,7 +179,9 @@ class TickProcessor:
             timestamp=timestamp,
             received_at=received,
             exchange_timestamp=exchange_ts,
-            last_trade_time=ltt.replace(tzinfo=UTC) if isinstance(ltt, datetime) and ltt.tzinfo is None else ltt,
+            last_trade_time=(
+                ltt.replace(tzinfo=UTC) if isinstance(ltt, datetime) and ltt.tzinfo is None else ltt
+            ),
             last_price=float(price),
             last_quantity=raw.get("last_traded_quantity"),
             average_price=raw.get("average_traded_price"),
@@ -186,6 +201,8 @@ class TickProcessor:
             mode=str(raw.get("mode") or "quote"),
             tradable=bool(raw.get("tradable", True)),
         )
-        self._last[token] = _Last(price=float(price), volume=volume, exchange_ts=exchange_ts, timestamp=timestamp)
+        self._last[token] = _Last(
+            price=float(price), volume=volume, exchange_ts=exchange_ts, timestamp=timestamp
+        )
         self.accepted += 1
         return TickResult(tick=tick)

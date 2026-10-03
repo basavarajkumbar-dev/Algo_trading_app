@@ -136,11 +136,14 @@ async def test_secrets_never_reach_repr_settings_or_logs(caplog: pytest.LogCaptu
     ]
     a = make(kite)
     await a.connect()
-    s = Settings(
-        ZERODHA_API_KEY=API_KEY,
-        ZERODHA_API_SECRET=SecretStr(API_SECRET),
-        ZERODHA_ACCESS_TOKEN=SecretStr(ACCESS_TOKEN),
+    s = Settings.model_validate(
+        {
+            "KITE_API_KEY": API_KEY,
+            "ZERODHA_API_SECRET": SecretStr(API_SECRET),
+            "KITE_ACCESS_TOKEN": SecretStr(ACCESS_TOKEN),
+        }
     )
+    assert s.zerodha_api_key == API_KEY
     text = repr(a) + repr(s) + str(s.model_dump()) + caplog.text
     assert API_SECRET not in text and ACCESS_TOKEN not in text
 

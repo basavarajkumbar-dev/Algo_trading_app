@@ -57,8 +57,8 @@ async def test_health_notes_never_claim_live_market_data() -> None:
 
     body = response.json()
     notes_text = " ".join(body["notes"]).lower()
-    assert "simulated" in notes_text
-    assert "no broker is connected" in notes_text
+    assert "simulated" in notes_text  # no Kite credentials in the test environment
+    assert "no real orders are placed" in notes_text
 
 
 def test_default_trading_mode_is_paper() -> None:

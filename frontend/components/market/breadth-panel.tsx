@@ -40,7 +40,7 @@ export function BreadthPanel({
           <div className="ml-auto bg-loss" style={{ width: `${decliningPct}%` }} />
         </div>
         <span className="text-[11px] text-muted">
-          Change vs the simulated session open, across {breadth.symbols_counted} constituents
+          Change vs the session open, across {breadth.symbols_counted} constituents
         </span>
       </div>
 

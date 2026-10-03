@@ -432,6 +432,33 @@ class CsvHistorySource(HistoricalDataSource):
         return [b for b in self._load(symbol) if start <= b.timestamp.astimezone(IST).date() <= end]
 
 
+class ZerodhaHistorySource(CsvHistorySource):
+    """Real 5-minute NSE candles downloaded from Kite Connect's historical
+    API into a cache directory (one CSV per symbol, same format as the CSV
+    source). Days on which the NIFTY 50 index has no candles were exchange
+    holidays. The universe is the requested symbols (not point-in-time)."""
+
+    kind = "zerodha"
+    synthetic = False
+
+    def fingerprint(self) -> str:
+        return "zerodha:" + super().fingerprint().split(":", 1)[1]
+
+    def holidays(self) -> list[date]:
+        index = self._load(self.benchmark) if self.benchmark in self._files else []
+        if not index:
+            return []
+        traded = {b.timestamp.astimezone(IST).date() for b in index}
+        first, last = min(traded), max(traded)
+        out: list[date] = []
+        d = first
+        while d <= last:
+            if d.weekday() < 5 and d not in traded:
+                out.append(d)
+            d += timedelta(days=1)
+        return out
+
+
 def expected_bars(days: int) -> int:
     return days * 75
 
@@ -454,6 +481,7 @@ __all__ = [
     "HistoricalDataSource",
     "SyntheticHistorySource",
     "Universe",
+    "ZerodhaHistorySource",
     "describe_source",
     "expected_bars",
 ]

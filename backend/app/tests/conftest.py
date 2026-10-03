@@ -31,6 +31,9 @@ DATABASE_TEST_MODULES = (
     "test_broker_api.py",
     "test_approvals.py",
     "test_approvals_api.py",
+    "test_instrument_master.py",
+    "test_zerodha_pipeline.py",
+    "test_zerodha_api.py",
 )
 
 

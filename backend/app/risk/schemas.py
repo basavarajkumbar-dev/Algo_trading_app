@@ -69,6 +69,9 @@ class MarketConditions(BaseModel):
     system_healthy: bool
     health_detail: str = ""
     trading_mode: str = "PAPER"
+    # Phase 13: the market data layer's own verdict (feed down, no tick for
+    # DATA_STALE_THRESHOLD_SECONDS); None when the data is fresh.
+    data_stale: str | None = None
     # a preview evaluates the checks for an approval request; nothing executes
     preview: bool = False
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { BrokerPanel } from "@/components/dashboard/broker-panel";
+import { MarketFeedPanel } from "@/components/dashboard/market-feed-panel";
 import { errorText, Figure, Panel } from "@/components/dashboard/panel";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -86,6 +87,7 @@ export default function SystemPage() {
         {data?.components.map((c) => <ComponentCard key={c.key} c={c} />)}
       </div>
 
+      <MarketFeedPanel />
       <BrokerPanel />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">

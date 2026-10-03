@@ -12,6 +12,8 @@ bcrypt==4.0.1
 PyJWT==2.7.0
 # HTTP client for the Zerodha Kite Connect adapter (Phase 11)
 httpx==0.27.2
+# Kite WebSocket market data feed (Phase 13; asyncio client API, >= 13)
+websockets==17.1
 
 # Testing / lint / type-check (also installed in the runtime image so
 # `make test-backend` and `make lint` work the same way locally and in

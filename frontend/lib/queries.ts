@@ -25,6 +25,11 @@ import {
   getSignalsRequest,
   getSymbolIntelligenceRequest,
 } from "@/lib/market-client";
+import {
+  getBrokerHealthRequest,
+  getMarketDataStatusRequest,
+  getZerodhaStatusRequest,
+} from "@/lib/market-data-client";
 import { qk } from "@/lib/query-keys";
 import {
   getOrdersRequest,
@@ -142,3 +147,12 @@ export const useBrokerStatus = () =>
 /** Approval requests; polled quickly so countdowns and new requests stay current. */
 export const useApprovals = () =>
   useQuery({ queryKey: qk.approvals, queryFn: () => getApprovalsRequest(), refetchInterval: 3_000 });
+
+export const useMarketDataStatus = () =>
+  useQuery({ queryKey: qk.marketData, queryFn: getMarketDataStatusRequest, refetchInterval: 3_000 });
+
+export const useZerodhaStatus = () =>
+  useQuery({ queryKey: qk.zerodhaStatus, queryFn: getZerodhaStatusRequest, refetchInterval: 10_000 });
+
+export const useBrokerHealth = () =>
+  useQuery({ queryKey: qk.brokerHealth, queryFn: getBrokerHealthRequest, refetchInterval: 15_000 });

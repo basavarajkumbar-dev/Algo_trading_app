@@ -347,12 +347,21 @@ class TradingService:
     async def _conditions(self, symbol: str) -> MarketConditions:
         healthy, detail = await self.health()
         snapshot = self._market_data.get_snapshot(symbol)
+        now = self._clock()
+        data_stale: str | None = None
+        is_stale = getattr(self._market_data, "is_stale", None)
+        if is_stale is not None and is_stale(symbol):
+            data_stale = (
+                f"{self._market_data.source} market data is "
+                f"{self._market_data.data_status()} for {symbol}"
+            )
         return MarketConditions(
-            now=self._clock(),
+            now=now,
             last_price=snapshot.price if snapshot else None,
             price_timestamp=snapshot.timestamp if snapshot else None,
             system_healthy=healthy,
             health_detail=detail,
+            data_stale=data_stale,
         )
 
     # --- operator actions ----------------------------------------------------

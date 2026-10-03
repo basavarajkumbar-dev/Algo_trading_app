@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import type { ReactNode } from "react";
 
 import { Panel, errorText } from "@/components/dashboard/panel";
@@ -105,7 +106,7 @@ export function MarketBrain() {
           <Row
             label="Volume"
             value={a?.volume ? `${a.volume.relative_volume.toFixed(2)}× average` : "—"}
-            detail={a?.volume ? `${humanize(a.volume.volume_trend)}${a.volume.is_spike ? " · spike" : ""} · simulated` : undefined}
+            detail={a?.volume ? `${humanize(a.volume.volume_trend)}${a.volume.is_spike ? " · spike" : ""}` : undefined}
           />
           <Row
             label="Volatility"
@@ -136,7 +137,7 @@ export function MarketBrain() {
             detail="leaders vs NIFTY 50"
           />
           <p className="mt-2 text-[10px] leading-snug text-muted">
-            Rule-based analysis of closed simulated candles. Describes recent behaviour; it does not
+            Rule-based analysis of closed <DataNoun /> candles. Describes recent behaviour; it does not
             predict the next move.
           </p>
         </div>

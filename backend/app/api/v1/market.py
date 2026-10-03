@@ -47,9 +47,16 @@ async def market_status(request: Request) -> MarketStatusResponse:
         ticks_rejected=stats.ticks_rejected,
         rejected_by_issue=stats.rejected_by_issue,
         started_at=stats.started_at,
+        source=service.source,
+        data_source="SIMULATED" if service.simulated else "ZERODHA_LIVE",
+        data_status=service.data_status(),
         notes=[
-            "Market data is simulated (mock provider) — not a live feed.",
-            "No broker is connected and no real orders can be placed.",
+            (
+                "Market data is simulated (mock provider) — not a live feed."
+                if service.simulated
+                else "Market data is real NSE data from Zerodha Kite Connect."
+            ),
+            "No real orders are placed: execution is PAPER.",
         ],
     )
 

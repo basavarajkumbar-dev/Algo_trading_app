@@ -128,7 +128,9 @@ class Settings(BaseSettings):
     # Kite ticker mode for equities: quote (default, no depth) or full (depth
     # and exchange timestamps). Indices are always subscribed in full mode,
     # which adds their exchange timestamp (used for the latency figure).
-    kite_tick_mode: str = Field(default="quote", pattern="^(ltp|quote|full)$", alias="KITE_TICK_MODE")
+    kite_tick_mode: str = Field(
+        default="quote", pattern="^(ltp|quote|full)$", alias="KITE_TICK_MODE"
+    )
     # Instrument master: exchanges to download, and whether to sync at login.
     instrument_exchanges: list[str] = Field(
         default_factory=lambda: ["NSE", "NFO"], alias="INSTRUMENT_EXCHANGES"

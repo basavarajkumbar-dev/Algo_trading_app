@@ -95,7 +95,7 @@ def risk_limits_from_settings(settings: Settings) -> RiskLimits:
         max_order_quantity=g("risk_max_order_quantity"),
         margin_multiplier=g("risk_margin_multiplier"),
         min_signal_score=g("signal_executable_threshold"),
-        max_data_age_seconds=g("risk_max_data_age_seconds"),
+        max_data_age_seconds=_max_data_age(settings, g("risk_max_data_age_seconds")),
         max_signal_age_seconds=g("risk_max_signal_age_seconds"),
         max_entry_deviation_r=g("risk_max_entry_deviation_r"),
         allow_short=g("risk_allow_short"),
@@ -106,3 +106,15 @@ def risk_limits_from_settings(settings: Settings) -> RiskLimits:
             holidays=g("trading_holidays"),
         ),
     )
+
+
+def _max_data_age(settings: object, configured: float) -> float:
+    """Real market data: a price older than DATA_STALE_THRESHOLD_SECONDS is
+    stale (default 10 s). The simulator keeps RISK_MAX_DATA_AGE_SECONDS: it
+    ticks a random third of its symbols each second."""
+
+    mode = getattr(settings, "effective_market_data_mode", None)
+    threshold = getattr(settings, "data_stale_threshold_seconds", None)
+    if mode is not None and getattr(mode, "value", mode) == "ZERODHA" and threshold:
+        return float(min(configured, threshold))
+    return float(configured)

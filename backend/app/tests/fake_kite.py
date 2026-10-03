@@ -31,6 +31,24 @@ INSTRUMENTS_CSV = (
 )
 
 
+# A richer master for Phase 13 tests: cash, indices, futures and options.
+MASTER_CSV = (
+    "instrument_token,exchange_token,tradingsymbol,name,last_price,expiry,strike,"
+    "tick_size,lot_size,instrument_type,segment,exchange\n"
+    "738561,2885,RELIANCE,RELIANCE INDUSTRIES,0,,0,0.1,1,EQ,NSE,NSE\n"
+    "2953217,11536,TCS,TATA CONSULTANCY SERV LT,0,,0,0.1,1,EQ,NSE,NSE\n"
+    "408065,1594,INFY,INFOSYS,0,,0,0.1,1,EQ,NSE,NSE\n"
+    "256265,1001,NIFTY 50,NIFTY 50,0,,0,0,0,EQ,INDICES,NSE\n"
+    "260105,1016,NIFTY BANK,NIFTY BANK,0,,0,0,0,EQ,INDICES,NSE\n"
+    "13238786,51714,NIFTY26OCTFUT,NIFTY,0,2026-10-27,0,0.1,75,FUT,NFO-FUT,NFO\n"
+    "13239042,51715,NIFTY26NOVFUT,NIFTY,0,2026-11-24,0,0.1,75,FUT,NFO-FUT,NFO\n"
+    "10560770,41253,NIFTY2610625000CE,NIFTY,0,2026-10-06,25000,0.05,75,CE,NFO-OPT,NFO\n"
+    "10561026,41254,NIFTY2610625000PE,NIFTY,0,2026-10-06,25000,0.05,75,PE,NFO-OPT,NFO\n"
+    "10561282,41255,NIFTY2610625100CE,NIFTY,0,2026-10-06,25100,0.05,75,CE,NFO-OPT,NFO\n"
+    "bad,row,MISSING,,,,,,,,,NSE\n"
+)
+
+
 class FakeKite:
     def __init__(self, *, token: str | None = ACCESS_TOKEN) -> None:
         self.valid_token = token
@@ -44,6 +62,13 @@ class FakeKite:
         self.status_next: list[tuple[int, dict[str, Any]]] = []  # forced responses
         self.down = False  # every request: ConnectError
         self.initial_status = "OPEN"  # what a new order becomes
+        # Phase 13 market data
+        self.instruments_csv = INSTRUMENTS_CSV
+        self.ltp: dict[str, tuple[int, float]] = {}  # "NSE:INFY" -> (token, price)
+        self.candles: dict[tuple[int, str], list[list[Any]]] = {}  # (token, interval) -> rows
+        self.historical_calls: list[tuple[int, str, str, str]] = []
+        self.trades: list[dict[str, Any]] = []
+        self.login_time = "2026-10-01 09:00:00"  # IST, as Kite sends it
 
     # --- helpers -----------------------------------------------------------------
 
@@ -117,6 +142,11 @@ class FakeKite:
             else {}
         )
         self.requests.append((method, path, form, dict(request.headers)))
+        self._query = parse_qs(
+            request.url.query.decode()
+            if isinstance(request.url.query, bytes)
+            else str(request.url.query)
+        )
         if self.down or self.connect_error_next > 0:
             self.connect_error_next = max(0, self.connect_error_next - 1)
             raise httpx.ConnectError("connection refused", request=request)
@@ -192,6 +222,12 @@ class FakeKite:
             )
         if method == "GET" and path == "/orders":
             return lambda *_: self._ok(list(self.orders.values()))
+        if method == "GET" and path == "/trades":
+            return lambda *_: self._ok(list(self.trades))
+        if method == "GET" and path.startswith("/orders/") and path.endswith("/trades"):
+            return lambda p, _: self._ok(
+                [t for t in self.trades if t["order_id"] == p.split("/")[2]]
+            )
         if method == "GET" and path.startswith("/orders/"):
             return lambda p, _: self._ok(self.history.get(p.rsplit("/", 1)[1], []))
         if method == "POST" and path == "/orders/regular":
@@ -200,13 +236,55 @@ class FakeKite:
             return lambda p, form: self._modify(p.rsplit("/", 1)[1], form)
         if method == "DELETE" and path.startswith("/orders/regular/"):
             return lambda p, _: self._cancel(p.rsplit("/", 1)[1])
+        if method == "GET" and path.startswith("/instruments/historical/"):
+            return lambda p, _: self._historical(p)
         if method == "GET" and path.startswith("/instruments"):
-            return lambda *_: httpx.Response(
-                200,
-                content=gzip.compress(INSTRUMENTS_CSV.encode()),
-                headers={"Content-Type": "text/csv"},
-            )
+            return lambda p, _: self._instruments(p)
+        if method == "GET" and path in ("/quote/ltp", "/quote", "/quote/ohlc"):
+            return lambda *_: self._quote()
         return None
+
+    # the current request's query string (set by handle())
+    _query: dict[str, list[str]] = {}
+
+    def _instruments(self, path: str) -> httpx.Response:
+        parts = path.strip("/").split("/")
+        body = self.instruments_csv
+        if len(parts) == 2:  # /instruments/:exchange
+            lines = body.splitlines()
+            keep = [lines[0]] + [ln for ln in lines[1:] if ln.endswith("," + parts[1])]
+            body = "\n".join(keep) + "\n"
+        return httpx.Response(
+            200, content=gzip.compress(body.encode()), headers={"Content-Type": "text/csv"}
+        )
+
+    def _quote(self) -> httpx.Response:
+        out: dict[str, Any] = {}
+        for key in self._query.get("i", []):
+            if key in self.ltp:
+                token, price = self.ltp[key]
+                out[key] = {"instrument_token": token, "last_price": price}
+        return self._ok(out)
+
+    def _historical(self, path: str) -> httpx.Response:
+        from datetime import datetime as _dt
+
+        _, _, token, interval = path.strip("/").split("/")
+        start = self._query.get("from", [""])[0]
+        end = self._query.get("to", [""])[0]
+        self.historical_calls.append((int(token), interval, start, end))
+        fmt = "%Y-%m-%d %H:%M:%S"
+        a, b = _dt.strptime(start, fmt), _dt.strptime(end, fmt)
+        rows = []
+        for row in self.candles.get((int(token), interval), []):
+            try:
+                ts = _dt.strptime(str(row[0])[:19], "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                rows.append(row)  # malformed rows are returned as-is (client must cope)
+                continue
+            if a <= ts <= b:
+                rows.append(row)
+        return self._ok({"candles": rows})
 
     def _session(self, form: dict[str, Any]) -> httpx.Response:
         import hashlib
@@ -223,7 +301,7 @@ class FakeKite:
                 "access_token": ACCESS_TOKEN,
                 "refresh_token": "",
                 "public_token": "pub",
-                "login_time": "2026-10-01 09:00:00",
+                "login_time": self.login_time,
                 "exchanges": ["NSE"],
                 "products": ["MIS"],
                 "order_types": ["MARKET", "LIMIT", "SL-M"],

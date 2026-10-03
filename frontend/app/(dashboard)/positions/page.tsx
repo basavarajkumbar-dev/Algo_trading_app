@@ -71,7 +71,7 @@ export default function PositionsPage() {
           <h1 className="text-xl font-semibold tracking-tight">Positions</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
             Signal → risk check → paper order → fill → position → stop / target → exit → P&amp;L,
-            one trade at a time. Orders go to a simulated broker; no broker is connected and no
+            one trade at a time. Orders go to the simulated paper broker; no real order is sent and no
             real money is used.
           </p>
         </div>

@@ -35,7 +35,12 @@ async def market_websocket(websocket: WebSocket) -> None:
             websocket,
             {
                 "type": "connected",
-                "message": "Connected to GAINZALGO PRO MAX market data stream (simulated).",
+                "message": (
+                    "Connected to GAINZALGO PRO MAX market data stream "
+                    f"({'simulated' if service.simulated else 'Zerodha live'})."
+                ),
+                "source": service.source,
+                "simulated": service.simulated,
                 "watchlist": service.get_watchlist(),
             },
         )

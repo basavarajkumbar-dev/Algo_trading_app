@@ -54,8 +54,8 @@ export function Sidebar() {
         </Badge>
         <p className="mt-2 text-[10px] leading-snug text-muted">
           {mode === "APPROVAL"
-            ? "Every trade waits for your approval, then runs on the paper broker. Simulated data; no real orders."
-            : "Simulated market data. No broker connected; no real orders."}
+            ? "Every trade waits for your approval, then runs on the paper broker. No real orders."
+            : "Orders run on the paper broker; no real orders. See DATA SOURCE for the market data."}
         </p>
       </div>
     </aside>

@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_role
 from app.backtesting import repository as repo
+from app.backtesting.calendar import trading_days
 from app.backtesting.data import SyntheticHistorySource, describe_source
 from app.backtesting.metrics import BACKTEST_NOTE
 from app.backtesting.parameters import (
@@ -38,6 +39,7 @@ from app.backtesting.parameters import (
     param_space,
     split_scopes,
     strategy_versions,
+    validate_params,
 )
 from app.backtesting.runner import (
     ASSUMPTIONS,
@@ -133,7 +135,9 @@ class BacktestOptions(BaseModel):
 
 @router.get("/options", response_model=BacktestOptions)
 async def options(
-    db: AsyncSession = Depends(get_db), settings: Settings = Depends(get_settings)
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> BacktestOptions:
     strategies = [
         StrategyOption(
@@ -234,6 +238,25 @@ async def options(
                     note=f"Not usable: {exc}",
                 )
             )
+    rt = getattr(request.app.state, "zerodha", None)
+    if rt is not None and rt.configured:
+        sources.append(
+            DataSourceOption(
+                kind=DataSourceKind.ZERODHA,
+                label="Zerodha historical (real NSE 5-minute candles)",
+                available=bool(rt.auth.authenticated),
+                synthetic=False,
+                first_day=None,
+                last_day=None,
+                symbols=[],
+                note=(
+                    "Downloaded from Kite Connect for the chosen range (rate-limited; "
+                    "cached). Universe = the symbols you pick: survivorship bias possible."
+                    if rt.auth.authenticated
+                    else "Log in to Zerodha (Settings) to use real history."
+                ),
+            )
+        )
     return BacktestOptions(
         strategies=strategies,
         versions=versions,
@@ -361,16 +384,42 @@ async def create(
     settings: Settings = Depends(get_settings),
 ) -> RunSummary:
     svc = _service(request)
-    try:
-        source, days = preflight(body, settings.backtest_data_dir)
-    except (BacktestError, ParameterError, FileNotFoundError, KeyError) as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
-    data = {
-        "kind": source.kind,
-        "synthetic": source.synthetic,
-        "fingerprint": source.fingerprint(),
-        "seed": body.data_source.seed if source.synthetic else None,
-    }
+    if body.data_source.kind == DataSourceKind.ZERODHA:
+        # Real history is downloaded by the worker; check what we can now.
+        rt = getattr(request.app.state, "zerodha", None)
+        if rt is None or not rt.configured or svc.history_fetcher is None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Zerodha is not configured.")
+        if not rt.auth.authenticated:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "Zerodha history needs today's Kite login."
+            )
+        if body.end_date >= date.today():
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "Zerodha backtests use completed sessions: end_date must be before today.",
+            )
+        try:
+            validate_params(body.strategy, body.parameters)
+        except ParameterError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        days = trading_days(body.start_date, body.end_date)
+        data: dict[str, Any] = {
+            "kind": "zerodha",
+            "synthetic": False,
+            "fingerprint": f"zerodha:{body.start_date}:{body.end_date}",
+            "seed": None,
+        }
+    else:
+        try:
+            source, days = preflight(body, settings.backtest_data_dir)
+        except (BacktestError, ParameterError, FileNotFoundError, KeyError) as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        data = {
+            "kind": source.kind,
+            "synthetic": source.synthetic,
+            "fingerprint": source.fingerprint(),
+            "seed": body.data_source.seed if source.synthetic else None,
+        }
     try:
         row = await repo.create_run(db, body, user_id=user.id, data=data)
     except (SQLAlchemyError, OSError) as exc:

@@ -32,6 +32,31 @@ class PaperMarketDataProvider(MarketDataProvider):
     def __init__(self, *, delegate: MarketDataProvider | None = None) -> None:
         self._delegate: MarketDataProvider = delegate or MockMarketDataProvider()
 
+    @property  # type: ignore[override]
+    def source(self) -> str:
+        return self._delegate.source
+
+    @property  # type: ignore[override]
+    def simulated(self) -> bool:
+        return self._delegate.simulated
+
+    @property  # type: ignore[override]
+    def background_warmup(self) -> bool:
+        return self._delegate.background_warmup
+
+    def is_ready(self) -> bool:
+        return self._delegate.is_ready()
+
+    @property
+    def ready_generation(self) -> int:
+        return self._delegate.ready_generation
+
+    async def wait_ready(self, after: int = 0) -> int:
+        return await self._delegate.wait_ready(after)
+
+    def status_details(self) -> dict[str, object]:
+        return self._delegate.status_details()
+
     async def connect(self) -> None:
         await self._delegate.connect()
 

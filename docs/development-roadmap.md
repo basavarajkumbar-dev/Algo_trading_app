@@ -841,6 +841,39 @@ routing the paper engine to Zerodha, Kite WebSocket order updates.
 
 ---
 
+## Real market data (delivered as "Phase 13 — Zerodha Kite Connect + Real Market Data")
+
+> **Numbering note.** Requested as "Phase 13" (its body says "Phase 11").
+> Details: `docs/market-data.md`.
+
+**Delivered**
+- `MARKET_DATA_MODE` (MOCK | ZERODHA) separate from `EXECUTION_MODE`
+  (PAPER) and `LIVE_TRADING_ENABLED` (false); credentials never enable
+  live trading.
+- Kite auth (login URL + one-time state, callback, daily expiry, logout;
+  token in memory only), shared rate-limited REST client with order
+  endpoints refused.
+- Instrument master (validated, idempotent sync, deactivation, resolver
+  for equities, indices, futures, options).
+- asyncio Kite WebSocket client (binary protocol, heartbeats, reconnect,
+  subscription recovery), TickProcessor, session-anchored candles with
+  time-based closing, Redis latest state, candle store.
+- Historical provider (chunking, rate limits, holidays) and
+  `DATA_SOURCE=ZERODHA` backtests.
+- Stale-data blocking in signals and risk; reconciliation service;
+  trades / margins on every broker adapter; broker health.
+- Dashboard DATA SOURCE badge, Market Data & Broker panel, Zerodha login
+  card; smoke test script.
+
+**Definition of Done**
+- [x] Tested against protocol-accurate fakes, end to end to a paper position.
+- [ ] Verified with a live Kite account (needs credentials; manual
+      procedure in `docs/market-data.md`).
+- [ ] `docker compose up --build` (not possible in the build environment:
+      Docker Hub unreachable; `docker compose config` validates).
+
+---
+
 ## Phase 17 — Hardening & Final Validation
 
 **Scope**

@@ -27,11 +27,13 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.brokers.zerodha import ZerodhaBrokerAdapter, zerodha_from_settings
+from app.brokers.zerodha.auth import AuthState, KiteAuthService
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.database.models.system_event import SystemEvent
 from app.execution.models import BrokerHealth, ConnectionState
 from app.execution.order_manager import ExecutionGate, OrderEvent, OrderManager
+from app.execution.reconciliation import OrderReconciliationService, positions_from_orders
 
 logger = get_logger(__name__)
 
@@ -49,9 +51,20 @@ class BrokerService:
         session_open: Callable[[], bool] = lambda: False,
         emergency_stop: Callable[[], bool] = lambda: False,
         broadcast: Callable[[dict[str, Any]], Any] | None = None,
+        auth: KiteAuthService | None = None,
     ) -> None:
         self.settings = settings
-        self.adapter = adapter or zerodha_from_settings(settings)
+        self.auth = auth
+        if adapter is None:
+            if auth is not None and auth.client is not None:
+                # Phase 13: share the app's Kite client (token owned by the
+                # auth service; order endpoints off unless live is enabled).
+                adapter = zerodha_from_settings(settings, client=auth.client, access_token=None)
+            else:
+                adapter = zerodha_from_settings(settings)
+        self.adapter = adapter
+        if auth is not None:
+            auth.add_listener(self._on_auth_state)
         self._session_factory = session_factory
         self._broadcast = broadcast
         self.gate = ExecutionGate(
@@ -62,6 +75,11 @@ class BrokerService:
             emergency_stop=emergency_stop,
         )
         self.orders = OrderManager(self.adapter, self.gate, on_events=self._store_events)
+        self.reconciliation = OrderReconciliationService(
+            self.adapter,
+            self.orders.orders,
+            lambda: positions_from_orders(self.orders.orders()),
+        )
         self._task: asyncio.Task[None] | None = None
         self.last_health: BrokerHealth | None = None
         self.last_loop_error: str | None = None
@@ -122,7 +140,21 @@ class BrokerService:
             self._task = asyncio.create_task(self._loop(), name="broker-supervisor")
         return self.last_health
 
+    async def _on_auth_state(self, state: AuthState) -> None:
+        if self.auth is None:
+            return
+        if state is AuthState.AUTHENTICATED:
+            self.adapter.attach_session(self.auth.session.expires_at if self.auth.session else None)
+            await self.refresh()
+        elif state in (AuthState.TOKEN_EXPIRED, AuthState.LOGGED_OUT, AuthState.AUTH_ERROR):
+            self.adapter.detach_session()
+            self.last_health = await self.adapter.health_check()
+
     async def login(self, request_token: str) -> dict[str, Any]:
+        if self.auth is not None and self.auth.configured:
+            await self.auth.generate_access_token(request_token)
+            profile = await self.adapter.get_profile()
+            return profile.model_dump()
         profile = await self.adapter.generate_session(request_token)
         await self.refresh()
         return profile.model_dump()
@@ -166,6 +198,7 @@ class BrokerService:
                 "supervisor_running": self.is_running,
                 "paused_by_user": self.paused,
                 "supervisor_error": self.last_loop_error,
+                "auth": self.auth.status() if self.auth is not None else None,
             },
             "order_manager": {
                 "tracked": len(self.orders.orders()),

@@ -4,7 +4,7 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
-**Status: Phase 12 — Approval Mode complete. Modes: PAPER (default) and APPROVAL, both on the paper broker.**
+**Status: Phase 13 — Zerodha Kite Connect market data complete (built and tested against protocol fakes; not yet verified with a live Kite account). Market data: SIMULATED or ZERODHA; execution: PAPER (default) and APPROVAL, both on the paper broker.**
 
 See:
 
@@ -135,6 +135,19 @@ See:
   APPROVAL-mode trade without an approval. approved_by / approved_at,
   rejected_by / rejected_at and the reason are stored and every decision
   is audited. See [`docs/approval-mode.md`](./docs/approval-mode.md).
+
+- **Real market data from Zerodha** (Phase 13, new): with
+  `KITE_API_KEY` / `KITE_API_SECRET` set and an admin's daily Kite login
+  (Settings → Zerodha), real NSE ticks stream over the Kite WebSocket
+  into session-anchored 1–60m candles that feed every engine. Instrument
+  master in Postgres (no hardcoded tokens), latest state in Redis,
+  stale-data blocking (`DATA_STALE`), reconnection with subscription
+  recovery, Kite historical data for warm-up and `DATA_SOURCE=ZERODHA`
+  backtests, reconciliation and broker health. Every page shows
+  **DATA SOURCE: ZERODHA LIVE / SIMULATED**. Logging in never enables
+  real orders: `EXECUTION_MODE=PAPER`, `LIVE_TRADING_ENABLED=false`.
+  Smoke test: `python -m app.scripts.test_zerodha_connection`. See
+  [`docs/market-data.md`](./docs/market-data.md).
 
 **Paper only.** Orders go to a simulated broker; Zerodha can be connected
 read-only (Phase 11) but never receives an order, no real order can be placed and no real money is
@@ -395,6 +408,14 @@ and 5:
   `PAPER_EXECUTION_DELAY_SECONDS`, `PAPER_MAX_FILL_FRACTION`,
   `PAPER_ENTRY_TIMEOUT_SECONDS`, `PAPER_EMERGENCY_CLOSE_POSITIONS` and
   `PAPER_COSTS` — see `.env.example`.
+- Phase 13: `KITE_API_KEY`, `KITE_API_SECRET`, `KITE_ACCESS_TOKEN`
+  (optional; the `ZERODHA_*` names still work), `KITE_REDIRECT_URL`,
+  `FRONTEND_URL`, `MARKET_DATA_MODE` (MOCK | ZERODHA), `EXECUTION_MODE`
+  (PAPER), `LIVE_TRADING_ENABLED` (false), `DATA_STALE_THRESHOLD_SECONDS`
+  (10), `DEFAULT_TIMEFRAME`, `CANDLE_TIMEFRAMES`, `KITE_TICK_MODE`,
+  `INSTRUMENT_EXCHANGES`, `PERSIST_CANDLES`, `PERSIST_RAW_TICKS`. Migration
+  adds `broker_instruments`, `instrument_sync_runs`, `market_candles`,
+  `market_ticks`.
 - Phase 12: `TRADING_MODE` accepts `APPROVAL`; `APPROVAL_TTL_SECONDS`
   (default `120`). Migration adds `trade_approvals`.
 - Phase 11: `ZERODHA_API_KEY`, `ZERODHA_API_SECRET`,

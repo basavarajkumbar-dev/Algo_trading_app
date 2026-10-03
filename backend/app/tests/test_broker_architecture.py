@@ -29,7 +29,14 @@ UPSTREAM = [
     "indicators",
     "risk",
 ]
-FORBIDDEN = ("app.brokers", "app.execution.order_manager", "httpx", "kiteconnect", "requests")
+FORBIDDEN = (
+    "app.brokers",
+    "app.execution.order_manager",
+    "httpx",
+    "kiteconnect",
+    "requests",
+    "websockets",
+)
 
 
 def _imports(path: Path) -> set[str]:
@@ -59,16 +66,38 @@ def test_only_the_zerodha_package_uses_http() -> None:
         for p in APP.rglob("*.py")
         if "tests" not in p.parts and any(n.startswith("httpx") for n in _imports(p))
     )
-    assert users == ["brokers/zerodha/adapter.py", "brokers/zerodha/client.py"]
+    assert users == ["brokers/zerodha/adapter.py", "brokers/zerodha/kite_client.py"]
+
+
+def test_only_the_kite_ticker_opens_websockets_to_the_broker() -> None:
+    users = sorted(
+        str(p.relative_to(APP))
+        for p in APP.rglob("*.py")
+        if "tests" not in p.parts and any(n.startswith("websockets") for n in _imports(p))
+    )
+    assert users == ["brokers/zerodha/ticker.py"]
+
+
+def test_market_data_layer_does_not_depend_on_the_broker() -> None:
+    """Engines read candles from MarketDataService; the Zerodha provider
+    plugs into it from the brokers package, never the other way round."""
+
+    offenders = [
+        f"{p.relative_to(APP)} imports {name}"
+        for p in (APP / "market_data").rglob("*.py")
+        for name in _imports(p)
+        if name.startswith("app.brokers")
+    ]
+    assert offenders == []
 
 
 def test_no_credentials_are_committed() -> None:
     env = (REPO / ".env.example").read_text()
-    for key in ("ZERODHA_API_KEY", "ZERODHA_API_SECRET", "ZERODHA_ACCESS_TOKEN"):
+    for key in ("KITE_API_KEY", "KITE_API_SECRET", "KITE_ACCESS_TOKEN"):
         (line,) = (ln for ln in env.splitlines() if ln.startswith(f"{key}="))
         assert line == f"{key}=", line
     pattern = re.compile(
-        r"(api_secret|access_token|ZERODHA_API_SECRET|ZERODHA_ACCESS_TOKEN)\s*=\s*[\"'][A-Za-z0-9]{12,}[\"']"
+        r"(api_secret|access_token|request_token|ZERODHA_API_SECRET|ZERODHA_ACCESS_TOKEN|KITE_API_SECRET|KITE_ACCESS_TOKEN)\s*=\s*[\"'][A-Za-z0-9]{12,}[\"']"
     )
     hits = [
         str(p.relative_to(REPO))
@@ -78,3 +107,5 @@ def test_no_credentials_are_committed() -> None:
     assert hits == []
     ignored = (REPO / ".gitignore").read_text()
     assert ".env" in ignored.split()
+    assert "LIVE_TRADING_ENABLED=false" in env.splitlines()
+    assert "EXECUTION_MODE=PAPER" in env.splitlines()

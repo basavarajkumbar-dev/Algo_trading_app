@@ -77,6 +77,10 @@ class OrderRequest(BaseModel):
     trigger_price: float | None = None  # SL_M trigger
     client_order_id: str | None = None  # idempotency key: a repeat is rejected
     tag: str | None = None  # free-form purpose label (ENTRY / STOP_LOSS / TARGET / EXIT)
+    # Phase 13 traceability: the signal that produced the order and an id
+    # shared by every order of one trade (entry, stop, target, exit).
+    strategy_signal_id: str | None = None
+    correlation_id: str | None = None
     exchange: str = "NSE"
     product: Product = Product.MIS
     # live brokers: price band for MARKET / SL_M orders. Zerodha rejects 0 since
@@ -129,6 +133,8 @@ class Order(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     client_order_id: str | None = None
     tag: str | None = None
+    strategy_signal_id: str | None = None
+    correlation_id: str | None = None
     symbol: str
     side: Side
     order_type: OrderType
@@ -185,6 +191,32 @@ class Balance(BaseModel):
     unrealized_pnl: float
     charges_paid: float
     equity: float  # cash + unrealized P&L
+
+
+class Trade(BaseModel):
+    """One execution (a fill) as the broker reports it."""
+
+    trade_id: str
+    order_id: uuid.UUID | None = None  # ours, when the order is known
+    broker_order_id: str | None = None
+    symbol: str
+    exchange: str = "NSE"
+    side: Side
+    quantity: int
+    price: float
+    timestamp: datetime
+    is_paper: bool
+
+
+class Margins(BaseModel):
+    """Equity segment funds."""
+
+    segment: str = "equity"
+    available_cash: float
+    opening_balance: float | None = None
+    used: float
+    net: float
+    is_paper: bool
 
 
 class BrokerProfile(BaseModel):

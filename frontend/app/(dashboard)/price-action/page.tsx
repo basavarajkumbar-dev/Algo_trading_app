@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import { useEffect, useMemo, useState } from "react";
 
 import { LevelsTable } from "@/components/price-action/levels-table";
@@ -71,7 +72,7 @@ export default function PriceActionPage() {
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Price Action</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
-            Candle patterns, pullbacks, support/resistance and timeframe alignment on simulated
+            Candle patterns, pullbacks, support/resistance and timeframe alignment on <DataNoun />
             NIFTY 50 data. These are contextual features, not trade signals; levels are reference
             zones, not guaranteed turning points.
           </p>

@@ -14,18 +14,39 @@ GET  /broker/zerodha/profile        masked profile (TRADER / ADMIN)
 GET  /broker/zerodha/balance        equity margins (TRADER / ADMIN)
 GET  /broker/zerodha/positions      net positions (TRADER / ADMIN)
 GET  /broker/zerodha/orders         the day's order book (TRADER / ADMIN)
+
+Kite login flow (Phase 13):
+GET  /broker/zerodha/login          Kite login URL with a one-time state (ADMIN);
+                                    ?redirect=true answers with a 307 instead
+GET  /broker/zerodha/callback       Kite redirects the browser here with
+                                    request_token + state; the token is
+                                    exchanged server-side and the browser is
+                                    sent to FRONTEND_URL/settings?zerodha=...
+                                    (no token ever appears in that URL)
+GET  /broker/zerodha/status         safe status: connected, masked user id,
+                                    market data and execution mode
+POST /broker/zerodha/logout         invalidate the Kite session (ADMIN)
+
+No response contains the API secret, the access token or the request token.
 """
 
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.api.deps import require_role
 from app.brokers.service import BrokerService
+from app.brokers.zerodha.auth import KiteLoginError
+from app.brokers.zerodha.exceptions import KiteError
+from app.brokers.zerodha.runtime import ZerodhaRuntime
+from app.core.config import get_settings
 from app.core.constants import UserRole
+from app.core.logging import get_logger
 from app.execution.broker import (
     BrokerAuthError,
     BrokerError,
@@ -36,6 +57,7 @@ from app.execution.broker import (
 from app.execution.models import Balance, BrokerProfile, Order, Position
 from app.execution.order_manager import OrderEvent
 
+logger = get_logger(__name__)
 router = APIRouter(prefix="/broker", tags=["broker"])
 _admin = require_role(UserRole.ADMIN)
 _operator = require_role(UserRole.TRADER, UserRole.ADMIN)
@@ -97,6 +119,25 @@ async def reconcile(request: Request, _: Any = Depends(_operator)) -> dict[str, 
         "external": report.external,
         "error": report.error,
     }
+
+
+@router.get("/reconciliation")
+async def last_reconciliation(request: Request, _: Any = Depends(_operator)) -> dict[str, Any]:
+    last = _service(request).reconciliation.last
+    return {"result": last.model_dump(mode="json") if last else None}
+
+
+@router.post("/reconciliation")
+async def run_reconciliation(request: Request, _: Any = Depends(_operator)) -> dict[str, Any]:
+    """Compare local orders / positions / trades with the broker's (read-only)."""
+
+    svc = _service(request)
+    if not svc.adapter.configured:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Zerodha is not configured: nothing to reconcile."
+        )
+    result = await svc.reconciliation.run()
+    return {"result": result.model_dump(mode="json")}
 
 
 @router.post("/connect")
@@ -175,3 +216,98 @@ async def positions(request: Request, _: Any = Depends(_operator)) -> list[Posit
 @router.get("/zerodha/orders", response_model=list[Order])
 async def orders(request: Request, _: Any = Depends(_operator)) -> list[Order]:
     return await _read(request, "orders")
+
+
+# --- Kite login flow (Phase 13) ------------------------------------------------------
+
+
+def _runtime(request: Request) -> ZerodhaRuntime:
+    rt: ZerodhaRuntime | None = getattr(request.app.state, "zerodha", None)
+    if rt is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Zerodha runtime is not running.")
+    return rt
+
+
+def market_data_label(request: Request) -> str:
+    """CONNECTED / STALE / DISCONNECTED for real data, SIMULATED otherwise."""
+
+    md = getattr(request.app.state, "market_data_service", None)
+    if md is None:
+        return "DISCONNECTED"
+    if md.simulated:
+        return "SIMULATED"
+    return {"LIVE": "CONNECTED", "STALE": "STALE"}.get(md.data_status(), "DISCONNECTED")
+
+
+def zerodha_safe_status(request: Request) -> dict[str, Any]:
+    settings = get_settings()
+    return _runtime(request).safe_status(
+        market_data=market_data_label(request),
+        execution_mode=settings.effective_execution_mode.value,
+    )
+
+
+@router.get("/zerodha/status")
+async def zerodha_status(request: Request) -> dict[str, Any]:
+    return zerodha_safe_status(request)
+
+
+@router.get("/zerodha/login", response_model=None)
+async def zerodha_login(
+    request: Request,
+    redirect: bool = Query(default=False),
+    _: Any = Depends(_admin),
+) -> dict[str, str] | RedirectResponse:
+    rt = _runtime(request)
+    if not rt.configured:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Zerodha is not configured (KITE_API_KEY / KITE_API_SECRET on the backend).",
+        )
+    url = rt.auth.get_login_url()
+    if redirect:
+        return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    return {"login_url": url}
+
+
+def _frontend(result: str, reason: str | None = None) -> RedirectResponse:
+    query = {"zerodha": result}
+    if reason:
+        query["reason"] = reason
+    base = get_settings().frontend_url.rstrip("/")
+    return RedirectResponse(f"{base}/settings?{urlencode(query)}", status_code=303)
+
+
+@router.get("/zerodha/callback", include_in_schema=False)
+async def zerodha_callback(
+    request: Request,
+    request_token: str | None = Query(default=None, max_length=200),
+    state: str | None = Query(default=None, max_length=200),
+    status_: str | None = Query(default=None, alias="status", max_length=40),
+) -> RedirectResponse:
+    """Kite's redirect target (KITE_REDIRECT_URL). No JWT: the browser comes
+    here straight from Zerodha; the one-time `state` issued by /login is the
+    proof that an admin started this login."""
+
+    rt = _runtime(request)
+    if not rt.configured:
+        return _frontend("error", "not_configured")
+    try:
+        await rt.auth.handle_request_token(request_token, status=status_, state=state)
+    except KiteLoginError as exc:
+        reason = (
+            "state" if "state" in str(exc).lower() or "expired" in str(exc).lower() else "login"
+        )
+        return _frontend("error", reason)
+    except KiteError:
+        return _frontend("error", "token_exchange")
+    return _frontend("connected")
+
+
+@router.post("/zerodha/logout")
+async def zerodha_logout(request: Request, _: Any = Depends(_admin)) -> dict[str, Any]:
+    rt = _runtime(request)
+    if not rt.configured:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Zerodha is not configured.")
+    await rt.auth.logout()
+    return zerodha_safe_status(request)

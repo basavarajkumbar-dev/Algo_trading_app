@@ -48,4 +48,9 @@ class MarketStatusResponse(BaseModel):
     ticks_rejected: int
     rejected_by_issue: dict[str, int]
     started_at: datetime | None
+    # Phase 13: where the data comes from. "SIMULATED" data must never be
+    # shown as real; "ZERODHA_LIVE" is real NSE data from Kite Connect.
+    source: str = "MOCK"
+    data_source: str = "SIMULATED"
+    data_status: str | None = None
     notes: list[str]

@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import { useEffect, useMemo, useState } from "react";
 
 import { RegimeBadge } from "@/components/market/regime-badge";
@@ -80,7 +81,7 @@ export default function StrategiesPage() {
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Strategies</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
-            Strategy candidates on simulated data. Each strategy is a hypothesis to be tested, not a
+            Strategy candidates on <DataNoun /> data. Each strategy is a hypothesis to be tested, not a
             proven edge. Candidates are not orders: they are not sized, not risk-checked and never
             sent to a broker.
           </p>

@@ -272,6 +272,8 @@ class OrderManager:
             order = Order(
                 client_order_id=request.client_order_id,
                 tag=request.tag,
+                strategy_signal_id=request.strategy_signal_id,
+                correlation_id=request.correlation_id,
                 symbol=request.symbol,
                 side=request.side,
                 order_type=request.order_type,
@@ -301,6 +303,8 @@ class OrderManager:
             order = Order(
                 client_order_id=request.client_order_id,
                 tag=request.tag,
+                strategy_signal_id=request.strategy_signal_id,
+                correlation_id=request.correlation_id,
                 symbol=request.symbol,
                 side=request.side,
                 order_type=request.order_type,
@@ -336,6 +340,43 @@ class OrderManager:
             self._emit("ORDER_SENT", f"{_label(order)} sent ({order.status.value})", order)
             self._record_fills(None, order)
         return self.order(order.id)
+
+    async def retry_lost(self, order_id: uuid.UUID, *, risk_approved: bool) -> Order:
+        """Re-send an order whose first attempt had an unknown outcome — only
+        once reconciliation has confirmed it never reached the broker (LOST),
+        and only after one more reconcile still does not find it. Never a
+        blind retry: an uncertain order is reconciled, not re-sent. The retry
+        gets a new client_order_id (`<original>-r<n>`) and keeps the
+        correlation id, so both attempts stay linked."""
+
+        tracked = self._tracked.get(order_id)
+        if tracked is None:
+            raise KeyError(f"unknown order {order_id}")
+        if not tracked.lost:
+            raise ValueError(
+                "only an order confirmed LOST by reconciliation can be retried "
+                f"(this one is {tracked.order.status.value})"
+            )
+        report = await self.reconcile()
+        if not report.ok:
+            raise ValueError(f"reconciliation failed, not retrying: {report.error}")
+        if not tracked.lost:  # it showed up at the broker after all
+            return self.order(order_id)
+        base = tracked.request.client_order_id or order_id.hex
+        attempt = 1 + sum(1 for c in self._by_client_id if c.startswith(f"{base}-r"))
+        retry = tracked.request.model_copy(
+            update={
+                "client_order_id": f"{base}-r{attempt}",
+                "correlation_id": tracked.request.correlation_id or base,
+            }
+        )
+        self._emit(
+            "ORDER_RETRY",
+            f"{_label(tracked.order)} confirmed not at the broker; retrying as {retry.client_order_id}",
+            tracked.order,
+            severity="WARNING",
+        )
+        return await self.submit(retry, risk_approved=risk_approved)
 
     def _track(self, order: Order, request: OrderRequest) -> None:
         self._tracked[order.id] = _Tracked(order=order.model_copy(deep=True), request=request)

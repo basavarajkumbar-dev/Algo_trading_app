@@ -20,11 +20,13 @@ hardcoded here, they come from the instrument dump.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -38,6 +40,8 @@ from app.database.models.market_data import BrokerInstrument, InstrumentSyncRun
 from app.market_data.base import utcnow
 
 logger = get_logger(__name__)
+
+IST = ZoneInfo("Asia/Kolkata")
 
 BROKER = "ZERODHA"
 UPSERT_BATCH = 2000
@@ -405,6 +409,28 @@ class InstrumentService:
         self._clock = clock
         self.last_result: SyncResult | None = None
         self.syncing = False
+        self._ensure_lock = asyncio.Lock()
+
+    async def ensure_fresh(self, *, refresh_after: time = time(8, 30)) -> bool:
+        """Load the master from the database, and download it again when it
+        is missing or older than today's dump (Zerodha regenerates it every
+        morning, before 08:30 IST). Serialised: concurrent callers share one
+        sync. True when an instrument master is available."""
+
+        async with self._ensure_lock:
+            if self.resolver.size == 0:
+                await self.resolver.reload()
+            last = await self.repository.last_run(successful=True)
+            now_ist = self._clock().astimezone(IST)
+            cutoff = datetime.combine(now_ist.date(), refresh_after, tzinfo=IST)
+            if now_ist < cutoff:
+                cutoff -= timedelta(days=1)
+            stale = last is None or last.finished_at is None or last.finished_at < cutoff
+            if self.resolver.size == 0 or stale:
+                result = await self.sync_instruments()
+                if not result.ok and self.resolver.size == 0:
+                    return False
+            return self.resolver.size > 0
 
     async def sync_instruments(self) -> SyncResult:
         if self.syncing:

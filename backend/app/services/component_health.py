@@ -3,7 +3,8 @@
 Eight components, each HEALTHY / WARNING / CRITICAL with a plain-English
 detail and the metrics it was judged on:
 
-    market_data      simulated feed running, provider connected, latest tick age
+    market_data      feed running (simulated or Zerodha), provider connected,
+                     latest tick age against DATA_STALE_THRESHOLD_SECONDS
     backend          the API process (answering this request)
     database         PostgreSQL reachable
     redis            Redis reachable (not on the trading path yet: WARNING when down)
@@ -67,8 +68,9 @@ class ComponentHealthResponse(BaseModel):
     trading_mode: str
     checked_at: datetime
     note: str = (
-        "Market data is simulated. HEALTHY means a component is running as "
-        "designed; it says nothing about trading results."
+        "HEALTHY means a component is running as designed; it says nothing "
+        "about trading results. See market_data.metrics.source for whether "
+        "the data is simulated or real."
     )
 
 
@@ -82,10 +84,16 @@ def classify_market_data(
     tick_age_seconds: float | None,
     demo_mode: bool,
     max_age: float = 10.0,
+    simulated: bool = True,
 ) -> tuple[HealthLevel, str]:
     if not running:
         return HealthLevel.CRITICAL, "Market data feed is not running"
     if provider != MarketDataProviderStatus.CONNECTED.value:
+        if not simulated:
+            return (
+                HealthLevel.CRITICAL,
+                f"Zerodha feed is {provider or 'unknown'} (a Kite login may be needed)",
+            )
         return HealthLevel.CRITICAL, f"Provider is {provider or 'unknown'}"
     if tick_age_seconds is None:
         return HealthLevel.WARNING, "No tick received yet"
@@ -93,10 +101,16 @@ def classify_market_data(
         return HealthLevel.CRITICAL, f"Last tick {tick_age_seconds:.0f}s ago"
     if tick_age_seconds > max_age:
         return HealthLevel.WARNING, f"Last tick {tick_age_seconds:.0f}s ago"
+    if not simulated:
+        return (
+            HealthLevel.HEALTHY,
+            f"Zerodha live feed streaming, last tick {tick_age_seconds:.1f}s ago",
+        )
     if not demo_mode:
         return (
             HealthLevel.WARNING,
-            "Simulated feed running while DEMO_MODE=false: no live provider exists yet",
+            "Simulated feed running while DEMO_MODE=false (set MARKET_DATA_MODE=ZERODHA "
+            "and log in to Kite for real data)",
         )
     return HealthLevel.HEALTHY, f"Simulated feed streaming, last tick {tick_age_seconds:.1f}s ago"
 
@@ -153,6 +167,8 @@ async def get_component_health(state: Any, settings: Settings) -> ComponentHealt
         provider=provider,
         tick_age_seconds=tick_age,
         demo_mode=settings.demo_mode,
+        max_age=settings.data_stale_threshold_seconds,
+        simulated=bool(md.simulated) if md is not None else True,
     )
     reports.append(
         ComponentReport(
@@ -162,7 +178,9 @@ async def get_component_health(state: Any, settings: Settings) -> ComponentHealt
             detail=detail,
             metrics={
                 "provider": provider,
-                "simulated": True,
+                "source": md.source if md is not None else None,
+                "simulated": bool(md.simulated) if md is not None else True,
+                "data_status": md.data_status() if md is not None else None,
                 "last_tick_age_seconds": round(tick_age, 2) if tick_age is not None else None,
                 "ticks_accepted": md.stats.ticks_accepted if md else 0,
                 "ticks_rejected": md.stats.ticks_rejected if md else 0,

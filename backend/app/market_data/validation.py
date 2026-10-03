@@ -10,8 +10,9 @@ upstream feed can never quietly corrupt candles.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from app.market_data.base import utcnow
 from app.market_data.schemas import Tick
@@ -52,6 +53,7 @@ class TickValidator:
 
     stale_after: timedelta = field(default_factory=lambda: timedelta(seconds=30))
     future_tolerance: timedelta = field(default_factory=lambda: timedelta(seconds=5))
+    clock: Callable[[], datetime] = utcnow
     _last_accepted: dict[str, Tick] = field(default_factory=dict, repr=False)
 
     def validate(self, tick: Tick | None) -> ValidationResult:
@@ -70,7 +72,7 @@ class TickValidator:
         elif math.isnan(tick.price) or math.isinf(tick.price) or tick.price <= 0:
             issues.append(ValidationIssue.INVALID_PRICE)
 
-        now = utcnow()
+        now = self.clock()
         if tick.timestamp > now + self.future_tolerance:
             issues.append(ValidationIssue.FUTURE_TIMESTAMP)
         elif now - tick.timestamp > self.stale_after:

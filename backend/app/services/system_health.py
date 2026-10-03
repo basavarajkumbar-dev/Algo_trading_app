@@ -82,10 +82,18 @@ async def get_system_health(settings: Settings) -> SystemHealthResponse:
     )
     components = [database_health, redis_health]
 
+    data_mode = settings.effective_market_data_mode.value
+    if data_mode == "ZERODHA" and settings.zerodha_configured:
+        data_note = (
+            "Market data: ZERODHA (real NSE data via Kite Connect once an admin logs "
+            "in; nothing is simulated in this mode)."
+        )
+    else:
+        data_note = "Market data is SIMULATED (mock provider) — not a live market feed."
     notes = [
-        "Market data is simulated (mock provider) — no live market feed is "
-        "connected in this phase.",
-        "No broker is connected and no real orders can be placed.",
+        data_note,
+        f"Execution: {settings.effective_execution_mode.value}. No real orders are "
+        "placed: orders go to the paper broker.",
     ]
     if settings.trading_mode == TradingMode.APPROVAL:
         notes.append(

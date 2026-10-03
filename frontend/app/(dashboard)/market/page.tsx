@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -94,8 +95,8 @@ export default function MarketIntelligencePage() {
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Market Intelligence</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
-            Regime and factor analysis of simulated NIFTY 50 data. No live feed or broker is
-            connected. A regime describes recent behaviour; it is not a forecast.
+            Regime and factor analysis of <DataNoun /> NIFTY 50 data (see DATA SOURCE). No real
+            orders are placed. A regime describes recent behaviour; it is not a forecast.
           </p>
           <Link href="/price-action" className="mt-2 inline-block text-xs text-accent hover:underline">
             Price action: patterns, levels and multi-timeframe →
@@ -143,7 +144,7 @@ export default function MarketIntelligencePage() {
                     )}
                   >
                     {formatPercent(benchmarkTick?.change_percent ?? benchmarkSummary?.change_percent)}{" "}
-                    <span className="text-xs text-muted">vs simulated open</span>
+                    <span className="text-xs text-muted">vs session open</span>
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">

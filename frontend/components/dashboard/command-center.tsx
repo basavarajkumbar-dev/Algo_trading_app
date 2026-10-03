@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import { livePnl } from "@/components/dashboard/active-position";
 import { Figure, errorText } from "@/components/dashboard/panel";
 import { RegimeBadge } from "@/components/market/regime-badge";
@@ -45,7 +46,7 @@ export function CommandCenter() {
             nifty ? (
               <span className={nifty.change_percent >= 0 ? "text-profit" : "text-loss"}>
                 {nifty.change_percent >= 0 ? "+" : ""}
-                {nifty.change_percent.toFixed(2)}% · simulated
+                {nifty.change_percent.toFixed(2)}% · <DataNoun />
               </span>
             ) : (
               "waiting for the feed"
@@ -65,7 +66,7 @@ export function CommandCenter() {
             {algo.label}
           </Badge>
         </Figure>
-        <Figure label="Trading mode" hint="no broker connected">
+        <Figure label="Trading mode" hint="orders run on the paper broker">
           <Badge variant="accent">{s?.mode ?? "PAPER"}</Badge>
         </Figure>
         <Figure

@@ -203,6 +203,8 @@ class PaperBrokerAdapter(BrokerAdapter):
         order = Order(
             client_order_id=request.client_order_id,
             tag=request.tag,
+            strategy_signal_id=request.strategy_signal_id,
+            correlation_id=request.correlation_id,
             symbol=request.symbol,
             side=request.side,
             order_type=request.order_type,

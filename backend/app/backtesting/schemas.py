@@ -26,6 +26,7 @@ class BacktestMode(str, Enum):
 class DataSourceKind(str, Enum):
     SYNTHETIC = "synthetic"
     CSV = "csv"
+    ZERODHA = "zerodha"  # real 5-minute candles from Kite Connect (needs a login)
 
 
 class DataSourceSpec(BaseModel):

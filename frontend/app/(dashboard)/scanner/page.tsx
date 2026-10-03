@@ -1,5 +1,6 @@
 "use client";
 
+import { DataNoun } from "@/components/market/data-source-badge";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -112,7 +113,7 @@ export default function ScannerPage() {
           <h1 className="text-xl font-semibold tracking-tight">NIFTY 50 Scanner</h1>
           <p className="mt-1 max-w-3xl text-sm text-muted">
             Every NIFTY 50 stock through regime, multi-timeframe, price action and strategy analysis,
-            with scored and ranked candidates. Simulated data. A rank orders the current evidence; it
+            with scored and ranked candidates. Data: <DataNoun />. A rank orders the current evidence; it
             is not a forecast and not proof of profitability.
           </p>
         </div>

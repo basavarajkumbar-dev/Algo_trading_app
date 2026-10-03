@@ -239,6 +239,8 @@ class RiskManager:
             age = (now - conditions.price_timestamp).total_seconds()
             if age > lim.max_data_age_seconds:
                 stale.append(f"last price is {age:.0f}s old (max {lim.max_data_age_seconds:.0f}s)")
+        if conditions.data_stale:
+            stale.append(conditions.data_stale)
         if not intent.signal_active:
             stale.append("signal has expired")
         elif intent.signal_last_seen_at is not None:

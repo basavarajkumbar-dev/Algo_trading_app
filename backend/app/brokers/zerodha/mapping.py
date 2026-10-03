@@ -21,6 +21,7 @@ from app.execution.models import (
     Balance,
     BrokerProfile,
     Instrument,
+    Margins,
     Order,
     OrderRequest,
     OrderStatus,
@@ -28,6 +29,7 @@ from app.execution.models import (
     Position,
     Product,
     Side,
+    Trade,
 )
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -260,6 +262,41 @@ def balance_from_kite(equity: dict[str, Any]) -> Balance:
         unrealized_pnl=unrealised,
         charges_paid=0.0,
         equity=round(cash + unrealised, 2),
+    )
+
+
+def trade_from_kite(data: dict[str, Any], *, local_id: uuid.UUID | None = None) -> Trade:
+    """GET /trades or /orders/:id/trades row."""
+
+    ts = _dt(data.get("fill_timestamp")) or _dt(data.get("exchange_timestamp"))
+    return Trade(
+        trade_id=str(data.get("trade_id")),
+        order_id=local_id,
+        broker_order_id=str(data["order_id"]) if data.get("order_id") else None,
+        symbol=str(data.get("tradingsymbol")),
+        exchange=str(data.get("exchange") or "NSE"),
+        side=Side(str(data.get("transaction_type", "BUY")).upper()),
+        quantity=int(data.get("quantity") or 0),
+        price=float(data.get("average_price") or 0.0),
+        timestamp=ts or datetime.now(UTC),
+        is_paper=False,
+    )
+
+
+def margins_from_kite(equity: dict[str, Any]) -> Margins:
+    available = equity.get("available") or {}
+    utilised = equity.get("utilised") or {}
+    return Margins(
+        segment="equity",
+        available_cash=float(available.get("live_balance", available.get("cash", 0.0)) or 0.0),
+        opening_balance=(
+            float(available["opening_balance"])
+            if available.get("opening_balance") is not None
+            else None
+        ),
+        used=float(utilised.get("debits") or 0.0),
+        net=float(equity.get("net") or 0.0),
+        is_paper=False,
     )
 
 

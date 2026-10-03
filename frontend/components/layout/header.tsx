@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { NotificationsMenu } from "@/components/layout/notifications-menu";
 import { PendingApprovals } from "@/components/approvals/pending-badge";
+import { DataSourceBadge } from "@/components/market/data-source-badge";
 import { RegimeBadge } from "@/components/market/regime-badge";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -64,7 +65,7 @@ export function Header() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-5">
       <div className="flex min-w-0 items-center gap-5 overflow-x-auto text-sm">
-        <Item label="NIFTY 50" hint="Simulated NIFTY 50 index, streamed over the WebSocket">
+        <Item label="NIFTY 50" hint="NIFTY 50 index, streamed over the WebSocket (see DATA SOURCE)">
           <span className="tabular font-medium" data-testid="topbar-nifty">
             {nifty ? formatPrice(nifty.price) : "—"}
           </span>
@@ -82,9 +83,7 @@ export function Header() {
           <Badge variant={market.variant} data-testid="topbar-market">
             {market.label}
           </Badge>
-          <Badge variant="pending" className="hidden xl:inline-flex" title="No live feed is connected">
-            Simulated data
-          </Badge>
+          <DataSourceBadge />
         </Item>
         <Item label="Mode">
           <Badge variant="accent" data-testid="topbar-mode">

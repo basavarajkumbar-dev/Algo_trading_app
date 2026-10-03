@@ -3,6 +3,8 @@
 import { ActivePosition } from "@/components/dashboard/active-position";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import { LiveScanner } from "@/components/dashboard/live-scanner";
+import { MarketFeedPanel } from "@/components/dashboard/market-feed-panel";
+import { useDataNoun } from "@/components/market/data-source-badge";
 import { MarketBrain } from "@/components/dashboard/market-brain";
 import { Panel, errorText } from "@/components/dashboard/panel";
 import { RiskSummary } from "@/components/dashboard/risk-summary";
@@ -13,6 +15,7 @@ import { useTrades } from "@/lib/queries";
 
 export default function DashboardPage() {
   const trades = useTrades(200);
+  const noun = useDataNoun();
 
   return (
     <div className="flex flex-col gap-4">
@@ -20,12 +23,14 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Command Center</h1>
           <p className="mt-0.5 text-xs text-muted">
-            PAPER mode on simulated NIFTY 50 data. Live over the WebSocket; no broker connected.
+            PAPER mode on {noun} NIFTY 50 data, streamed over the WebSocket. No real orders are placed.
           </p>
         </div>
       </div>
 
       <CommandCenter />
+
+      <MarketFeedPanel />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,5fr)_minmax(0,8fr)]">
         <MarketBrain />

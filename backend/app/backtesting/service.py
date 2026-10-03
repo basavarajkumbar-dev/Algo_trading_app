@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -19,12 +19,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.backtesting import repository as repo
 from app.backtesting.runner import run_backtest
-from app.backtesting.schemas import BacktestRequest
+from app.backtesting.schemas import BacktestRequest, DataSourceKind
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
 SessionFactory = Callable[[], AsyncSession]
+# Downloads real history for a run (DATA_SOURCE=ZERODHA) and returns the
+# directory it wrote; injected so this module needs no broker import.
+HistoryFetcher = Callable[[BacktestRequest, Callable[[float, str], None]], Awaitable[str]]
 
 
 @dataclass
@@ -40,9 +43,11 @@ class BacktestService:
         *,
         data_dir: str | None = None,
         workers: int | None = None,
+        history_fetcher: HistoryFetcher | None = None,
     ) -> None:
         self._session_factory = session_factory
         self.data_dir = data_dir
+        self.history_fetcher = history_fetcher
         self.workers = workers
         self._queue: asyncio.Queue[tuple[uuid.UUID, BacktestRequest]] = asyncio.Queue()
         self._task: asyncio.Task[None] | None = None
@@ -118,10 +123,16 @@ class BacktestService:
             self._live[run_id] = LiveProgress(round(min(max(p, 0.0), 1.0), 3), message)
 
         try:
+            data_dir = self.data_dir
+            if req.data_source.kind == DataSourceKind.ZERODHA:
+                if self.history_fetcher is None:
+                    raise RuntimeError("Zerodha history is not available (not configured)")
+                progress(0.0, "Downloading Zerodha history")
+                data_dir = await self.history_fetcher(req, progress)
             outcome = await asyncio.to_thread(
                 run_backtest,
                 req,
-                data_dir=self.data_dir,
+                data_dir=data_dir,
                 progress=progress,
                 should_stop=lambda: run_id in self._cancel,
                 workers=self.workers,

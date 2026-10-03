@@ -32,7 +32,12 @@ from typing import Any
 
 from app.analytics.performance import EquityPoint
 from app.backtesting.calendar import trading_days
-from app.backtesting.data import CsvHistorySource, HistoricalDataSource, SyntheticHistorySource
+from app.backtesting.data import (
+    CsvHistorySource,
+    HistoricalDataSource,
+    SyntheticHistorySource,
+    ZerodhaHistorySource,
+)
 from app.backtesting.metrics import (
     BacktestMetrics,
     compute_metrics,
@@ -87,6 +92,10 @@ ProgressFn = Callable[[float, str], None]
 def make_source(req: BacktestRequest, data_dir: str | None) -> HistoricalDataSource:
     if req.data_source.kind == DataSourceKind.SYNTHETIC:
         return SyntheticHistorySource(seed=req.data_source.seed)
+    if req.data_source.kind == DataSourceKind.ZERODHA:
+        if not data_dir:
+            raise BacktestError("Zerodha history has not been downloaded for this run")
+        return ZerodhaHistorySource(Path(data_dir))
     if not data_dir:
         raise BacktestError("No CSV data directory configured (BACKTEST_DATA_DIR)")
     return CsvHistorySource(Path(data_dir))

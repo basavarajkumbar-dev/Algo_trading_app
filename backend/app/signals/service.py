@@ -144,6 +144,7 @@ class SignalService:
             )
             # The index is market context, not a tradable candidate here.
             signals = [s for s in signals if s.symbol != self._benchmark]
+            self._apply_stale_guard(signals, now)
             ranked = self.ranking.rank(signals)
         except Exception as exc:  # noqa: BLE001 - keep the last good scan
             self._last_error = f"{type(exc).__name__}: {exc}"
@@ -170,6 +171,25 @@ class SignalService:
         self._last_scan_at = now
         self._last_error = None
         self._scan_count += 1
+
+    def _apply_stale_guard(self, signals: list[TradingSignal], now: datetime) -> None:
+        """Stale-data protection: a signal computed on data older than
+        DATA_STALE_THRESHOLD_SECONDS (or while the feed is down) is never
+        executable, whatever its score."""
+
+        is_stale = getattr(self._market_data, "is_stale", None)
+        if is_stale is None:
+            return
+        for signal in signals:
+            # freshness is judged on the market data service's own clock
+            if signal.executable and is_stale(signal.symbol):
+                age = self._market_data.data_age_seconds(signal.symbol)
+                detail = f"no tick for {age:.0f}s" if age is not None else "no data yet"
+                signal.executable = False
+                signal.blocked_reason = "DATA_STALE"
+                signal.reasons.append(
+                    f"DATA_STALE: market data is not fresh ({detail}); not executable"
+                )
 
     async def _persist(
         self, signals: list[TradingSignal], ranked: list[TradeCandidate], now: datetime

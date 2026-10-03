@@ -59,12 +59,14 @@ from app.execution.models import (
     BrokerProfile,
     ConnectionState,
     Instrument,
+    Margins,
     Order,
     OrderModification,
     OrderRequest,
     OrderStatus,
     OrderType,
     Position,
+    Trade,
 )
 from app.market_data.base import utcnow
 
@@ -390,6 +392,8 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
         if known is not None:
             order.modifications = known.modifications
             order.placed_at = known.placed_at
+            order.strategy_signal_id = known.strategy_signal_id
+            order.correlation_id = known.correlation_id
             self._orders[order.id] = order
         return order
 
@@ -412,6 +416,25 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
         if not history:
             return known.model_copy(deep=True)
         return self._adopt(history[-1]).model_copy(deep=True)
+
+    async def get_trades(self) -> list[Trade]:
+        rows = await self._call("trades", lambda c: c.trades())
+        return [
+            mapping.trade_from_kite(r, local_id=self._by_broker_id.get(str(r.get("order_id"))))
+            for r in rows
+            if r.get("trade_id")
+        ]
+
+    async def get_order_trades(self, order_id: uuid.UUID) -> list[Trade]:
+        known = self._orders.get(order_id)
+        if known is None or known.broker_order_id is None:
+            return []
+        broker_id = known.broker_order_id
+        rows = await self._call("order_trades", lambda c: c.order_trades(broker_id))
+        return [mapping.trade_from_kite(r, local_id=order_id) for r in rows if r.get("trade_id")]
+
+    async def get_margins(self) -> Margins:
+        return mapping.margins_from_kite(await self._call("margins", lambda c: c.margins_equity()))
 
     def _check_armed(self) -> None:
         if not self._live_orders_armed:

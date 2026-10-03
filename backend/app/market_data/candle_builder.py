@@ -48,6 +48,10 @@ class SessionCalendar:
     def zone(self) -> ZoneInfo:
         return ZoneInfo(self.tz)
 
+    @property
+    def minutes(self) -> int:
+        return (self.close.hour * 60 + self.close.minute) - (self.open.hour * 60 + self.open.minute)
+
     def anchor_minute_utc(self) -> int:
         """Minute of the UTC day the session opens (09:15 IST = 03:45 UTC = 225)."""
 
@@ -65,7 +69,9 @@ class SessionCalendar:
 NSE_SESSION = SessionCalendar()
 
 
-def floor_to_timeframe(timestamp: datetime, minutes: int, anchor_minute: int | None = None) -> datetime:
+def floor_to_timeframe(
+    timestamp: datetime, minutes: int, anchor_minute: int | None = None
+) -> datetime:
     """Floor a UTC timestamp to the start of its N-minute bucket.
 
     Without an anchor, buckets align to the top of the hour (a 15m bucket
@@ -149,6 +155,7 @@ class _SymbolCandleState:
     history: dict[Timeframe, deque[Candle]] = field(init=False)
     current_higher: dict[Timeframe, Candle] = field(default_factory=dict)
     last_closed_1m: datetime | None = None
+    first_live_minute: datetime | None = None  # first 1m bucket built from live ticks
 
     def __post_init__(self) -> None:
         self.history = {tf: deque(maxlen=self.history_length) for tf in Timeframe}
@@ -205,6 +212,8 @@ class CandleBuilder:
         closed: list[Candle] = []
 
         current = state.current_1m
+        if state.first_live_minute is None:
+            state.first_live_minute = bucket_start
         if current is None:
             state.current_1m = self._new_candle(tick, Timeframe.M1, bucket_start)
         elif current.timestamp == bucket_start:
@@ -353,6 +362,58 @@ class CandleBuilder:
         if timeframe == Timeframe.M1 and unique and state.last_closed_1m is None:
             state.last_closed_1m = unique[-1].timestamp
         return len(unique)
+
+    def seed_partial(self, symbol: str, minutes: list[Candle], now: datetime) -> int:
+        """Start (or complete) each higher timeframe's in-progress candle from
+        closed 1-minute history in its current bucket, so the first live
+        15m / 60m candle after a mid-session start covers the whole bucket,
+        not only the minutes since the feed connected. Minutes the live feed
+        already covers are skipped (never counted twice). Returns the number
+        of timeframes seeded."""
+
+        state = self._state[symbol]
+        first_live = state.first_live_minute
+        usable = sorted(
+            (
+                m
+                for m in minutes
+                if m.is_closed
+                and m.timeframe == Timeframe.M1
+                and (first_live is None or m.timestamp < first_live)
+            ),
+            key=lambda m: m.timestamp,
+        )
+        seeded = 0
+        for timeframe in self._timeframes:
+            bucket = self._floor(now, timeframe)
+            part = [m for m in usable if self._floor(m.timestamp, timeframe) == bucket]
+            if not part:
+                continue
+            last = state.history[timeframe][-1] if state.history[timeframe] else None
+            if last is not None and last.timestamp >= bucket:
+                continue  # that bucket is already closed
+            current = state.current_higher.get(timeframe)
+            if current is None:
+                state.current_higher[timeframe] = Candle(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    timestamp=bucket,
+                    open=part[0].open,
+                    high=max(m.high for m in part),
+                    low=min(m.low for m in part),
+                    close=part[-1].close,
+                    volume=sum(m.volume for m in part),
+                    is_closed=False,
+                )
+            elif current.timestamp == bucket:
+                current.open = part[0].open  # history precedes the live minutes
+                current.high = max(current.high, *(m.high for m in part))
+                current.low = min(current.low, *(m.low for m in part))
+                current.volume += sum(m.volume for m in part)
+            else:
+                continue
+            seeded += 1
+        return seeded
 
     def get_candles(self, symbol: str, timeframe: Timeframe, limit: int = 100) -> list[Candle]:
         """Return up to `limit` most recent CLOSED candles, oldest first."""

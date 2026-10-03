@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { ZerodhaCard } from "@/components/settings/zerodha-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -138,6 +139,8 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ZerodhaCard />
     </div>
   );
 }

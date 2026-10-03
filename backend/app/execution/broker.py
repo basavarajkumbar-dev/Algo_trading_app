@@ -37,10 +37,12 @@ from app.execution.models import (
     BrokerProfile,
     ConnectionState,
     Instrument,
+    Margins,
     Order,
     OrderModification,
     OrderRequest,
     Position,
+    Trade,
 )
 
 
@@ -123,3 +125,47 @@ class BrokerAdapter(ABC):
 
     @abstractmethod
     async def get_instruments(self, exchange: str | None = None) -> list[Instrument]: ...
+
+    # --- executions and funds (Phase 13) ---------------------------------------
+    # Defaults derive them from orders and the balance, which is exact for
+    # the in-process brokers (paper, mock); a remote broker overrides them
+    # with its own trade book and margin endpoints.
+
+    async def get_trades(self) -> list[Trade]:
+        """Every execution of the trading day."""
+
+        trades: list[Trade] = []
+        for order in await self.get_orders():
+            trades.extend(_trades_of(order, self.is_paper))
+        return trades
+
+    async def get_order_trades(self, order_id: uuid.UUID) -> list[Trade]:
+        return _trades_of(await self.get_order_status(order_id), self.is_paper)
+
+    async def get_margins(self) -> Margins:
+        b = await self.get_balance()
+        return Margins(
+            available_cash=b.available,
+            opening_balance=b.starting_capital,
+            used=b.used_margin,
+            net=b.equity,
+            is_paper=self.is_paper,
+        )
+
+
+def _trades_of(order: Order, is_paper: bool) -> list[Trade]:
+    return [
+        Trade(
+            trade_id=f"{order.id.hex[:12]}-{i}",
+            order_id=order.id,
+            broker_order_id=order.broker_order_id,
+            symbol=order.symbol,
+            exchange=order.exchange,
+            side=f.side,
+            quantity=f.quantity,
+            price=f.price,
+            timestamp=f.timestamp,
+            is_paper=is_paper,
+        )
+        for i, f in enumerate(order.fills, start=1)
+    ]

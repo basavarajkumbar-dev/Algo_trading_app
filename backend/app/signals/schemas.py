@@ -106,6 +106,9 @@ class TradingSignal(BaseModel):
     candle_time: datetime  # the closed candle the signal was computed on
     timestamp: datetime  # when it was generated
     status: SignalStatus = SignalStatus.ACTIVE
+    # Set when a signal that scored as executable was held back (e.g.
+    # DATA_STALE: the market data behind it is too old to act on).
+    blocked_reason: str | None = None
     note: str = SIGNAL_NOTE
 
     @property
