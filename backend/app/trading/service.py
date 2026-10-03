@@ -7,7 +7,10 @@ Every `poll_seconds`:
    working order into the engine (and through it the paper broker);
 2. lets the engine handle timeouts and square-off;
 3. with automatic trading on, after each new scan, sends the best READY
-   candidate not yet tried today through SIGNAL -> RISK -> ORDER;
+   candidate not yet tried today through SIGNAL -> RISK -> ORDER; in
+   APPROVAL mode it proposes READY candidates for human approval instead
+   (SIGNAL -> SCORE -> RISK CHECK -> PENDING APPROVAL) and never executes
+   on its own;
 4. persists whatever changed (orders, trades, events).
 
 System health for the risk check covers the market data feed, the
@@ -22,7 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -43,7 +46,7 @@ from app.risk.schemas import (
     TradeIntent,
     TradeSide,
 )
-from app.signals.repository import get_signal
+from app.signals.repository import SignalRecord, get_signal
 from app.signals.schemas import SignalDirection, SignalStatus
 from app.signals.service import SignalService
 from app.trading.engine import EngineConfig, EngineError, PaperTradingEngine
@@ -118,6 +121,10 @@ class TradingService:
         self._task: asyncio.Task[None] | None = None
         self._last_seen: dict[str, tuple[datetime, float]] = {}
         self._seen_scan = -1
+        # APPROVAL mode (Phase 12): set by the ApprovalService
+        self.approval_hook: Callable[[uuid.UUID], Awaitable[bool]] | None = None
+        self.on_mode_change: Callable[[str, str], Awaitable[None]] | None = None
+        self.on_emergency_stop: Callable[[str], Awaitable[None]] | None = None
         self._auto_tried: set[uuid.UUID] = set()
         self._persistence_error: str | None = None
         self._persisted_once = False
@@ -229,7 +236,10 @@ class TradingService:
         engine = self.engine
         if not engine.auto_trading or self._signals is None:
             return
-        if engine.active is not None or not engine.state.is_resting:
+        approval = self.mode == "APPROVAL"
+        if approval and self.approval_hook is None:
+            return  # nothing may execute without an approval service
+        if not approval and (engine.active is not None or not engine.state.is_resting):
             return
         scan_count = self._signals.status().scan_count
         if scan_count == self._seen_scan:
@@ -245,6 +255,16 @@ class TradingService:
                 continue
             if candidate.signal_id in engine.risk.state.executed_signal_ids:
                 continue
+            if approval:
+                assert self.approval_hook is not None
+                try:
+                    handled = await self.approval_hook(candidate.signal_id)
+                except Exception:  # noqa: BLE001 - a failed proposal must not stop the loop
+                    logger.exception("Approval request for %s failed", candidate.signal_id)
+                    handled = True
+                if handled:
+                    self._auto_tried.add(candidate.signal_id)
+                continue  # propose READY candidates once each; a person decides
             self._auto_tried.add(candidate.signal_id)
             try:
                 await self._execute_signal_locked(candidate.signal_id)
@@ -344,6 +364,12 @@ class TradingService:
             return decision
 
     async def _execute_signal_locked(self, signal_id: uuid.UUID) -> RiskDecision:
+        intent, _ = await self.build_intent(signal_id)
+        return await self.execute_intent(intent, locked=True)
+
+    async def build_intent(self, signal_id: uuid.UUID) -> tuple[TradeIntent, SignalRecord]:
+        """The trade a stored signal describes (no risk check, no side effect)."""
+
         if self._session_factory is None:
             raise SignalNotFound("Signals are not stored (no database configured).")
         async with self._session_factory() as session:
@@ -365,7 +391,62 @@ class TradingService:
             signal_last_seen_at=record.last_seen_at,
             signal_active=signal.status == SignalStatus.ACTIVE,
         )
-        return await self.execute_intent(intent, locked=True)
+        return intent, record
+
+    async def preview_intent(self, intent: TradeIntent, *, locked: bool = False) -> RiskDecision:
+        """Every risk check and the position size, without executing anything."""
+
+        if not locked:
+            async with self._lock:
+                return await self.preview_intent(intent, locked=True)
+        await self._feed_prices(extra=intent.symbol)
+        conditions = await self._conditions(intent.symbol)
+        return self.engine.preview(intent, conditions)
+
+    @property
+    def trade_active(self) -> bool:
+        return self.engine.active is not None or not self.engine.state.is_resting
+
+    async def execute_approved(self, intent: TradeIntent) -> tuple[RiskDecision, uuid.UUID | None]:
+        """Execute an approved request (paper broker). The risk checks run
+        again here; returns the decision and the trade it opened, if any."""
+
+        if intent.approval_id is None:
+            raise ValueError("execute_approved needs an approval id")
+        async with self._lock:
+            before = self.engine.active
+            decision = await self.execute_intent(intent, locked=True)
+            trade = self.engine.active
+            if (
+                trade is None
+                and self.engine.closed
+                and self.engine.closed[-1].signal_id == intent.signal_id
+            ):
+                trade = self.engine.closed[-1]  # opened and rejected by the broker at once
+            trade_id = (
+                trade.id
+                if decision.approved and trade is not None and trade is not before
+                else None
+            )
+            await self._persist()
+        return decision, trade_id
+
+    @property
+    def mode(self) -> str:
+        return self.engine.config.trading_mode
+
+    async def set_mode(self, mode: str) -> str:
+        """Switch between PAPER and APPROVAL (both execute on the paper broker).
+        LIVE is not available. Returns the previous mode."""
+
+        async with self._lock:
+            previous = self.mode
+            self.engine.set_trading_mode(mode)
+            self._seen_scan = -1
+            self._auto_tried.clear()
+        if previous != mode and self.on_mode_change is not None:
+            await self.on_mode_change(previous, mode)
+        return previous
 
     async def execute_intent(self, intent: TradeIntent, *, locked: bool = False) -> RiskDecision:
         """Run an intent through risk and, if approved, the paper broker."""
@@ -397,6 +478,8 @@ class TradingService:
             await self._feed_prices()
             await self.engine.emergency_stop(reason, close_position=close_position)
             await self._persist()
+        if self.on_emergency_stop is not None:
+            await self.on_emergency_stop(reason)  # pending approvals are cancelled
 
     async def reset_emergency_stop(self) -> None:
         async with self._lock:
@@ -416,7 +499,7 @@ class TradingService:
             entries_allowed=entries_allowed,
             market_detail=entries_detail if market_open else market_detail,
             session_mode=engine.risk.limits.session.mode.value,
-            mode="PAPER",
+            mode=self.mode,
             state=engine.state,
             state_since=engine.machine.changed_at,
             auto_trading=engine.auto_trading,

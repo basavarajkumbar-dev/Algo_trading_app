@@ -192,12 +192,30 @@ class RiskManager:
                 RiskCheck(name=name, passed=ok, detail=detail, reason=None if ok else reason)
             )
 
+        mode = conditions.trading_mode
         check(
             "trading_mode",
-            conditions.trading_mode == "PAPER",
-            f"mode {conditions.trading_mode}; only PAPER execution exists",
+            mode in ("PAPER", "APPROVAL"),
+            f"mode {mode}"
+            + ("" if mode in ("PAPER", "APPROVAL") else "; only paper execution exists"),
             RejectionReason.TRADING_MODE_NOT_PAPER,
         )
+        if mode == "APPROVAL":
+            approved = intent.approval_id is not None or conditions.preview
+            check(
+                "approval",
+                approved,
+                (
+                    "previewed for approval"
+                    if conditions.preview
+                    else (
+                        f"approved request {intent.approval_id}"
+                        if intent.approval_id
+                        else "APPROVAL mode: a person must approve this trade first"
+                    )
+                ),
+                RejectionReason.APPROVAL_REQUIRED,
+            )
         check(
             "emergency_stop",
             not account.emergency_stop,
@@ -354,6 +372,17 @@ class RiskManager:
                         "actual_risk": round(qty * size.risk_per_unit, 2),
                         "position_value": round(qty * size.entry, 2),
                         "constraints": [*size.constraints, "capped by remaining daily loss"],
+                    }
+                )
+            # An approved request never executes more shares than were approved.
+            if intent.max_quantity is not None and size.quantity > intent.max_quantity:
+                qty = floor_to_lot(intent.max_quantity, lim.lot_size)
+                size = size.model_copy(
+                    update={
+                        "quantity": qty,
+                        "actual_risk": round(qty * size.risk_per_unit, 2),
+                        "position_value": round(qty * size.entry, 2),
+                        "constraints": [*size.constraints, "capped at the approved quantity"],
                     }
                 )
             qty_ok = size.quantity >= lim.lot_size and size.quantity % lim.lot_size == 0

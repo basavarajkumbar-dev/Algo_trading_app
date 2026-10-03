@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # --- Trading safety defaults (not enforced until later phases) ------
     trading_mode: TradingMode = Field(default=TradingMode.PAPER, alias="TRADING_MODE")
     live_mode_enabled: bool = Field(default=False, alias="LIVE_MODE_ENABLED")
+    # APPROVAL mode: how long a proposed trade waits for a decision. An expired
+    # request is never executed.
+    approval_ttl_seconds: int = Field(default=120, ge=15, le=3600, alias="APPROVAL_TTL_SECONDS")
     paper_capital: float = Field(default=100_000.0, alias="PAPER_CAPITAL")
     risk_per_trade: float = Field(default=1.0, alias="RISK_PER_TRADE")
     max_daily_loss: float = Field(default=3.0, alias="MAX_DAILY_LOSS")

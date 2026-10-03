@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_v1_router
+from app.approvals.service import ApprovalService
 from app.backtesting.service import BacktestService
 from app.brokers.service import BrokerService, ensure_not_live_by_accident
 from app.core.config import get_settings
@@ -120,8 +121,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         limits=risk_limits_from_settings(settings),
         broker_config=paper_broker_config_from_settings(settings),
         engine_config=EngineConfig(
-            # Anything but PAPER makes every risk check fail: only paper
-            # execution exists.
+            # PAPER and APPROVAL execute on the paper broker (APPROVAL only
+            # after a person approves); LIVE fails every risk check.
             trading_mode=settings.trading_mode.value,
             entry_timeout_seconds=settings.paper_entry_timeout_seconds,
             emergency_close_positions=settings.paper_emergency_close_positions,
@@ -130,6 +131,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     await trading_service.start()
     app.state.trading_service = trading_service
+
+    approval_service = ApprovalService(
+        trading_service,
+        async_session_factory,
+        ttl_seconds=settings.approval_ttl_seconds,
+        broadcast=market_data_service.connection_manager.broadcast,
+    )
+    await approval_service.start()
+    app.state.approval_service = approval_service
 
     def _session_open() -> bool:
         ok, _ = trading_service.engine.risk.entries_allowed(datetime.now(UTC))
@@ -159,6 +169,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     await backtest_service.stop()
     await broker_service.stop()
+    await approval_service.stop()
     await trading_service.stop()
     await signal_service.stop()
     await strategy_service.stop()

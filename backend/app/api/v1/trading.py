@@ -15,6 +15,7 @@ POST /trading/exit                   close the active trade at market
 POST /trading/emergency-stop         disable new trading, cancel pending entries
                                      (closes the position only if asked)
 POST /trading/emergency-stop/reset   allow new trading again
+POST /trading/mode                   PAPER or APPROVAL (LIVE is not available)
 
 PAPER only: every order goes to the simulated paper broker.
 """
@@ -22,7 +23,7 @@ PAPER only: every order goes to the simulated paper broker.
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -237,6 +238,41 @@ async def set_auto(
     except EngineError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     await _audit(db, user, "PAPER_AUTO_TRADING", {"enabled": body.enabled})
+    return await service.status()
+
+
+class ModeRequest(BaseModel):
+    mode: Literal["PAPER", "APPROVAL"]
+
+
+@router.post("/mode", response_model=TradingStatus)
+async def set_mode(
+    body: ModeRequest,
+    request: Request,
+    user: User = Depends(_operator),
+    db: AsyncSession = Depends(get_db),
+) -> TradingStatus:
+    """Switch between PAPER and APPROVAL. Both execute on the paper broker;
+    in APPROVAL every trade needs a person's approval first. LIVE is not
+    available. Leaving APPROVAL cancels open approval requests."""
+
+    service = _service(request)
+    try:
+        previous = await service.set_mode(body.mode)
+    except EngineError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    db.add(
+        AuditLog(
+            user_id=user.id,
+            action="TRADING_MODE_CHANGED",
+            before={"mode": previous},
+            after={"mode": body.mode, "by": user.email},
+        )
+    )
+    try:
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
     return await service.status()
 
 

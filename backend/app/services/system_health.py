@@ -87,12 +87,15 @@ async def get_system_health(settings: Settings) -> SystemHealthResponse:
         "connected in this phase.",
         "No broker is connected and no real orders can be placed.",
     ]
-    if settings.trading_mode != TradingMode.PAPER:
-        # Should be unreachable given the Settings default, but Phase 1
-        # surfaces it loudly rather than silently trusting configuration.
+    if settings.trading_mode == TradingMode.APPROVAL:
         notes.append(
-            "WARNING: configured trading mode is not PAPER. No execution "
-            "engine exists yet in this phase regardless of this setting."
+            "APPROVAL mode: every trade waits for a person's approval and then "
+            "executes on the paper broker (no real orders)."
+        )
+    elif settings.trading_mode != TradingMode.PAPER:
+        notes.append(
+            f"WARNING: configured trading mode is {settings.trading_mode.value}. "
+            "Live execution does not exist; every order is refused by the risk check."
         )
 
     return SystemHealthResponse(

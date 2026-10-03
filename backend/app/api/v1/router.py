@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     analytics,
+    approvals,
     auth,
     backtests,
     broker,
@@ -34,6 +35,7 @@ api_v1_router.include_router(price_action.router)
 api_v1_router.include_router(strategies.router)
 api_v1_router.include_router(signals.router)
 api_v1_router.include_router(trading.router)
+api_v1_router.include_router(approvals.router)
 api_v1_router.include_router(analytics.router)
 api_v1_router.include_router(backtests.router)
 api_v1_router.include_router(broker.router)

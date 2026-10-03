@@ -21,6 +21,7 @@ from app.database.models.session import Session
 from app.database.models.signal import Signal
 from app.database.models.strategy_config import StrategyConfig
 from app.database.models.system_event import SystemEvent
+from app.database.models.trade_approval import TradeApproval
 from app.database.models.trading_account import TradingAccount
 from app.database.models.trading_settings import TradingSettings
 from app.database.models.user import User
@@ -41,6 +42,7 @@ __all__ = [
     "Signal",
     "StrategyConfig",
     "SystemEvent",
+    "TradeApproval",
     "TradingAccount",
     "TradingSettings",
     "User",

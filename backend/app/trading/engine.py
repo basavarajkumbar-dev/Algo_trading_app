@@ -327,6 +327,22 @@ class PaperTradingEngine:
 
     # --- SIGNAL -> RISK -> ORDER -------------------------------------------
 
+    def preview(self, intent: TradeIntent, conditions: MarketConditions) -> RiskDecision:
+        """Run every risk check (including sizing) without any side effect:
+        no state change, no order, no counter. Used to build an approval
+        request; the checks run again when it is approved."""
+
+        conditions = conditions.model_copy(
+            update={"trading_mode": self.config.trading_mode, "preview": True}
+        )
+        account = self.account_view(for_price=conditions.last_price or intent.entry)
+        return self.risk.evaluate(intent, conditions, account)
+
+    def set_trading_mode(self, mode: str) -> None:
+        if mode not in ("PAPER", "APPROVAL"):
+            raise EngineError(f"mode {mode} is not available: only paper execution exists")
+        self.config = self.config.model_copy(update={"trading_mode": mode})
+
     async def execute(self, intent: TradeIntent, conditions: MarketConditions) -> RiskDecision:
         now = self._clock()
         conditions = conditions.model_copy(update={"trading_mode": self.config.trading_mode})

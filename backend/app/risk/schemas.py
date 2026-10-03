@@ -23,6 +23,7 @@ class TradeSide(str, Enum):
 
 class RejectionReason(str, Enum):
     TRADING_MODE_NOT_PAPER = "TRADING_MODE_NOT_PAPER"
+    APPROVAL_REQUIRED = "APPROVAL_REQUIRED"  # APPROVAL mode: no human approval for this trade
     EMERGENCY_STOP = "EMERGENCY_STOP"
     SYSTEM_UNHEALTHY = "SYSTEM_UNHEALTHY"
     MARKET_CLOSED = "MARKET_CLOSED"
@@ -55,6 +56,8 @@ class TradeIntent(BaseModel):
     strategy: str | None = None
     signal_last_seen_at: datetime | None = None  # when a scan last produced the signal
     signal_active: bool = True
+    approval_id: uuid.UUID | None = None  # APPROVAL mode: the approved request it executes
+    max_quantity: int | None = None  # never size above this (the approved quantity)
 
 
 class MarketConditions(BaseModel):
@@ -66,6 +69,8 @@ class MarketConditions(BaseModel):
     system_healthy: bool
     health_detail: str = ""
     trading_mode: str = "PAPER"
+    # a preview evaluates the checks for an approval request; nothing executes
+    preview: bool = False
 
 
 class PositionSize(BaseModel):
