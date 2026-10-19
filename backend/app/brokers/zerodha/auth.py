@@ -121,6 +121,72 @@ class KiteAuthService:
         return bool(self._api_key and self._api_secret and self.client is not None)
 
     @property
+    def api_key(self) -> str | None:
+        return self._api_key
+
+    def credentials(self) -> tuple[str | None, str | None]:
+        """For the broker adapter sharing this client only. Never logged."""
+
+        return self._api_key, self._api_secret
+
+    async def set_credentials(self, api_key: str | None, api_secret: str | None) -> None:
+        """Replace (or with None, remove) the Kite Connect app credentials.
+
+        Any current session ends: an access token belongs to the API key that
+        created it. Pending login states are discarded. The secret is held in
+        memory only for the checksum of the token exchange."""
+
+        had_session = self.client is not None and self.client.has_token
+        self._api_key = api_key or None
+        self._api_secret = api_secret or None
+        self._states.clear()
+        if self.client is not None:
+            self.client.set_api_key(self._api_key or "")
+            self.client.set_access_token(None)
+        self.session = None
+        if self._expiry_task is not None:
+            self._expiry_task.cancel()
+            self._expiry_task = None
+        self.last_error = None
+        self.state = AuthState.LOGIN_REQUIRED if self.configured else AuthState.NOT_CONFIGURED
+        if had_session:
+            await self._notify(AuthState.LOGGED_OUT)
+
+    async def restore_session(self, access_token: str, expires_at: datetime | None) -> AuthState:
+        """A token saved (encrypted) after an earlier login today: use it if it
+        has not expired and Kite still accepts it."""
+
+        if not self.configured or self.client is None:
+            return self.state
+        if expires_at is not None and self._clock() >= expires_at:
+            self.state = AuthState.TOKEN_EXPIRED
+            self.last_error = "the saved Kite session expired (06:00 IST)"
+            return self.state
+        self.client.set_access_token(access_token)
+        self.session = None
+        state = await self.validate_session()
+        if self.session is not None and expires_at is not None:
+            self.session.expires_at = expires_at
+            self._schedule_expiry()
+        return state
+
+    def cancel_pending_login(self) -> None:
+        """Forget issued login states: a late callback is then refused."""
+
+        self._states.clear()
+        if self.state in (AuthState.AUTHENTICATING, AuthState.AUTH_ERROR):
+            self.state = AuthState.LOGIN_REQUIRED if self.configured else AuthState.NOT_CONFIGURED
+
+    def has_pending_login(self) -> bool:
+        now = self._clock()
+        return any(v > now for v in self._states.values())
+
+    def current_access_token(self) -> str | None:
+        """For encrypting the token at rest only. Never logged or returned."""
+
+        return self.client.access_token_for_ticker() if self.client is not None else None
+
+    @property
     def authenticated(self) -> bool:
         return self.state is AuthState.AUTHENTICATED and not self._expired()
 

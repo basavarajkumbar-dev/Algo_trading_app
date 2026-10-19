@@ -30,6 +30,7 @@ from app.backtesting.service import BacktestService
 from app.brokers.health import broker_health
 from app.brokers.service import BrokerService, ensure_not_live_by_accident
 from app.brokers.zerodha.backtest_data import download_history
+from app.brokers.zerodha.credentials import BrokerCredentialService
 from app.brokers.zerodha.runtime import build_zerodha_runtime
 from app.core.config import get_settings
 from app.core.constants import API_V1_PREFIX, MarketDataMode
@@ -48,6 +49,7 @@ from app.market_intelligence.service import MarketIntelligenceService
 from app.price_action.config import MultiTimeframeConfig, PriceActionConfig
 from app.price_action.service import PriceActionService
 from app.risk.config import risk_limits_from_settings
+from app.security.credential_vault import vault_from_settings
 from app.signals.config import signal_engine_config
 from app.signals.service import SignalService
 from app.strategies.config import StrategyEngineConfig
@@ -81,11 +83,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     zerodha = build_zerodha_runtime(settings, session_factory=async_session_factory)
     app.state.zerodha = zerodha
 
+    # User-entered credentials (saved encrypted from the app). A key that is
+    # set but unusable stops the start-up; no key means credentials cannot be
+    # saved (never a plaintext fallback). The active user's saved credentials
+    # are applied before the market-data source is chosen.
+    vault = vault_from_settings(settings)  # raises VaultUnavailable on a bad key
+    credential_service = BrokerCredentialService(
+        zerodha,
+        async_session_factory,
+        vault,
+        vault_problem=(
+            None
+            if vault is not None
+            else "CREDENTIALS_ENCRYPTION_KEY is not set on the server: credentials "
+            "cannot be stored securely, so saving is disabled."
+        ),
+    )
+    app.state.broker_credentials = credential_service
+    try:
+        await credential_service.load_active()
+    except Exception:  # noqa: BLE001 - no DB yet: the app runs on PAPER without them
+        logger.warning("Saved Zerodha credentials could not be loaded at start-up")
+
     # Market data: MARKET_DATA_MODE=ZERODHA (the default when Kite credentials
     # are configured) streams real NSE data once someone logs in to Kite;
     # MOCK keeps the simulator. Neither choice affects execution, which stays
     # PAPER unless EXECUTION_MODE=ZERODHA and LIVE_TRADING_ENABLED=true.
-    data_mode = settings.effective_market_data_mode
+    data_mode = settings.market_data_mode or (
+        MarketDataMode.ZERODHA if zerodha.configured else MarketDataMode.MOCK
+    )
     provider: MarketDataProvider
     if data_mode == MarketDataMode.ZERODHA and zerodha.configured:
         provider = zerodha.market_data_provider()
@@ -275,11 +301,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         emergency_stop=lambda: trading_service.engine.emergency_stop_active
         or bool(live.get("svc") and live["svc"].kill_switch.engaged),
         broadcast=market_data_service.connection_manager.broadcast,
-        auth=zerodha.auth if zerodha.configured else None,
+        auth=zerodha.auth,
         user_armed=lambda: bool(live.get("svc") and live["svc"].arming.is_armed),
     )
+    zerodha.credential_listeners.append(broker_service.on_credentials)
     ensure_not_live_by_accident(settings)
+    if zerodha.configured:
+        await broker_service.on_credentials_present()
     await broker_service.start()
+    try:
+        await credential_service.restore_session()  # today's saved Kite session, if valid
+    except Exception:  # noqa: BLE001 - a new Zerodha login is then needed
+        logger.warning("Saved Zerodha session could not be restored")
     app.state.broker_service = broker_service
 
     def _tick_size(symbol: str) -> float:
@@ -312,7 +345,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.live_service = live_service
 
     history_fetcher = None
-    if zerodha.configured and zerodha.historical is not None:
+    if zerodha.historical is not None:
         historical = zerodha.historical
         instruments = zerodha.instruments
 

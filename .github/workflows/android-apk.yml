@@ -113,7 +113,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/apk" && unzip -q GainzAlgo-Pro-Max.apk -d "$RUNNER_TEMP/apk"
-          if grep -rIl -E "KITE_API_SECRET|api_secret\s*[:=]|BEGIN (RSA |EC )?PRIVATE KEY" "$RUNNER_TEMP/apk"; then
+          # binary files (the Hermes bundle) included: scan their strings
+          if find "$RUNNER_TEMP/apk" -type f -print0 | xargs -0 strings -n 6 \
+             | grep -E "KITE_API_SECRET|KITE_ACCESS_TOKEN|CREDENTIALS_ENCRYPTION_KEY=|BEGIN (RSA |EC )?PRIVATE KEY"; then
             echo "::error::secret-looking material found in the APK"; exit 1
           fi
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" dump permissions GainzAlgo-Pro-Max.apk

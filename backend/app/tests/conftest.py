@@ -36,6 +36,7 @@ DATABASE_TEST_MODULES = (
     "test_zerodha_api.py",
     "test_live_api.py",
     "test_api_access.py",
+    "test_broker_credentials.py",
 )
 
 

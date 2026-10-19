@@ -151,6 +151,25 @@ class BrokerService:
             self.adapter.detach_session()
             self.last_health = await self.adapter.health_check()
 
+    async def on_credentials_present(self) -> None:
+        """Credentials were applied to the shared runtime before this service
+        existed (saved credentials at start-up): give them to the adapter."""
+
+        if self.auth is not None and self.auth.configured:
+            self.adapter.set_credentials(*self.auth.credentials())
+
+    async def on_credentials(self, api_key: str | None, api_secret: str | None) -> None:
+        """The Zerodha runtime got new credentials (or lost them)."""
+
+        self.adapter.set_credentials(api_key, api_secret)
+        if self.adapter.configured:
+            await self.refresh()
+        else:
+            if self._task is not None:
+                self._task.cancel()
+                self._task = None
+            self.last_health = await self.adapter.health_check()
+
     async def login(self, request_token: str) -> dict[str, Any]:
         if self.auth is not None and self.auth.configured:
             await self.auth.generate_access_token(request_token)

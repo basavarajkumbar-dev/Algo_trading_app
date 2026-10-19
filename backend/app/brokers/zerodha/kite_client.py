@@ -145,6 +145,14 @@ class KiteClient:
     def set_access_token(self, token: str | None) -> None:
         self._access_token = token
 
+    def set_api_key(self, api_key: str) -> None:
+        """New Kite Connect app credentials were saved: the old token belonged
+        to the old key, so it is dropped as well."""
+
+        if api_key != self._api_key:
+            self._access_token = None
+        self._api_key = api_key
+
     def access_token_for_ticker(self) -> str | None:
         """The ticker connection needs the token in its URL; nothing else may read it."""
 

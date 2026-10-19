@@ -84,6 +84,21 @@ class Settings(BaseSettings):
     zerodha_access_token: SecretStr | None = Field(
         default=None, validation_alias=AliasChoices("KITE_ACCESS_TOKEN", "ZERODHA_ACCESS_TOKEN")
     )
+    # User-entered broker credentials (API key / secret saved from the app) are
+    # encrypted with this key before they reach the database. 32 random bytes,
+    # urlsafe base64 (`python -m app.scripts.generate_credentials_key`). The
+    # key may instead be read from a file (Docker secret). Unset: credentials
+    # cannot be saved (no plaintext fallback). Previous keys still decrypt
+    # during a rotation (comma-separated).
+    credentials_encryption_key: SecretStr | None = Field(
+        default=None, alias="CREDENTIALS_ENCRYPTION_KEY"
+    )
+    credentials_encryption_key_file: str | None = Field(
+        default=None, alias="CREDENTIALS_ENCRYPTION_KEY_FILE"
+    )
+    credentials_encryption_previous_keys: SecretStr | None = Field(
+        default=None, alias="CREDENTIALS_ENCRYPTION_PREVIOUS_KEYS"
+    )
     # Must equal the redirect URL registered for the Kite Connect app; point it
     # at GET /api/v1/broker/zerodha/callback.
     kite_redirect_url: str | None = Field(default=None, alias="KITE_REDIRECT_URL")

@@ -37,3 +37,6 @@ tsconfig.tsbuildinfo
 dump.rdb
 *.rdb
 forensic_out/
+
+# server-side secret files (encryption key etc.)
+secrets/

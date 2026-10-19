@@ -99,9 +99,20 @@ def test_market_data_layer_does_not_depend_on_the_broker() -> None:
 
 def test_no_credentials_are_committed() -> None:
     env = (REPO / ".env.example").read_text()
-    for key in ("KITE_API_KEY", "KITE_API_SECRET", "KITE_ACCESS_TOKEN"):
-        (line,) = (ln for ln in env.splitlines() if ln.startswith(f"{key}="))
-        assert line == f"{key}=", line
+    # users enter their own Kite credentials in the app: the template has no
+    # credential values (and no longer even an empty KITE_API_KEY= line)
+    for key in (
+        "KITE_API_KEY",
+        "KITE_API_SECRET",
+        "KITE_ACCESS_TOKEN",
+        "ZERODHA_API_KEY",
+        "ZERODHA_API_SECRET",
+        "ZERODHA_ACCESS_TOKEN",
+        "CREDENTIALS_ENCRYPTION_KEY",
+    ):
+        for line in (ln for ln in env.splitlines() if ln.startswith(f"{key}=")):
+            assert line == f"{key}=", line
+    assert "CREDENTIALS_ENCRYPTION_KEY=" in env.splitlines()
     pattern = re.compile(
         r"(api_secret|access_token|request_token|ZERODHA_API_SECRET|ZERODHA_ACCESS_TOKEN|KITE_API_SECRET|KITE_ACCESS_TOKEN)\s*=\s*[\"'][A-Za-z0-9]{12,}[\"']"
     )

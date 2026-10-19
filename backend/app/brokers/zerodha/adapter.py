@@ -176,6 +176,19 @@ class ZerodhaBrokerAdapter(BrokerAdapter):
         if self.configured and self._state is ConnectionState.AUTH_REQUIRED:
             self._state = ConnectionState.DISCONNECTED
 
+    def set_credentials(self, api_key: str | None, api_secret: str | None) -> None:
+        """Credentials saved / replaced / removed while running (shared client)."""
+
+        self._api_key = api_key or None
+        self._api_secret = api_secret or None
+        self.disarm_live_orders()
+        self._session_expires_at = None
+        self._failures = 0
+        self._last_error = None
+        self._state = (
+            ConnectionState.AUTH_REQUIRED if self.configured else ConnectionState.NOT_CONFIGURED
+        )
+
     def detach_session(self) -> None:
         """Logged out or the token expired."""
 

@@ -15,6 +15,7 @@ from app.api.v1 import (
     auth,
     backtests,
     broker,
+    broker_credentials,
     intelligence,
     live,
     market,
@@ -45,6 +46,7 @@ api_v1_router.include_router(approvals.router, dependencies=_read)
 api_v1_router.include_router(analytics.router, dependencies=_read)
 api_v1_router.include_router(backtests.router, dependencies=_read)
 # broker: per-route checks (the Kite redirect /zerodha/callback must stay open)
+api_v1_router.include_router(broker_credentials.router)
 api_v1_router.include_router(broker.router)
 api_v1_router.include_router(live.router, dependencies=_read)
 api_v1_router.include_router(universes.router, dependencies=_read)

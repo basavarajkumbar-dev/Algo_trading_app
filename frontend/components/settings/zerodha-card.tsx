@@ -96,10 +96,10 @@ export function ZerodhaCard() {
           <p className="text-muted">Loading…</p>
         ) : !z.configured ? (
           <p className="text-muted" data-testid="zerodha-not-configured">
-            Not configured. Set <code className="text-xs">KITE_API_KEY</code>,{" "}
-            <code className="text-xs">KITE_API_SECRET</code> and{" "}
-            <code className="text-xs">KITE_REDIRECT_URL</code> in the backend environment (never in
-            the frontend). Until then the app runs on simulated data.
+            Not configured. Enter your own Kite Connect API key and API secret in the Android
+            app (Settings &gt; Broker connections); the backend stores them encrypted. The
+            server also needs <code className="text-xs">KITE_REDIRECT_URL</code>. Until then the
+            app runs on simulated data.
           </p>
         ) : (
           <>

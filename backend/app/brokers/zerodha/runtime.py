@@ -11,14 +11,16 @@
     ZerodhaHistoricalDataProvider
     ZerodhaMarketDataProvider (when MARKET_DATA_MODE=ZERODHA)
 
-Credentials only come from the environment. Their presence never enables
+Credentials come from a user's encrypted record (entered in the app) or,
+for an operator, from the environment; they can be set, replaced and removed
+while the server runs (`apply_credentials`). Their presence never enables
 live trading.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,15 +51,38 @@ class ZerodhaRuntime:
     instruments: InstrumentService | None
     resolver: InstrumentResolver
     historical: ZerodhaHistoricalDataProvider | None
+    credential_listeners: list[Callable[[str | None, str | None], Any]] = field(
+        default_factory=list
+    )
+
+    owner_user_id: Any = None  # whose saved credentials drive the client (None: environment)
+    credentials_source: str = "NONE"  # NONE | ENVIRONMENT | USER
 
     @property
     def configured(self) -> bool:
         return self.auth.configured
 
+    async def apply_credentials(
+        self, api_key: str | None, api_secret: str | None, *, owner_user_id: Any = None
+    ) -> None:
+        """Use these Kite Connect credentials from now on (None: remove them)."""
+
+        await self.auth.set_credentials(api_key, api_secret)
+        self.owner_user_id = owner_user_id if api_key and api_secret else None
+        if api_key and api_secret:
+            self.credentials_source = "USER" if owner_user_id is not None else "ENVIRONMENT"
+        else:
+            self.credentials_source = "NONE"
+        for listener in list(self.credential_listeners):
+            try:
+                await listener(api_key, api_secret)
+            except Exception:  # noqa: BLE001 - one listener must not block the others
+                logger.exception("Zerodha credential listener failed")
+
     def market_data_provider(
         self, *, ticker_factory: Callable[[], KiteTickerClient] | None = None
     ) -> ZerodhaMarketDataProvider:
-        if self.client is None or self.historical is None:
+        if self.client is None or self.historical is None or not self.configured:
             raise RuntimeError("Zerodha is not configured")
         s = self.settings
         return ZerodhaMarketDataProvider(
@@ -103,6 +128,7 @@ class ZerodhaRuntime:
             "expires_at": a["expires_at"],
             "last_error": a["last_error"],
             "redirect_url_configured": a["redirect_url_configured"],
+            "credentials_source": self.credentials_source,
             "market_data": market_data,
             "execution_mode": execution_mode,
         }
@@ -114,26 +140,30 @@ def build_zerodha_runtime(
     session_factory: SessionFactory | None = None,
     transport: Any = None,
 ) -> ZerodhaRuntime:
+    """The runtime starts with the environment's credentials (operator
+    override), if any; credentials a user saved in the app are applied later
+    by BrokerCredentialService. The Kite client always exists so credentials
+    can be added without a restart; without them it cannot authenticate."""
+
     secret = settings.zerodha_api_secret
     token = settings.zerodha_access_token
     api_key = settings.zerodha_api_key or None
     api_secret = secret.get_secret_value() if secret else None
     access_token = token.get_secret_value() if token else None
-    client: KiteClient | None = None
-    if api_key and api_secret:
-        client = KiteClient(
-            api_key=api_key,
-            access_token=None,  # KiteAuthService sets and validates it
-            base_url=settings.zerodha_api_base_url,
-            timeout=settings.zerodha_timeout_seconds,
-            orders_per_second=settings.zerodha_orders_per_second,
-            transport=transport,
-            orders_allowed=settings.effective_execution_mode == ExecutionMode.ZERODHA,
-        )
+    env_configured = bool(api_key and api_secret)
+    client = KiteClient(
+        api_key=api_key or "",
+        access_token=None,  # KiteAuthService sets and validates it
+        base_url=settings.zerodha_api_base_url,
+        timeout=settings.zerodha_timeout_seconds,
+        orders_per_second=settings.zerodha_orders_per_second,
+        transport=transport,
+        orders_allowed=settings.effective_execution_mode == ExecutionMode.ZERODHA,
+    )
     auth = KiteAuthService(
         api_key=api_key,
         api_secret=api_secret,
-        access_token=access_token if client else None,
+        access_token=access_token if env_configured else None,
         login_url=settings.zerodha_login_url,
         redirect_url=settings.kite_redirect_url,
         client=client,
@@ -144,11 +174,11 @@ def build_zerodha_runtime(
         InstrumentService(
             client, repository, resolver, exchanges=list(settings.instrument_exchanges)
         )
-        if client is not None and repository is not None
+        if repository is not None
         else None
     )
-    historical = ZerodhaHistoricalDataProvider(client, resolver) if client is not None else None
-    return ZerodhaRuntime(
+    historical = ZerodhaHistoricalDataProvider(client, resolver)
+    runtime = ZerodhaRuntime(
         settings=settings,
         client=client,
         auth=auth,
@@ -156,6 +186,8 @@ def build_zerodha_runtime(
         resolver=resolver,
         historical=historical,
     )
+    runtime.credentials_source = "ENVIRONMENT" if env_configured else "NONE"
+    return runtime
 
 
 __all__ = ["ZerodhaRuntime", "build_zerodha_runtime"]

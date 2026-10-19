@@ -50,6 +50,9 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gainzalgo}
       REDIS_URL: redis://redis:6379/0
       UNIVERSE_CACHE_DIR: /var/lib/gainzalgo/universes
+      # key that encrypts user-entered broker credentials (kept out of the DB)
+      CREDENTIALS_ENCRYPTION_KEY_FILE: /run/secrets/credentials_key
+    secrets: [credentials_key]
     volumes:
       - universe_cache:/var/lib/gainzalgo/universes
     expose: ["8000"]
@@ -75,6 +78,12 @@ services:
       - caddy_config:/config
     depends_on:
       backend: { condition: service_healthy }
+
+secrets:
+  credentials_key:
+    # create once on the server:  mkdir -p secrets && docker compose -f docker-compose.prod.yml \
+    #   run --rm --no-deps backend python -m app.scripts.generate_credentials_key > secrets/credentials_key
+    file: ./secrets/credentials_key
 
 volumes:
   pg_data:

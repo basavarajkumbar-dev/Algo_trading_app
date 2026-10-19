@@ -14,6 +14,7 @@ from app.database.models.backtest import (
     ParameterSet,
     StrategyVersion,
 )
+from app.database.models.broker_credential import BrokerCredential
 from app.database.models.instrument import Instrument
 from app.database.models.live_trade import LiveTradeRecord
 from app.database.models.market_data import (
@@ -37,6 +38,7 @@ __all__ = [
     "Base",
     "AuditLog",
     "BacktestEquityPoint",
+    "BrokerCredential",
     "BacktestRun",
     "BacktestTradeRecord",
     "ParameterSet",
