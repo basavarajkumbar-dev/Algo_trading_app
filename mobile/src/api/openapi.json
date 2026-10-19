@@ -2514,6 +2514,216 @@
     }
    }
   },
+  "/api/v1/broker/zerodha/credentials": {
+   "get": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Get Status",
+    "operationId": "get_status_api_v1_broker_zerodha_credentials_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Get Status Api V1 Broker Zerodha Credentials Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "put": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Save",
+    "operationId": "save_api_v1_broker_zerodha_credentials_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "properties": {
+         "api_key": {
+          "type": "string",
+          "maxLength": 64,
+          "minLength": 6
+         },
+         "api_secret": {
+          "type": "string",
+          "maxLength": 128,
+          "minLength": 12,
+          "format": "password",
+          "writeOnly": true
+         }
+        },
+        "type": "object",
+        "required": [
+         "api_key",
+         "api_secret"
+        ]
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Save Api V1 Broker Zerodha Credentials Put"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "delete": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Remove",
+    "operationId": "remove_api_v1_broker_zerodha_credentials_delete",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Remove Api V1 Broker Zerodha Credentials Delete"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/broker/zerodha/credentials/test": {
+   "post": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Test",
+    "operationId": "test_api_v1_broker_zerodha_credentials_test_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Test Api V1 Broker Zerodha Credentials Test Post"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/broker/zerodha/credentials/connect": {
+   "post": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Connect",
+    "description": "Start the official Kite login for this user's saved credentials. The\nbrowser goes to Zerodha, then to the backend callback (token exchange with\nthe checksum, server-side), then back to the app.",
+    "operationId": "connect_api_v1_broker_zerodha_credentials_connect_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "client",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "pattern": "^(web|mobile)$",
+       "default": "mobile",
+       "title": "Client"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Connect Api V1 Broker Zerodha Credentials Connect Post"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/broker/zerodha/credentials/disconnect": {
+   "post": {
+    "tags": [
+     "broker credentials"
+    ],
+    "summary": "Disconnect",
+    "operationId": "disconnect_api_v1_broker_zerodha_credentials_disconnect_post",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "title": "Response Disconnect Api V1 Broker Zerodha Credentials Disconnect Post"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
   "/api/v1/broker/status": {
    "get": {
     "tags": [

@@ -15,6 +15,7 @@ export type RootStackParamList = {
   SystemHealth: undefined;
   StrategyConfig: undefined;
   Settings: undefined;
+  BrokerConnections: undefined;
   Zerodha: undefined;
 };
 

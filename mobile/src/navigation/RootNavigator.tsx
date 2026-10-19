@@ -6,7 +6,8 @@ import { Text } from "react-native";
 
 import { useAuth } from "../auth/AuthProvider";
 import { BacktestDetailScreen, BacktestsScreen, PerformanceScreen, StrategyAnalyticsScreen, StrategyConfigScreen } from "../screens/analysis";
-import { DashboardScreen, LoginScreen, SettingsScreen, SplashView, ZerodhaScreen } from "../screens/core";
+import { BrokerConnectionsScreen, ZerodhaScreen } from "../screens/broker";
+import { DashboardScreen, LoginScreen, SettingsScreen, SplashView } from "../screens/core";
 import { MarketScreen, ScannerScreen, SignalDetailScreen, SignalsScreen, UniverseScreen } from "../screens/market";
 import { MoreScreen, NotificationsScreen, SystemHealthScreen } from "../screens/system";
 import { OrdersScreen, PaperTradingScreen, PositionsScreen, RiskScreen, TradeHistoryScreen } from "../screens/trading";
@@ -87,7 +88,8 @@ export function RootNavigator() {
           <Stack.Screen name="SystemHealth" component={SystemHealthScreen} options={{ title: "System health" }} />
           <Stack.Screen name="StrategyConfig" component={StrategyConfigScreen} options={{ title: "Strategy configuration" }} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Zerodha" component={ZerodhaScreen} options={{ title: "Zerodha" }} />
+          <Stack.Screen name="BrokerConnections" component={BrokerConnectionsScreen} options={{ title: "Broker connections" }} />
+          <Stack.Screen name="Zerodha" component={ZerodhaScreen} options={{ title: "Zerodha Kite Connect" }} />
         </Stack.Navigator>
       ) : (
         <LoginScreen />

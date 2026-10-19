@@ -1,7 +1,6 @@
 /** Splash, backend setup, login, Command Center, Settings and Zerodha. */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -22,7 +21,7 @@ import {
   Stat,
   StatGrid,
 } from "../components/ui";
-import { APP_SCHEME, BUILD_BACKEND_URL, isEncrypted, normalizeUrl } from "../config";
+import { BUILD_BACKEND_URL, isEncrypted, normalizeUrl } from "../config";
 import { ageLabel, ageSeconds, inr, num, pnlTone, timeIst, titleCase } from "../lib/format";
 import { usePoll, useStackNav } from "../lib/hooks";
 import { colors, fonts, radius, space } from "../theme";
@@ -354,6 +353,10 @@ export function SettingsScreen() {
           restart or Zerodha re-login.
         </Note>
       </Card>
+      <Card title="Broker connections">
+        <Row label="Zerodha Kite Connect" value="Your own API credentials" mono={false} />
+        <Button testID="open-broker-connections" title="Broker connections" tone="info" onPress={() => nav.navigate("BrokerConnections")} />
+      </Card>
       <Card title="Backend">
         <Row label="Address" value={backendUrl ?? "—"} mono={false} />
         <Row label="Encrypted" value={isEncrypted(backendUrl) ? "Yes (HTTPS)" : "No (http)"} tone={isEncrypted(backendUrl) ? "good" : "warn"} />
@@ -365,71 +368,6 @@ export function SettingsScreen() {
 }
 
 // --- Zerodha -------------------------------------------------------------------------------
-
-export function ZerodhaScreen() {
-  const { user } = useAuth();
-  const status = usePoll(["zerodha-status"], api.zerodhaStatus, 15_000);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  async function connect() {
-    setMessage(null);
-    setBusy(true);
-    try {
-      const { login_url } = await api.zerodhaLoginUrl();
-      const result = await WebBrowser.openAuthSessionAsync(login_url, `${APP_SCHEME}://zerodha`);
-      if (result.type === "success") {
-        const query = new URL(result.url).searchParams;
-        setMessage(
-          query.get("result") === "connected"
-            ? "Connected. The session lasts until Zerodha's daily expiry (about 6 AM IST)."
-            : `Zerodha login did not complete (${query.get("reason") ?? "unknown"}).`,
-        );
-      } else {
-        setMessage("Login window closed. Check the status below.");
-      }
-    } catch (e) {
-      setMessage(describeError(e));
-    } finally {
-      setBusy(false);
-      void status.refetch();
-    }
-  }
-
-  const isAdmin = user?.role === "ADMIN";
-  return (
-    <Screen testID="zerodha" refreshing={status.isFetching} onRefresh={() => void status.refetch()}>
-      <QueryView query={status}>
-        {(z) => (
-          <Card title="Zerodha Kite Connect" right={<Badge label={z.connected ? "CONNECTED" : z.configured ? "LOGIN REQUIRED" : "NOT CONFIGURED"} tone={z.connected ? "good" : z.configured ? "warn" : "neutral"} />}>
-            <Row label="Configured on backend" value={z.configured ? "Yes" : "No"} />
-            <Row label="Session" value={titleCase(z.auth)} />
-            <Row label="User" value={z.user_id ?? "—"} />
-            <Row label="Login time" value={timeIst(z.login_time)} />
-            <Row label="Session expires" value={timeIst(z.expires_at)} />
-            <Row label="Market data" value={titleCase(z.market_data)} />
-            <Row label="Execution" value={z.execution_mode} tone={z.execution_mode === "PAPER" ? "accent" : "bad"} />
-            {z.last_error ? <Note>Last error: {z.last_error}</Note> : null}
-          </Card>
-        )}
-      </QueryView>
-      {message ? <Note style={{ color: colors.text }}>{message}</Note> : null}
-      <Button
-        testID="zerodha-connect"
-        title={status.data?.connected ? "Reconnect Zerodha" : "Connect to Zerodha"}
-        onPress={connect}
-        busy={busy}
-        disabled={!isAdmin || !status.data?.configured}
-      />
-      {!isAdmin ? <Note>Only an administrator can connect the broker account.</Note> : null}
-      <Note>
-        You sign in on Zerodha&apos;s own page. The request token is exchanged by the backend; the API
-        secret and access token never reach this phone. Sessions expire daily, so a new login is
-        needed each trading day. Without a session the app keeps working in paper mode on simulated data.
-      </Note>
-    </Screen>
-  );
-}
 
 const s = StyleSheet.create({
   splash: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center", gap: space.sm },

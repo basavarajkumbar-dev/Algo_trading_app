@@ -3,7 +3,7 @@
  * number shown comes from these responses. */
 
 import type { components } from "./schema";
-import { get, patch, post } from "./client";
+import { del, get, patch, post, put } from "./client";
 
 export type Schemas = components["schemas"];
 export type TradingStatus = Schemas["TradingStatus"];
@@ -30,6 +30,51 @@ export interface ZerodhaStatus {
   last_error: string | null;
   market_data: string;
   execution_mode: string;
+}
+
+/** Backend-reported states of the user's own Zerodha connection. */
+export type BrokerConnectionStatus =
+  | "NOT_CONFIGURED"
+  | "CREDENTIALS_SAVED"
+  | "NOT_CONNECTED"
+  | "AWAITING_LOGIN"
+  | "CONNECTED"
+  | "SESSION_EXPIRED"
+  | "CONNECTION_FAILED";
+
+/** /broker/zerodha/credentials: never contains the API secret, the full API
+ * key or any token — only a masked key hint and "Configured". */
+export interface BrokerCredentialStatus {
+  broker: string;
+  status: BrokerConnectionStatus;
+  status_label: string;
+  detail: string | null;
+  configured: boolean;
+  credentials_source: "USER" | "ENVIRONMENT";
+  api_key_hint: string | null;
+  api_secret: "Configured" | null;
+  active_on_server: boolean;
+  connected: boolean;
+  user_id: string | null;
+  user_name: string | null;
+  session_expires_at: string | null;
+  last_validated_at: string | null;
+  last_connected_at: string | null;
+  updated_at: string | null;
+  storage: "ENCRYPTED" | "UNAVAILABLE";
+  storage_problem: string | null;
+  redirect_url_configured: boolean;
+  paper_trading_available: boolean;
+  live_trading_note: string;
+  market_data: string;
+  market_data_note: string | null;
+}
+
+export interface CredentialTestResult {
+  ok: boolean;
+  verified: boolean;
+  message: string;
+  status: BrokerCredentialStatus;
 }
 
 export interface LiveStatus {
@@ -130,5 +175,21 @@ export const api = {
   zerodhaStatus: () => get<ZerodhaStatus>("/broker/zerodha/status"),
   zerodhaLoginUrl: () => get<{ login_url: string }>("/broker/zerodha/login?client=mobile"),
   zerodhaLogout: () => post<Json>("/broker/zerodha/logout"),
+
+  // the user's own Kite Connect credentials (sent once, over HTTPS, to the
+  // backend, which encrypts them; they are never read back)
+  zerodhaCredentials: () => get<BrokerCredentialStatus>("/broker/zerodha/credentials"),
+  saveZerodhaCredentials: (apiKey: string, apiSecret: string) =>
+    put<BrokerCredentialStatus>("/broker/zerodha/credentials", {
+      api_key: apiKey,
+      api_secret: apiSecret,
+    }),
+  removeZerodhaCredentials: () => del<BrokerCredentialStatus>("/broker/zerodha/credentials"),
+  testZerodhaCredentials: () => post<CredentialTestResult>("/broker/zerodha/credentials/test"),
+  connectZerodha: () =>
+    post<{ login_url: string; status: BrokerCredentialStatus }>(
+      "/broker/zerodha/credentials/connect?client=mobile",
+    ),
+  disconnectZerodha: () => post<BrokerCredentialStatus>("/broker/zerodha/credentials/disconnect"),
   liveStatus: () => get<LiveStatus>("/live/status"),
 };

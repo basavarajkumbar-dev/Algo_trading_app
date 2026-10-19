@@ -233,8 +233,20 @@ export function QueryView<T>({
   );
 }
 
-export function Note({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.note, style]}>{children}</Text>;
+export function Note({
+  children,
+  style,
+  testID,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<TextStyle>;
+  testID?: string;
+}) {
+  return (
+    <Text testID={testID} style={[styles.note, style]}>
+      {children}
+    </Text>
+  );
 }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {

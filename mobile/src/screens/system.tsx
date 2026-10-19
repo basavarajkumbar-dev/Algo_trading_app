@@ -161,7 +161,7 @@ const MENU: { route: keyof RootStackParamList; title: string; detail: string }[]
   { route: "Notifications", title: "Notifications & approvals", detail: "Events and pending trades" },
   { route: "SystemHealth", title: "System health", detail: "Backend, data freshness" },
   { route: "StrategyConfig", title: "Strategy configuration", detail: "Versions and thresholds" },
-  { route: "Zerodha", title: "Zerodha connection", detail: "Connect or reconnect" },
+  { route: "BrokerConnections", title: "Broker connections", detail: "Zerodha Kite Connect credentials and login" },
   { route: "Settings", title: "Settings", detail: "Trading mode, backend, account" },
 ];
 
