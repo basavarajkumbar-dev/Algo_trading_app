@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: gainzalgo, POSTGRES_PASSWORD: gainzalgo, POSTGRES_DB: gainzalgo }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gainzalgo" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://gainzalgo:gainzalgo@localhost:5432/gainzalgo
+      REDIS_URL: redis://localhost:6379/0
+      APP_ENV: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: alembic upgrade head
+      - run: python -m pytest -q -p no:cacheprovider
+      - name: Secret scan (tracked files)
+        working-directory: .
+        run: |
+          # quoted literals for secret-named keys, and real values in .env.example
+          if git grep -nIiE "(api_secret|access_token|request_token)['\"]?\s*[=:]\s*['\"][A-Za-z0-9]{16,}['\"]" -- ':!*.md' ':!**/tests/**' ':!mobile/src/api/*' \
+             || git grep -nE "^(KITE_API_KEY|KITE_API_SECRET|KITE_ACCESS_TOKEN)=.+" -- .env.example; then
+            echo "::error::possible secret committed"; exit 1
+          fi
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npx vitest run

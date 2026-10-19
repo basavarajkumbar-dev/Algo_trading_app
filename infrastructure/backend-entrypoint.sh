@@ -38,4 +38,9 @@ echo "Running database migrations..."
 alembic upgrade head
 
 echo "Starting API server..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# Auto-reload only in development; production runs without it behind a
+# TLS-terminating proxy (see docker-compose.prod.yml).
+if [ "${UVICORN_RELOAD:-true}" = "true" ]; then
+  exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+fi
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-127.0.0.1}" --workers 1

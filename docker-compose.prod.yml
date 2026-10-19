@@ -1,0 +1,83 @@
+# GainzAlgo Pro Max — production stack (backend + Postgres + Redis + Caddy).
+#
+#   cp .env.example .env.production   # fill in real values on the server only
+#   DOMAIN=api.example.com docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Caddy obtains and renews a TLS certificate for $DOMAIN automatically
+# (ports 80/443 must reach the server and DNS must point at it). Postgres and
+# Redis are not published to the host. The backend refuses to start with
+# APP_ENV=production while APP_SECRET / JWT_SECRET are placeholders, and
+# requires sign-in on every data endpoint. Live trading stays off unless the
+# operator sets EXECUTION_MODE=ZERODHA and LIVE_TRADING_ENABLED=true AND arms it.
+name: gainzalgo-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-gainzalgo}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: infrastructure/backend.Dockerfile
+    restart: unless-stopped
+    env_file: [.env.production]
+    environment:
+      APP_ENV: production
+      UVICORN_RELOAD: "false"
+      FORWARDED_ALLOW_IPS: "*"   # only Caddy can reach the backend (not published)
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gainzalgo}
+      REDIS_URL: redis://redis:6379/0
+      UNIVERSE_CACHE_DIR: /var/lib/gainzalgo/universes
+    volumes:
+      - universe_cache:/var/lib/gainzalgo/universes
+    expose: ["8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/system/health', timeout=5).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to the public host name, e.g. api.example.com}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./infrastructure/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  pg_data:
+  universe_cache:
+  caddy_data:
+  caddy_config:
