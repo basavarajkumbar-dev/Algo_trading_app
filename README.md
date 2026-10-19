@@ -4,6 +4,19 @@ Modular, explainable, risk-controlled algorithmic intraday trading
 platform for the Indian equity market (NIFTY 50 universe), with a
 Zerodha broker adapter architecture.
 
+**October 2026 upgrade (this repository):** configurable NSE stock universes
+with a requested-vs-processed report, four additional strategies from the
+"Best Intraday Trading Strategies" PDF (off by default), trigger-based entries
+and fill-based R, production access control, an Android app (`mobile/`) and
+CI that builds `GainzAlgo-Pro-Max.apk`. Start with
+[`docs/upgrade-2026-10.md`](./docs/upgrade-2026-10.md); also
+[`docs/universes.md`](./docs/universes.md),
+[`docs/strategies-pdf.md`](./docs/strategies-pdf.md),
+[`docs/mobile-app.md`](./docs/mobile-app.md),
+[`docs/deployment.md`](./docs/deployment.md),
+[`docs/preservation-report.md`](./docs/preservation-report.md).
+No strategy here has been shown to be profitable.
+
 **Status: Phase 14 — Live trading safety layer complete (tested against a fake Kite server; no real order has been placed). Default execution: PAPER. Live orders need configuration, an admin's arming and every pre-trade check.**
 
 See:
