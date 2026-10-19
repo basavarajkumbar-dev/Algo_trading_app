@@ -30,3 +30,8 @@ tsconfig.tsbuildinfo
 
 # Docker
 *.pid
+
+# Runtime data (never commit)
+dump.rdb
+*.rdb
+forensic_out/
