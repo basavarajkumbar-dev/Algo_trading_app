@@ -38,6 +38,16 @@ Modes are unchanged: PAPER is the default; APPROVAL needs a person per trade;
 live orders need the explicit multi-step activation described in
 `docs/live-trading.md`. No app setting can bypass the server-side risk checks.
 
+## User-entered Zerodha credentials (20 October 2026)
+
+Users enter their own Kite Connect API key and secret in the Android app;
+the backend encrypts them per user (AES-256-GCM, key outside the database),
+never returns the secret, runs the official login/token exchange with them,
+keeps the day's token encrypted, reports seven backend-verified states, and
+supports test, connect, disconnect, update and removal. `.env.example` no
+longer carries Kite credential lines. Details and test list:
+[`zerodha-credentials.md`](./zerodha-credentials.md).
+
 ## Test results (this environment, 2026-10-19)
 
 | Suite | Result |

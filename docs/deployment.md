@@ -10,7 +10,9 @@ yourself.
 ```
 cp .env.example .env.production     # on the server only; never commit it
 # set APP_ENV=production, long random APP_SECRET and JWT_SECRET (≥32 chars),
-# POSTGRES_USER / POSTGRES_PASSWORD, KITE_* if used, KITE_REDIRECT_URL=https://<domain>/api/v1/broker/zerodha/callback
+# POSTGRES_USER / POSTGRES_PASSWORD, KITE_REDIRECT_URL=https://<domain>/api/v1/broker/zerodha/callback
+# (users enter their own Kite API key/secret in the app; do not set KITE_API_KEY/SECRET)
+mkdir -p secrets && python -m app.scripts.generate_credentials_key > secrets/credentials_key  # or via docker compose run
 DOMAIN=api.example.com docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
 ```
 

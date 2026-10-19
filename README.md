@@ -14,6 +14,7 @@ CI that builds `GainzAlgo-Pro-Max.apk`. Start with
 [`docs/strategies-pdf.md`](./docs/strategies-pdf.md),
 [`docs/mobile-app.md`](./docs/mobile-app.md),
 [`docs/deployment.md`](./docs/deployment.md),
+[`docs/zerodha-credentials.md`](./docs/zerodha-credentials.md) (each user enters their own Kite credentials in the app),
 [`docs/preservation-report.md`](./docs/preservation-report.md).
 No strategy here has been shown to be profitable.
 

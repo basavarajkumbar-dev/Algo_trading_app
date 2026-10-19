@@ -27,15 +27,15 @@ wired to real backend endpoints. Data is shown as the backend returns it;
 simulated data is labelled "SIMULATED DATA"; an unreachable backend shows
 "Backend unreachable" instead of numbers; nothing is invented on the phone.
 
-## Zerodha login on the phone
+## Zerodha on the phone
 
-The API secret stays on the backend. The app opens
-`GET /api/v1/broker/zerodha/login?client=mobile` in a system browser tab;
-the user logs in on kite.zerodha.com; Kite redirects to the **backend**
-callback (`KITE_REDIRECT_URL`, e.g. `https://api.your-domain.com/api/v1/broker/zerodha/callback`,
-registered at developers.kite.trade); the backend exchanges the token and
-returns to `gainzalgo://zerodha?result=…`. Kite tokens expire every day
-(≈06:00 IST): use *Reconnect* each trading day.
+*Settings → Broker connections → Zerodha Kite Connect*: enter your own Kite
+Connect API key and API secret (empty on a fresh install), save, then
+**Connect to Zerodha**. The secret goes once over HTTPS to the backend, which
+encrypts it; the app never stores or shows it again. Login happens on
+Zerodha's own page; the backend exchanges the token and the app reopens via
+`gainzalgo://zerodha`. Sessions expire daily: tap **Reconnect to Zerodha** —
+credentials are not asked again. Details: [`zerodha-credentials.md`](./zerodha-credentials.md).
 
 ## Building the APK
 
