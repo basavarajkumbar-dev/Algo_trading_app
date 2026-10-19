@@ -326,6 +326,11 @@ class RiskManager:
         # prices: validate against the price the order would actually see
         reference = conditions.last_price if conditions.last_price else intent.entry
         long = intent.side == TradeSide.LONG
+        # The price the entry is expected to fill at: the market now, or for
+        # a STOP entry the trigger (the market if price is already through it).
+        expected = reference
+        if intent.entry_type == "STOP":
+            expected = max(reference, intent.entry) if long else min(reference, intent.entry)
         stop_ok = (
             intent.stop_loss > 0
             and (intent.stop_loss < reference if long else intent.stop_loss > reference)
@@ -344,11 +349,11 @@ class RiskManager:
             ),
             RejectionReason.INVALID_STOP,
         )
-        target_ok = intent.target > reference if long else 0 < intent.target < reference
+        target_ok = intent.target > expected if long else 0 < intent.target < expected
         check(
             "target_validity",
             target_ok,
-            f"target {intent.target:.2f} vs price {reference:.2f}"
+            f"target {intent.target:.2f} vs expected entry {expected:.2f}"
             + ("" if target_ok else ": not on the profit side"),
             RejectionReason.INVALID_TARGET,
         )
@@ -368,7 +373,7 @@ class RiskManager:
             size = calculate_position_size(
                 capital=account.capital,
                 available_capital=account.available_capital,
-                entry=reference,
+                entry=expected,
                 stop_loss=intent.stop_loss,
                 side=intent.side,
                 limits=lim,

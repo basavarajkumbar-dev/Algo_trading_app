@@ -54,7 +54,7 @@ from app.strategies.context import build_context
 from app.strategies.router import StrategyRouter
 
 #: Bump when replay logic changes so stale cache entries are not reused.
-REPLAY_VERSION = "1"
+REPLAY_VERSION = "2"  # 2: entry type/validity in records; no decisions at last entry
 WINDOW = 300  # bars per timeframe given to the analysis (live: HISTORY_CANDLES)
 DAY_WINDOW = 500  # setup-timeframe bars for previous-day levels (live: DAY_HISTORY_CANDLES)
 
@@ -188,6 +188,8 @@ def signal_record(signal: Any, param_index: int, atr: float) -> dict[str, Any]:
         "stop": signal.stop_loss,
         "target": signal.target,
         "rr": signal.risk_reward,
+        "et": signal.entry_type.value,
+        "evb": signal.entry_valid_bars,
         "score": signal.score,
         "category": signal.category.value,
         "confidence": signal.confidence,
@@ -243,6 +245,8 @@ class ReplayResult:
     market: dict[str, dict[str, Any]]  # benchmark only: decision iso -> MarketContext
     decisions: int
     errors: int
+    strategy_errors: int = 0  # strategy evaluations that raised (ineligible "Strategy error")
+    scorer_errors: int = 0  # score components that raised (counted as 0 points)
 
 
 def _pa_config(entry: str) -> PriceActionConfig:
@@ -271,7 +275,7 @@ def replay_symbol(job: ReplayJob) -> ReplayResult:
     engine = SignalEngine(SignalEngineConfig())
     signals: dict[str, list[dict[str, Any]]] = {}
     market_out: dict[str, dict[str, Any]] = {}
-    decisions = errors = 0
+    decisions = errors = strategy_errors = scorer_errors = 0
     day_open: dict[date, float] = {}
 
     for bar in job.bars:
@@ -288,8 +292,10 @@ def replay_symbol(job: ReplayJob) -> ReplayResult:
         day = local.date()
         if day < job.decision_start or day > job.decision_end:
             continue
-        if local.time() > job.last_entry_time:
-            continue  # the risk engine would refuse entries now; skip the work
+        if local.time() >= job.last_entry_time:
+            # The risk engine refuses entries at or after the last entry time
+            # (RiskManager: `>=`), so a decision there could never trade.
+            continue
         if len(history.histories[entry_tf]) < 60:
             continue  # not enough history to analyse yet
         key = now.isoformat()
@@ -328,6 +334,11 @@ def replay_symbol(job: ReplayJob) -> ReplayResult:
         records: list[dict[str, Any]] = []
         for index, router in enumerate(routers):
             evaluation = router.evaluate(ctx)
+            strategy_errors += sum(
+                1
+                for r in evaluation.results
+                if any(b.startswith("Strategy error") for b in r.blockers)
+            )
             if not evaluation.candidates:
                 continue
             for result in evaluation.candidates:
@@ -336,11 +347,20 @@ def replay_symbol(job: ReplayJob) -> ReplayResult:
                 except Exception:  # noqa: BLE001
                     errors += 1
                     continue
+                scorer_errors += sum(
+                    1 for c in sig.breakdown.components if c.detail.startswith("could not score")
+                )
                 records.append(signal_record(sig, index, ctx.atr))
         if records:
             signals[key] = records
     return ReplayResult(
-        symbol=job.symbol, signals=signals, market=market_out, decisions=decisions, errors=errors
+        symbol=job.symbol,
+        signals=signals,
+        market=market_out,
+        decisions=decisions,
+        errors=errors,
+        strategy_errors=strategy_errors,
+        scorer_errors=scorer_errors,
     )
 
 
@@ -355,6 +375,9 @@ class ReplayOutput:
     errors: int
     cache_hits: int
     symbols: list[str]
+    strategy_errors: int = 0
+    scorer_errors: int = 0
+    decisions_by_symbol: dict[str, int] = field(default_factory=dict)
 
 
 def _cache_dir() -> Path:
@@ -489,6 +512,8 @@ def run_replay(
                     "signals": r.signals,
                     "decisions": r.decisions,
                     "errors": r.errors,
+                    "strategy_errors": r.strategy_errors,
+                    "scorer_errors": r.scorer_errors,
                 }
                 _cache_put(keys[r.symbol], results[r.symbol])
                 done += 1
@@ -508,17 +533,23 @@ def run_replay(
                         "signals": r.signals,
                         "decisions": r.decisions,
                         "errors": r.errors,
+                        "strategy_errors": r.strategy_errors,
+                        "scorer_errors": r.scorer_errors,
                     }
                     _cache_put(keys[r.symbol], results[r.symbol])
                     done += 1
                     report(0.05 + 0.85 * done / total, f"Signals: {done}/{total} symbols")
 
     merged: dict[str, list[dict[str, Any]]] = {}
-    decisions = errors = 0
+    decisions = errors = strategy_errors = scorer_errors = 0
+    by_symbol: dict[str, int] = {}
     for symbol in symbols:
         stored = results[symbol]
         decisions += stored["decisions"]
+        by_symbol[symbol] = stored["decisions"]
         errors += stored["errors"]
+        strategy_errors += stored.get("strategy_errors", 0)
+        scorer_errors += stored.get("scorer_errors", 0)
         for t, records in stored["signals"].items():
             merged.setdefault(t, []).extend(records)
     return ReplayOutput(
@@ -528,4 +559,7 @@ def run_replay(
         errors=errors,
         cache_hits=hits,
         symbols=symbols,
+        strategy_errors=strategy_errors,
+        scorer_errors=scorer_errors,
+        decisions_by_symbol=by_symbol,
     )

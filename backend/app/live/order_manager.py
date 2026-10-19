@@ -84,6 +84,13 @@ class LiveTrade(BaseModel):
     stop_loss: float
     target: float
     tick_size: float = 0.05
+    # "LIMIT": a limit order at `entry_limit` (or the planned entry).
+    # "SL_M": a stop-market entry that waits for price to trade through
+    # `trigger_price` (STOP-entry strategies, before the trigger is hit).
+    entry_order_type: str = "LIMIT"
+    entry_limit: float | None = None
+    trigger_price: float | None = None
+    entry_timeout_seconds: float | None = None  # overrides the manager's default
     status: LiveTradeStatus = LiveTradeStatus.PENDING_ENTRY
     entry_order_id: uuid.UUID | None = None
     stop_order_id: uuid.UUID | None = None
@@ -183,10 +190,21 @@ class LiveOrderManager:
     async def open_trade(self, trade: LiveTrade) -> LiveTrade:
         if self.active is not None and not self.active.status.is_final:
             raise RuntimeError("a live trade is already active")
-        price = to_tick(trade.planned_entry, trade.tick_size)
-        request = self._request(
-            trade, "ENTRY", trade.entry_side, trade.quantity, OrderType.LIMIT, price=price
-        )
+        if trade.entry_order_type == "SL_M" and trade.trigger_price:
+            price = to_tick(trade.trigger_price, trade.tick_size)
+            request = self._request(
+                trade,
+                "ENTRY",
+                trade.entry_side,
+                trade.quantity,
+                OrderType.SL_M,
+                trigger_price=price,
+            )
+        else:
+            price = to_tick(trade.entry_limit or trade.planned_entry, trade.tick_size)
+            request = self._request(
+                trade, "ENTRY", trade.entry_side, trade.quantity, OrderType.LIMIT, price=price
+            )
         order = await self.orders.submit(request, risk_approved=True)
         trade.entry_order_id = order.id
         self.active = trade
@@ -242,7 +260,12 @@ class LiveOrderManager:
             self._changed = True
 
         # entry not (fully) filled in time: cancel the remainder
-        if entry.status.is_working and now - entry.placed_at >= self.entry_timeout:
+        timeout = (
+            timedelta(seconds=trade.entry_timeout_seconds)
+            if trade.entry_timeout_seconds
+            else self.entry_timeout
+        )
+        if entry.status.is_working and now - entry.placed_at >= timeout:
             await self._cancel(entry, "entry timeout")
             entry = self._order(trade.entry_order_id) or entry
         if not entry.status.is_working and trade.filled_quantity == 0:

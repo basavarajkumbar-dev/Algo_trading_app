@@ -210,7 +210,9 @@ def momentum(i: _Inputs) -> tuple[float | None, str]:
     if m is None:
         return None, "not available"
     if i.fade:
-        slowing = next((c.passed for c in i.result.checks if c.key == "slowdown"), False)
+        slowing = next(
+            (c.passed for c in i.result.checks if c.key in ("slowdown", "reversal")), False
+        )
         return (1.0 if slowing else 0.3), (
             "momentum slowing" if slowing else "momentum not slowing yet"
         )
@@ -279,7 +281,9 @@ class ConfidenceScoringEngine:
             result=result,
             market=market,
             sign=1.0 if result.direction == TradeDirection.LONG else -1.0,
-            fade=result.strategy == StrategyName.MEAN_REVERSION,
+            # range trading also buys weakness at support / sells strength at
+            # resistance, so it is scored like mean reversion (a fade)
+            fade=result.strategy in (StrategyName.MEAN_REVERSION, StrategyName.RANGE_TRADING),
         )
         weights = self.scoring.weights
         raw: dict[str, tuple[float | None, str]] = {}

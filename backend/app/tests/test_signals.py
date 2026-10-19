@@ -269,7 +269,7 @@ def test_strategy_version_tracks_configuration() -> None:
     default = TrendContinuationStrategy().version_id
     tuned = TrendContinuationStrategy(TrendContinuationConfig(min_pullback_percent=25)).version_id
     assert default != tuned
-    assert default.startswith("1.0.0+") and len(default.split("+")[1]) == 8
+    assert default.startswith("1.1.0+") and len(default.split("+")[1]) == 8  # 1.1.0: STOP entry
 
 
 def test_quantity_candidate() -> None:

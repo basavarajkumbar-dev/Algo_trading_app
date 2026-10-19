@@ -25,6 +25,15 @@ class CandidateGeometry(BaseModel):
     default_reward_risk: float = 2.0  # used when no structure target qualifies
 
 
+# Imported here, after CandidateGeometry: pdf_config imports it from this module.
+from app.strategies.pdf_config import (  # noqa: E402
+    BreakoutTradingConfig,
+    MovingAverageCrossoverConfig,
+    RangeTradingConfig,
+    VolumeTradingConfig,
+)
+
+
 class TrendContinuationConfig(BaseModel):
     enabled: bool = True
     min_pullback_percent: float = 30.0  # the impulse must have been retraced at least this much
@@ -35,6 +44,9 @@ class TrendContinuationConfig(BaseModel):
     min_relative_strength: float = 55.0  # RS score on the trend side (longs > 55, shorts < 45)
     min_alignment: float = 50.0  # multi-timeframe alignment score
     confirmation_patterns: tuple[str, ...] = ("COG", "BT", "TT", "WRB")
+    # The entry is a stop trigger beyond the confirmation candle, valid for
+    # this many candles after it; untriggered by then = no trade.
+    trigger_valid_bars: int = Field(default=2, ge=1, le=12)
     weights: dict[str, float] = Field(
         default_factory=lambda: {
             "regime": 10.0,
@@ -149,8 +161,41 @@ def _default_routes() -> dict[MarketRegime, list[RouteRule]]:
     }
 
 
+def _extra_routes() -> dict[MarketRegime, list[RouteRule]]:
+    """Where the four added strategies may run. They are disabled by
+    default, so these rules change nothing until a strategy is enabled."""
+
+    long_only, short_only = [TradeDirection.LONG], [TradeDirection.SHORT]
+    return {
+        MarketRegime.RANGE: [
+            RouteRule(strategy=StrategyName.RANGE_TRADING),
+            RouteRule(strategy=StrategyName.BREAKOUT_TRADING),
+        ],
+        MarketRegime.BREAKOUT: [
+            RouteRule(strategy=StrategyName.BREAKOUT_TRADING),
+            RouteRule(strategy=StrategyName.VOLUME_TRADING),
+            RouteRule(strategy=StrategyName.MA_CROSSOVER),
+        ],
+        MarketRegime.STRONG_BULLISH: [
+            RouteRule(strategy=StrategyName.VOLUME_TRADING, directions=long_only),
+            RouteRule(strategy=StrategyName.MA_CROSSOVER, directions=long_only),
+        ],
+        MarketRegime.STRONG_BEARISH: [
+            RouteRule(strategy=StrategyName.VOLUME_TRADING, directions=short_only),
+            RouteRule(strategy=StrategyName.MA_CROSSOVER, directions=short_only),
+        ],
+    }
+
+
+def _all_routes() -> dict[MarketRegime, list[RouteRule]]:
+    routes = _default_routes()
+    for regime, rules in _extra_routes().items():
+        routes[regime] = [*routes.get(regime, []), *rules]
+    return routes
+
+
 class RouterConfig(BaseModel):
-    routes: dict[MarketRegime, list[RouteRule]] = Field(default_factory=_default_routes)
+    routes: dict[MarketRegime, list[RouteRule]] = Field(default_factory=_all_routes)
     min_regime_confidence: float = 50.0  # below this nothing is routed
 
     @model_validator(mode="after")
@@ -165,3 +210,8 @@ class StrategyEngineConfig(BaseModel):
     trend_continuation: TrendContinuationConfig = Field(default_factory=TrendContinuationConfig)
     breakout_momentum: BreakoutMomentumConfig = Field(default_factory=BreakoutMomentumConfig)
     mean_reversion: MeanReversionConfig = Field(default_factory=MeanReversionConfig)
+    # The four PDF strategy families (disabled by default; see pdf_config.py).
+    range_trading: RangeTradingConfig = Field(default_factory=RangeTradingConfig)
+    breakout_trading: BreakoutTradingConfig = Field(default_factory=BreakoutTradingConfig)
+    volume_trading: VolumeTradingConfig = Field(default_factory=VolumeTradingConfig)
+    ma_crossover: MovingAverageCrossoverConfig = Field(default_factory=MovingAverageCrossoverConfig)

@@ -345,10 +345,12 @@ def test_a_gap_through_the_stop_fills_at_the_gap_price() -> None:
     assert trade.exit_price == 97.0 and trade.r_multiple is not None and trade.r_multiple < -2.5
 
 
-def test_r_is_measured_against_the_planned_risk_not_the_fill() -> None:
-    # planned long 100.0, stop 99.0; the entry fills lower at 99.6, then the stop hits:
-    # 0.6 a share lost on a position sized for 1.0 a share of risk is about -0.6R,
-    # not -1R as the fill-to-stop distance would say
+def test_r_is_measured_against_the_fill_to_stop_risk() -> None:
+    # planned long 100.0, stop 99.0; the entry fills lower at 99.6, then the stop hits.
+    # Realised R uses the risk actually taken (fill 99.6 to stop 99.0 = 0.6 a share),
+    # so a full stop-out is about -1R plus slippage and charges. (Until the 2026-10
+    # audit fix F2 this measured planned risk and reported about -0.6R, understating
+    # the loss relative to the risk actually carried.)
     bars = {
         "AAA": _day_bars("AAA", DAY, {11: (99.6, 99.7, 99.5, 99.6), 15: (99.5, 99.5, 98.9, 99.0)})
     }
@@ -356,7 +358,7 @@ def test_r_is_measured_against_the_planned_risk_not_the_fill() -> None:
     r = _sim(bars, {t: [rec]})
     trade = next(x for x in r.trades if x.status == TradeStatus.CLOSED)
     assert trade.entry_price == 99.6 and trade.exit_reason == ExitReason.STOP_LOSS
-    assert trade.r_multiple is not None and -0.75 < trade.r_multiple < -0.55
+    assert trade.r_multiple is not None and -1.25 < trade.r_multiple <= -1.0
 
 
 def test_positions_are_squared_off_at_1515() -> None:
@@ -579,7 +581,7 @@ def test_strategy_choice_isolates_one_strategy_and_versions_follow_parameters() 
     tuned = strategy_versions(StrategyChoice.TREND_CONTINUATION, {"min_pullback_percent": 25.0})[
         0
     ].version_id
-    assert default.startswith("1.0.0+") and tuned != default
+    assert default.startswith("1.1.0+") and tuned != default  # TC 1.1.0: STOP entry
     strat, execu = split_scopes(
         StrategyChoice.TREND_CONTINUATION, validate_params(StrategyChoice.TREND_CONTINUATION, {})
     )

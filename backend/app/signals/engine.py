@@ -103,6 +103,8 @@ class SignalEngine:
             stop_loss=result.stop_candidate,
             target=result.target_candidate,
             risk_reward=result.reward_risk or 0.0,
+            entry_type=result.entry_type,
+            entry_valid_bars=result.entry_valid_bars,
             quantity_candidate=quantity,
             quantity_note=note,
             score=breakdown.total,

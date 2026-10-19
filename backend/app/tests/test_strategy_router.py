@@ -23,7 +23,7 @@ from app.strategies.config import (
 )
 from app.strategies.context import build_context
 from app.strategies.router import StrategyRouter
-from app.strategies.schemas import StrategyName, TradeDirection
+from app.strategies.schemas import EXTRA_STRATEGIES, StrategyName, TradeDirection
 from app.strategies.service import StrategyService
 from app.tests.candle_factory import candles_from_closes, uptrend_closes
 from app.tests.strategy_scenarios import mean_reversion_short, regime, trend_long, trend_short
@@ -31,6 +31,10 @@ from app.tests.strategy_scenarios import mean_reversion_short, regime, trend_lon
 TC = StrategyName.TREND_CONTINUATION
 BO = StrategyName.BREAKOUT_MOMENTUM
 MR = StrategyName.MEAN_REVERSION
+
+# The four added strategies are disabled by default; research views list
+# every *enabled* strategy, i.e. the original three.
+DEFAULT_ENABLED = set(StrategyName) - set(EXTRA_STRATEGIES)
 
 
 # --- routing ------------------------------------------------------------------------
@@ -146,7 +150,7 @@ def test_evaluate_all_ignores_routing_for_research() -> None:
     router = StrategyRouter()
     assert router.evaluate(ctx).results == []
     everything = router.evaluate_all(ctx)
-    assert {r.strategy for r in everything} == set(StrategyName)
+    assert {r.strategy for r in everything} == DEFAULT_ENABLED
     assert next(r for r in everything if r.strategy == MR).eligible
 
 
@@ -225,7 +229,7 @@ async def test_service_follows_price_action_refreshes() -> None:
 
         detail = strategies.get_symbol("RELIANCE", include_unrouted=True)
         assert detail is not None and detail.unrouted is not None
-        assert {r.strategy for r in detail.unrouted} == set(StrategyName)
+        assert {r.strategy for r in detail.unrouted} == DEFAULT_ENABLED
         routed = {r.strategy for r in detail.evaluation.results}
         assert routed == set(detail.evaluation.decision.eligible_strategies)
         ranks = sorted(

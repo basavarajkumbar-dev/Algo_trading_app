@@ -53,7 +53,7 @@ from app.live.validator import PreTradeReport, PreTradeValidator, ValidatorDeps
 from app.market_data.base import utcnow
 from app.risk.config import RiskLimits
 from app.risk.manager import AccountView, RiskManager
-from app.risk.schemas import MarketConditions, RiskDecision, TradeIntent
+from app.risk.schemas import MarketConditions, RiskDecision, TradeIntent, TradeSide
 
 logger = get_logger(__name__)
 
@@ -330,6 +330,19 @@ class LiveTradingService:
             logger.info("Live entry for %s blocked: %s", intent.symbol, report.summary)
             return report, None
         self.risk.record_signal_attempt(intent.signal_id)
+        entry_order_type, entry_limit, trigger = "LIMIT", None, None
+        if intent.entry_type == "STOP":
+            # Enter only on a trade through the trigger. If price is already
+            # through it (the risk check capped how far), a marketable LIMIT
+            # bounded at the allowed deviation, never a blind market order.
+            last = self._conditions(intent.symbol).last_price
+            long = intent.side == TradeSide.LONG
+            through = last is not None and (last >= intent.entry if long else last <= intent.entry)
+            if through:
+                band = self.risk.limits.max_entry_deviation_r * abs(intent.entry - intent.stop_loss)
+                entry_limit = intent.entry + band if long else intent.entry - band
+            else:
+                entry_order_type, trigger = "SL_M", intent.entry
         trade = LiveTrade(
             correlation_id=correlation_for(intent.signal_id),
             signal_id=intent.signal_id,
@@ -337,6 +350,10 @@ class LiveTradingService:
             side=intent.side,
             quantity=decision.size.quantity,
             planned_entry=intent.entry,
+            entry_order_type=entry_order_type,
+            entry_limit=entry_limit,
+            trigger_price=trigger,
+            entry_timeout_seconds=intent.entry_valid_seconds if trigger else None,
             stop_loss=intent.stop_loss,
             target=intent.target,
             tick_size=self._tick_size(intent.symbol),

@@ -32,7 +32,7 @@ from app.regime.schemas import MarketRegime
 from app.strategies.base import BaseStrategy, Features, check, side
 from app.strategies.config import TrendContinuationConfig
 from app.strategies.context import StrategyContext
-from app.strategies.schemas import StrategyCheck, StrategyName, TradeDirection
+from app.strategies.schemas import EntryType, StrategyCheck, StrategyName, TradeDirection
 
 _SELF_MADE = {
     LevelType.SWING_LOW,
@@ -52,6 +52,12 @@ def _to_trend(direction: TradeDirection) -> Trend:
 
 class TrendContinuationStrategy(BaseStrategy):
     name = StrategyName.TREND_CONTINUATION
+    # 1.1.0: the entry "beyond the confirmation candle" is a STOP trigger:
+    # executed only if price trades through it (was: entered at once, see
+    # docs/forensic-audit.md finding F1).
+    version = "1.1.0"
+    entry_type = EntryType.STOP
+    entry_valid_bars = 2
     stages: ClassVar[tuple[tuple[str, str], ...]] = (
         ("TREND", "trend"),
         ("IMPULSE", "impulse"),

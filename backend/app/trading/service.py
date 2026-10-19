@@ -393,6 +393,12 @@ class TradingService:
             symbol=signal.symbol,
             side=TradeSide.LONG if signal.direction == SignalDirection.BUY else TradeSide.SHORT,
             entry=signal.entry,
+            entry_type=signal.entry_type.value,
+            entry_valid_seconds=(
+                signal.entry_valid_bars * signal.timeframe.minutes * 60.0
+                if signal.entry_valid_bars
+                else None
+            ),
             stop_loss=signal.stop_loss,
             target=signal.target,
             score=signal.score,

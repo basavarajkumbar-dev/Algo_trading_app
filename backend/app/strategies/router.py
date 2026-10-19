@@ -20,9 +20,12 @@ from pydantic import BaseModel, Field
 from app.regime.schemas import MarketRegime
 from app.strategies.base import BaseStrategy
 from app.strategies.breakout_momentum import BreakoutMomentumStrategy
+from app.strategies.breakout_trading import BreakoutTradingStrategy
 from app.strategies.config import StrategyEngineConfig
 from app.strategies.context import StrategyContext
+from app.strategies.ma_crossover import MovingAverageCrossoverStrategy
 from app.strategies.mean_reversion import MeanReversionStrategy
+from app.strategies.range_trading import RangeTradingStrategy
 from app.strategies.schemas import (
     CANDIDATE_NOTE,
     STRATEGY_LABELS,
@@ -32,6 +35,7 @@ from app.strategies.schemas import (
     StrategyResult,
 )
 from app.strategies.trend_continuation import TrendContinuationStrategy
+from app.strategies.volume_trading import VolumeTradingStrategy
 
 
 class SymbolStrategyEvaluation(BaseModel):
@@ -52,11 +56,19 @@ class StrategyRouter:
             StrategyName.TREND_CONTINUATION: TrendContinuationStrategy(cfg.trend_continuation),
             StrategyName.BREAKOUT_MOMENTUM: BreakoutMomentumStrategy(cfg.breakout_momentum),
             StrategyName.MEAN_REVERSION: MeanReversionStrategy(cfg.mean_reversion),
+            StrategyName.RANGE_TRADING: RangeTradingStrategy(cfg.range_trading),
+            StrategyName.BREAKOUT_TRADING: BreakoutTradingStrategy(cfg.breakout_trading),
+            StrategyName.VOLUME_TRADING: VolumeTradingStrategy(cfg.volume_trading),
+            StrategyName.MA_CROSSOVER: MovingAverageCrossoverStrategy(cfg.ma_crossover),
         }
         self.enabled: dict[StrategyName, bool] = {
             StrategyName.TREND_CONTINUATION: cfg.trend_continuation.enabled,
             StrategyName.BREAKOUT_MOMENTUM: cfg.breakout_momentum.enabled,
             StrategyName.MEAN_REVERSION: cfg.mean_reversion.enabled,
+            StrategyName.RANGE_TRADING: cfg.range_trading.enabled,
+            StrategyName.BREAKOUT_TRADING: cfg.breakout_trading.enabled,
+            StrategyName.VOLUME_TRADING: cfg.volume_trading.enabled,
+            StrategyName.MA_CROSSOVER: cfg.ma_crossover.enabled,
         }
 
     def route(self, regime: MarketRegime, confidence: float) -> RouterDecision:

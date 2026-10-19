@@ -49,7 +49,11 @@ class TradeIntent(BaseModel):
     signal_id: uuid.UUID | None = None
     symbol: str
     side: TradeSide
-    entry: float  # planned entry from the signal
+    entry: float  # planned entry from the signal (the trigger for a STOP entry)
+    # "MARKET": enter now. "STOP": enter only when price trades through
+    # `entry`; the order expires after `entry_valid_seconds`.
+    entry_type: str = "MARKET"
+    entry_valid_seconds: float | None = None
     stop_loss: float
     target: float
     score: float | None = None

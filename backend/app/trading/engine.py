@@ -101,6 +101,7 @@ class PaperTradingEngine:
         self._order_purpose: dict[uuid.UUID, OrderPurpose] = {}
         self._order_trade: dict[uuid.UUID, uuid.UUID] = {}
         self._entry_placed_at: datetime | None = None
+        self._entry_timeout: float | None = None  # STOP entries: trigger validity
         self._pending_exit_reason: ExitReason | None = None
         self._exit_attempts = 0
         # outbox drained by the service for persistence
@@ -389,22 +390,37 @@ class PaperTradingEngine:
         self.risk.record_signal_attempt(intent.signal_id)
         key = f"sig-{intent.signal_id}" if intent.signal_id else f"trade-{trade.id}"
         entry_side = Side.BUY if intent.side == TradeSide.LONG else Side.SELL
+        # A STOP entry waits for its trigger (a stop-market order) unless
+        # price is already through it, in which case it enters at market;
+        # the risk check has already refused a price too far beyond it.
+        last = conditions.last_price
+        through = last is not None and (
+            last >= intent.entry if intent.side == TradeSide.LONG else last <= intent.entry
+        )
+        stop_entry = intent.entry_type == "STOP" and not through
+        self._entry_timeout = (
+            intent.entry_valid_seconds
+            if intent.entry_type == "STOP" and intent.entry_valid_seconds
+            else None
+        )
         order = self._place(
             OrderPurpose.ENTRY,
             OrderRequest(
                 symbol=intent.symbol,
                 side=entry_side,
                 quantity=size.quantity,
-                order_type=OrderType.MARKET,
+                order_type=OrderType.SL_M if stop_entry else OrderType.MARKET,
+                trigger_price=intent.entry if stop_entry else None,
                 client_order_id=f"{key}-entry",
                 tag=OrderPurpose.ENTRY.value,
             ),
         )
         self._entry_placed_at = now
         self._to(TradingState.ORDER_PENDING, f"entry order {order.status.value}")
+        how = f"on a trade through {intent.entry}" if stop_entry else "at market"
         self._event(
             "ORDER_PLACED",
-            f"Paper {entry_side.value} {size.quantity} {intent.symbol} at market "
+            f"Paper {entry_side.value} {size.quantity} {intent.symbol} {how} "
             f"(stop {size.stop_loss}, target {intent.target})",
             trade_id=str(trade.id),
             order_id=str(order.id),
@@ -478,10 +494,9 @@ class PaperTradingEngine:
             return
         now = self._clock()
         entry = self._entry()
-        timed_out = (
-            self._entry_placed_at is not None
-            and (now - self._entry_placed_at).total_seconds() >= self.config.entry_timeout_seconds
-        )
+        timed_out = self._entry_placed_at is not None and (
+            now - self._entry_placed_at
+        ).total_seconds() >= (self._entry_timeout or self.config.entry_timeout_seconds)
 
         if self.state == TradingState.ORDER_PENDING:
             if entry.filled_quantity == 0:
@@ -490,7 +505,9 @@ class PaperTradingEngine:
                 elif timed_out:
                     await self._cancel_unfilled_entry(
                         ExitReason.ENTRY_EXPIRED,
-                        f"entry not filled within {self.config.entry_timeout_seconds:.0f}s",
+                        f"entry not filled within "
+                        f"{(self._entry_timeout or self.config.entry_timeout_seconds):.0f}s"
+                        + (" (trigger not reached)" if entry.order_type is OrderType.SL_M else ""),
                     )
                 return
             trade.opened_at = entry.fills[0].timestamp
@@ -749,11 +766,24 @@ class PaperTradingEngine:
         trade.closed_at = now
         trade.unrealized_pnl = 0.0
         if trade.filled_quantity > 0 and trade.entry_price is not None:
-            # R is measured against the risk the position was sized for (planned
-            # entry to stop). Using the fill would turn a gap toward the stop
-            # into an outsized R loss on a small rupee loss.
-            risk_per_unit = abs(trade.planned_entry - trade.stop_loss)
-            initial = risk_per_unit * trade.filled_quantity
+            # Realised R = net P&L / the risk actually taken: average entry
+            # fill to the initial stop, times the filled quantity. (Before
+            # this fix R used the planned entry, a price that may never have
+            # traded - audit finding F2.) If the fill is at or beyond the stop
+            # (a gap) there was no positive risk to measure: fall back to the
+            # planned risk and say so.
+            sign = 1 if trade.side == TradeSide.LONG else -1
+            fill_risk = (trade.entry_price - trade.stop_loss) * sign
+            if fill_risk > 0:
+                initial = fill_risk * trade.filled_quantity
+            else:
+                initial = abs(trade.planned_entry - trade.stop_loss) * trade.filled_quantity
+                self._event(
+                    "R_FALLBACK",
+                    "Entry filled at or beyond the stop: R measured on the planned risk",
+                    severity="WARNING",
+                    trade_id=str(trade.id),
+                )
             trade.r_multiple = round(trade.net_pnl / initial, 2) if initial > 0 else None
             self.risk.record_trade_result(trade.net_pnl)
         self._to(TradingState.CLOSED, f"{status.value}: {reason.value}")
@@ -774,6 +804,7 @@ class PaperTradingEngine:
         del self.closed[: max(len(self.closed) - self.config.history_size, 0)]
         self.active = None
         self._entry_placed_at = None
+        self._entry_timeout = None
         self._pending_exit_reason = None
         if self.risk.account_blocks():
             self._event(

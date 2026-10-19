@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.market_data.schemas import Timeframe
 from app.regime.schemas import MarketRegime
-from app.strategies.schemas import FeatureValue, StrategyCheck, StrategyName
+from app.strategies.schemas import EntryType, FeatureValue, StrategyCheck, StrategyName
 
 SIGNAL_NOTE = (
     "Signals are scored strategy candidates, not orders. Scores and ranks "
@@ -85,6 +85,11 @@ class TradingSignal(BaseModel):
     stop_loss: float
     target: float
     risk_reward: float
+    # MARKET: enter after the signal candle closed. STOP: `entry` is a
+    # trigger; enter only if price trades through it within
+    # `entry_valid_bars` candles (no trigger = no trade).
+    entry_type: EntryType = EntryType.MARKET
+    entry_valid_bars: int | None = None
     quantity_candidate: int
     quantity_note: str
     score: float

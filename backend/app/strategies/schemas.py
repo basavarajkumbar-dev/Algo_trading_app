@@ -31,13 +31,47 @@ class StrategyName(str, Enum):
     TREND_CONTINUATION = "TREND_CONTINUATION"
     BREAKOUT_MOMENTUM = "BREAKOUT_MOMENTUM"
     MEAN_REVERSION = "MEAN_REVERSION"
+    # The four families from "Best Intraday Trading Strategies" (2026-10).
+    RANGE_TRADING = "RANGE_TRADING"
+    BREAKOUT_TRADING = "BREAKOUT_TRADING"
+    VOLUME_TRADING = "VOLUME_TRADING"
+    MA_CROSSOVER = "MA_CROSSOVER"
+
+
+#: Added strategies, off in the live router unless STRATEGY_EXTRA_ENABLED.
+EXTRA_STRATEGIES: tuple[StrategyName, ...] = (
+    StrategyName.RANGE_TRADING,
+    StrategyName.BREAKOUT_TRADING,
+    StrategyName.VOLUME_TRADING,
+    StrategyName.MA_CROSSOVER,
+)
 
 
 STRATEGY_LABELS: dict[StrategyName, str] = {
     StrategyName.TREND_CONTINUATION: "Trend continuation",
     StrategyName.BREAKOUT_MOMENTUM: "Breakout momentum",
     StrategyName.MEAN_REVERSION: "Mean reversion",
+    StrategyName.RANGE_TRADING: "Range trading",
+    StrategyName.BREAKOUT_TRADING: "Breakout trading (confirmed trigger)",
+    StrategyName.VOLUME_TRADING: "Volume-based trading",
+    StrategyName.MA_CROSSOVER: "Moving-average crossover",
 }
+
+
+class EntryType(str, Enum):
+    """How a candidate's entry is executed.
+
+    MARKET: enter at the next price after the signal candle has closed
+            (breakout momentum, mean reversion: the closed candle is the
+            confirmation).
+    STOP:   enter only if price trades through `entry_candidate` (the
+            trigger) within `entry_valid_bars` candles; otherwise no trade.
+            Used where the setup's own definition is "enter beyond a level"
+            (trend continuation: beyond the confirmation candle).
+    """
+
+    MARKET = "MARKET"
+    STOP = "STOP"
 
 
 class TradeDirection(str, Enum):
@@ -74,6 +108,8 @@ class StrategyResult(BaseModel):
     reward_per_unit: float | None = None  # |target - entry|
     reward_risk: float | None = None
     entry_basis: str | None = None
+    entry_type: EntryType = EntryType.MARKET
+    entry_valid_bars: int | None = None  # STOP entries: trigger validity in candles
     stop_basis: str | None = None
     target_basis: str | None = None
     confidence: float = 0.0  # 0-100, only non-zero when eligible

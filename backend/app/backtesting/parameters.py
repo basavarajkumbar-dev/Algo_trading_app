@@ -39,9 +39,15 @@ class StrategyChoice(str, Enum):
     """`ALL` runs the live router (every strategy, routed by regime)."""
 
     ALL = "ALL"
+    # Every strategy, including the four added PDF strategies, through the router.
+    ALL_EXTENDED = "ALL_EXTENDED"
     TREND_CONTINUATION = StrategyName.TREND_CONTINUATION.value
     BREAKOUT_MOMENTUM = StrategyName.BREAKOUT_MOMENTUM.value
     MEAN_REVERSION = StrategyName.MEAN_REVERSION.value
+    RANGE_TRADING = StrategyName.RANGE_TRADING.value
+    BREAKOUT_TRADING = StrategyName.BREAKOUT_TRADING.value
+    VOLUME_TRADING = StrategyName.VOLUME_TRADING.value
+    MA_CROSSOVER = StrategyName.MA_CROSSOVER.value
 
 
 class TrailingMode(str, Enum):
@@ -162,6 +168,32 @@ STRATEGY_PARAMS: dict[StrategyChoice, list[ParamSpec]] = {
         ),
         *ROUTER_PARAMS,
     ],
+    StrategyChoice.ALL_EXTENDED: ROUTER_PARAMS,
+    StrategyChoice.RANGE_TRADING: [
+        _f("max_adx", "Max ADX (trend filter)", 25.0, 10, 40, 5),
+        _f("rsi_oversold", "RSI oversold", 35.0, 20, 45, 5),
+        _f("rsi_overbought", "RSI overbought", 65.0, 55, 80, 5),
+        _f("boundary_zone", "Boundary zone (share of width)", 0.25, 0.1, 0.4, 0.05),
+        *ROUTER_PARAMS,
+    ],
+    StrategyChoice.BREAKOUT_TRADING: [
+        _f("min_relative_volume", "Min breakout volume (x)", 1.5, 1.0, 3.0, 0.25),
+        _f("min_body_fraction", "Min candle body", 0.5, 0.3, 0.8, 0.1),
+        _f("max_extension_atr", "Max extension (ATR)", 1.5, 0.5, 3.0, 0.25),
+        *ROUTER_PARAMS,
+    ],
+    StrategyChoice.VOLUME_TRADING: [
+        _f("min_relative_volume", "Min relative volume (x)", 2.0, 1.25, 5.0, 0.25),
+        _f("min_body_fraction", "Min candle body", 0.5, 0.3, 0.8, 0.1),
+        *ROUTER_PARAMS,
+    ],
+    StrategyChoice.MA_CROSSOVER: [
+        _f("min_adx", "Min ADX", 20.0, 10, 40, 5),
+        _f("max_bars_since_cross", "Max candles since crossover", 3, 1, 10, 1).model_copy(
+            update={"kind": "int"}
+        ),
+        *ROUTER_PARAMS,
+    ],
 }
 
 EXECUTION_PARAMS: list[ParamSpec] = [
@@ -208,6 +240,10 @@ _STRATEGY_FIELD = {
     StrategyChoice.TREND_CONTINUATION: "trend_continuation",
     StrategyChoice.BREAKOUT_MOMENTUM: "breakout_momentum",
     StrategyChoice.MEAN_REVERSION: "mean_reversion",
+    StrategyChoice.RANGE_TRADING: "range_trading",
+    StrategyChoice.BREAKOUT_TRADING: "breakout_trading",
+    StrategyChoice.VOLUME_TRADING: "volume_trading",
+    StrategyChoice.MA_CROSSOVER: "ma_crossover",
 }
 
 
@@ -308,7 +344,10 @@ def engine_config_for(
 
     cfg = StrategyEngineConfig()
     specs = {p.key: p for p in STRATEGY_PARAMS[strategy]}
-    if strategy != StrategyChoice.ALL:
+    if strategy == StrategyChoice.ALL_EXTENDED:
+        for attr in _STRATEGY_FIELD.values():
+            getattr(cfg, attr).enabled = True
+    elif strategy != StrategyChoice.ALL:
         for choice, attr in _STRATEGY_FIELD.items():
             getattr(cfg, attr).enabled = choice == strategy
     for key, value in strategy_params.items():

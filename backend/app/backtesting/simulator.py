@@ -297,6 +297,10 @@ def simulate(
                         symbol=r["symbol"],
                         side=TradeSide.LONG if r["direction"] == "BUY" else TradeSide.SHORT,
                         entry=r["entry"],
+                        entry_type=r.get("et", "MARKET"),
+                        entry_valid_seconds=(
+                            float(r["evb"]) * entry_minutes * 60.0 if r.get("evb") else None
+                        ),
                         stop_loss=r["stop"],
                         target=r["target"],
                         score=r["score"],

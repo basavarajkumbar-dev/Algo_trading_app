@@ -30,6 +30,7 @@ from app.price_action.support_resistance import PriceLevel
 from app.strategies.config import CandidateGeometry
 from app.strategies.context import StrategyContext
 from app.strategies.schemas import (
+    EntryType,
     FeatureValue,
     StrategyCheck,
     StrategyName,
@@ -70,6 +71,10 @@ class BaseStrategy(ABC):
     #: `stage` in the result is the last stage whose check passed in an
     #: unbroken run from the start.
     stages: ClassVar[tuple[tuple[str, str], ...]] = ()
+    #: How the entry candidate is executed (see EntryType). STOP entries
+    #: are valid for `entry_valid_bars` candles after the signal candle.
+    entry_type: ClassVar[EntryType] = EntryType.MARKET
+    entry_valid_bars: ClassVar[int | None] = None
 
     def __init__(self, geometry: CandidateGeometry, weights: dict[str, float]) -> None:
         self.geometry = geometry
@@ -291,6 +296,13 @@ class BaseStrategy(ABC):
             reward_per_unit=rounded(reward),
             reward_risk=round(rr, 2) if rr is not None else None,
             entry_basis=entry_basis if eligible else None,
+            entry_type=self.entry_type,
+            entry_valid_bars=(
+                int(getattr(getattr(self, "config", None), "trigger_valid_bars", 0))
+                or self.entry_valid_bars
+                if self.entry_type == EntryType.STOP
+                else None
+            ),
             stop_basis=stop_basis if eligible else None,
             target_basis=target_basis if eligible else None,
             confidence=round(clamp(score), 1) if eligible else 0.0,
