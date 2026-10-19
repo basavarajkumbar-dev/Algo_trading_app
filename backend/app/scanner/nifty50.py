@@ -17,6 +17,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -111,6 +112,13 @@ class ScanResult(BaseModel):
     symbols_scanned: int
     filtered_out: dict[str, str]  # symbol -> reason it was not scanned
     scanned_at: datetime
+    # Run record (set by SignalService): the universe it was asked to cover
+    # with every count, timing and the strategy versions that ran.
+    universe: dict[str, Any] | None = None
+    scan_started_at: datetime | None = None
+    scan_finished_at: datetime | None = None
+    duration_ms: float | None = None
+    strategy_versions: dict[str, str] = Field(default_factory=dict)
     note: str = SCANNER_NOTE
     ranking_note: str = RANKING_NOTE
 

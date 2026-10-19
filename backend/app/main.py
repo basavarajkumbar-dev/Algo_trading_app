@@ -14,9 +14,9 @@ each later phase adds.
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -50,9 +50,12 @@ from app.price_action.service import PriceActionService
 from app.risk.config import risk_limits_from_settings
 from app.signals.config import signal_engine_config
 from app.signals.service import SignalService
+from app.strategies.config import StrategyEngineConfig
 from app.strategies.service import StrategyService
 from app.trading.engine import EngineConfig
 from app.trading.service import TradingService
+from app.universe.loader import UniverseStore, broker_equities_from
+from app.universe.watchlist import build_watchlist, instrument_eligibility, simulated_eligibility
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -68,6 +71,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.demo_mode,
         settings.trading_mode.value,
     )
+    problems = settings.deployment_problems()
+    if problems:
+        # refuse to serve a production/staging deployment with dev secrets
+        raise RuntimeError("Unsafe deployment configuration: " + "; ".join(problems))
 
     # Zerodha (Phase 13): one shared Kite client + auth + instrument master.
     # Without KITE_API_KEY / KITE_API_SECRET everything here is inert.
@@ -100,9 +107,39 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         provider.source,
         settings.effective_execution_mode.value,
     )
+    # Scanner universe (SCANNER_UNIVERSES, default NIFTY50): resolved once
+    # at startup with every requested / eligible / excluded / processed
+    # count kept for the scanner and /universes/active.
+    universe_store = UniverseStore(
+        settings.universe_cache_dir,
+        max_age=timedelta(days=settings.universe_max_age_days),
+    )
+    app.state.universe_store = universe_store
+    universe_notes: list[str] = []
+    eligibility: Callable[[str], str | None] | None
+    if provider.simulated:
+        eligibility = simulated_eligibility
+    else:
+        try:
+            await zerodha.resolver.reload()
+        except Exception:  # noqa: BLE001 - no DB yet: verified after the first login
+            logger.warning("Instrument master not loaded before the universe was resolved")
+        eligibility, universe_notes = instrument_eligibility(zerodha.resolver)
+    if zerodha.configured:
+        universe_store.set_broker_equities(
+            lambda: broker_equities_from(zerodha.resolver.nse_equities())
+        )
+    watchlist, universe_report = await build_watchlist(
+        universe_store,
+        settings.scanner_universe_ids,
+        eligibility=eligibility,
+        limit=settings.scanner_max_symbols,
+        notes=universe_notes,
+    )
+    app.state.universe_report = universe_report
     market_data_service = MarketDataService(
         provider,
-        watchlist=settings.market_data_default_watchlist,
+        watchlist=watchlist,
         warmup_candles=settings.market_data_warmup_candles,
         stale_threshold_seconds=settings.data_stale_threshold_seconds,
     )
@@ -161,8 +198,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await price_action_service.start()
     app.state.price_action_service = price_action_service
 
+    strategy_config = StrategyEngineConfig()
+    for name in settings.strategy_extra_ids:
+        attr = name.lower()
+        if hasattr(strategy_config, attr):
+            getattr(strategy_config, attr).enabled = True
+            logger.info("Strategy %s enabled (STRATEGY_EXTRA_ENABLED)", name)
+        else:
+            logger.warning("STRATEGY_EXTRA_ENABLED: unknown strategy %s ignored", name)
     strategy_service = StrategyService(
-        market_data_service, price_action_service, benchmark_symbol=NIFTY_INDEX_SYMBOL
+        market_data_service,
+        price_action_service,
+        benchmark_symbol=NIFTY_INDEX_SYMBOL,
+        config=strategy_config,
     )
     await strategy_service.start()
     app.state.strategy_service = strategy_service
@@ -174,6 +222,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         session_factory=async_session_factory,
         config=signal_engine_config(settings),
     )
+    signal_service.universe_report = universe_report
     await signal_service.start()
     app.state.signal_service = signal_service
 

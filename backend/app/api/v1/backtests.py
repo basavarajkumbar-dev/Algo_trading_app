@@ -50,7 +50,6 @@ from app.backtesting.runner import (
 )
 from app.backtesting.schemas import (
     MAX_DAYS,
-    MAX_SYMBOLS,
     BacktestMode,
     BacktestRequest,
     CostSpec,
@@ -66,6 +65,16 @@ from app.database.models.backtest import BacktestRun
 from app.database.models.user import User
 from app.database.session import get_db
 from app.market_data.universe import NIFTY_50_UNIVERSE
+from app.universe.loader import (
+    UniverseStore,
+    UniverseUnavailable,
+    broker_equities_from,
+    dump_report,
+    report_summary,
+    resolve_universe,
+)
+from app.universe.registry import UNIVERSES
+from app.universe.watchlist import instrument_eligibility
 
 router = APIRouter(prefix="/backtests", tags=["backtesting"])
 _operator = require_role(UserRole.TRADER, UserRole.ADMIN)
@@ -75,6 +84,11 @@ STRATEGY_LABELS = {
     StrategyChoice.TREND_CONTINUATION: "Trend continuation",
     StrategyChoice.BREAKOUT_MOMENTUM: "Breakout momentum",
     StrategyChoice.MEAN_REVERSION: "Mean reversion",
+    StrategyChoice.ALL_EXTENDED: "All strategies incl. the 4 PDF strategies (router)",
+    StrategyChoice.RANGE_TRADING: "Range trading (PDF)",
+    StrategyChoice.BREAKOUT_TRADING: "Breakout trading, confirmed trigger (PDF)",
+    StrategyChoice.VOLUME_TRADING: "Volume-based trading (PDF)",
+    StrategyChoice.MA_CROSSOVER: "Moving-average crossover (PDF)",
 }
 
 
@@ -128,6 +142,7 @@ class BacktestOptions(BaseModel):
     timeframes: list[str]
     modes: list[BacktestMode]
     limits: dict[str, int]
+    universes: list[dict[str, Any]] = Field(default_factory=list)
     risk: RiskSpec
     costs: CostSpec
     validation: ValidationSpec
@@ -275,8 +290,12 @@ async def options(
         data_sources=sources,
         timeframes=["5m", "15m"],
         modes=list(BacktestMode),
+        universes=[
+            {"id": u.id, "name": u.name, "group": u.group, "notes": u.notes}
+            for u in UNIVERSES.values()
+        ],
         limits={
-            "max_symbols": MAX_SYMBOLS,
+            "max_symbols": settings.backtest_max_symbols,
             "max_days": MAX_DAYS,
             "max_grid_combinations": MAX_GRID_COMBINATIONS,
         },
@@ -396,6 +415,7 @@ async def create(
     settings: Settings = Depends(get_settings),
 ) -> RunSummary:
     svc = _service(request)
+    body = await _resolve_symbols(body, request, settings)
     if body.data_source.kind == DataSourceKind.ZERODHA:
         # Real history is downloaded by the worker; check what we can now.
         rt = getattr(request.app.state, "zerodha", None)
@@ -447,6 +467,70 @@ async def create(
     out = RunSummary(**_summary(row, svc))
     out.estimated_seconds = estimate_seconds(body, len(days))
     return out
+
+
+async def _resolve_symbols(
+    body: BacktestRequest, request: Request, settings: Settings
+) -> BacktestRequest:
+    """Universes -> the exact symbols this run processes, with every count
+    and exclusion recorded on the run. Explicit symbol lists over the limit
+    are refused (never cut short silently)."""
+
+    limit = settings.backtest_max_symbols
+    if not body.universes:
+        if len(body.symbols) > limit:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"{len(body.symbols)} symbols requested; the limit is {limit} "
+                "(BACKTEST_MAX_SYMBOLS).",
+            )
+        return body
+    unknown = [u for u in body.universes if u.upper() not in UNIVERSES]
+    if unknown:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Unknown universe: {unknown}")
+    store: UniverseStore | None = getattr(request.app.state, "universe_store", None)
+    if store is None:
+        store = UniverseStore(settings.universe_cache_dir)
+    eligibility: Any = None
+    notes: list[str] = []
+    kind = body.data_source.kind
+    if kind == DataSourceKind.ZERODHA:
+        rt = getattr(request.app.state, "zerodha", None)
+        if rt is not None:
+            eligibility, notes = instrument_eligibility(rt.resolver)
+            store.set_broker_equities(lambda: broker_equities_from(rt.resolver.nse_equities()))
+    else:
+        try:
+            known = set(
+                SyntheticHistorySource().symbols()
+                if kind == DataSourceKind.SYNTHETIC
+                else make_source(body, settings.backtest_data_dir).symbols()
+            )
+        except (BacktestError, FileNotFoundError, KeyError) as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+        def eligibility(symbol: str) -> str | None:
+            return None if symbol in known else f"no {kind.value} data for this symbol"
+
+    try:
+        report = await resolve_universe(
+            store,
+            body.universes,
+            symbols=body.symbols,
+            eligibility=eligibility,
+            limit=limit,
+            notes=notes,
+        )
+    except UniverseUnavailable as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    if not report.processed:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"No eligible symbols: {report_summary(report)}",
+        )
+    return body.model_copy(
+        update={"symbols": report.processed, "universe_report": dump_report(report)}
+    )
 
 
 def zerodha_symbols(rt: Any) -> tuple[list[str], list[str]]:

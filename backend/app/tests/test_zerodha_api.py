@@ -220,9 +220,45 @@ def test_zerodha_backtest_source_lists_symbols_and_dates(configured: TestClient)
     """Regression: the Zerodha source offered no symbols to pick."""
 
     trader = _user(configured)
+    # instrument rows other tests left in the database must not leak in here:
+    # with no master loaded every NIFTY 50 constituent is offered
+    app.state.zerodha.resolver.load([])
     opts = configured.get("/api/v1/backtests/options", headers=trader).json()
     z = next(s for s in opts["data_sources"] if s["kind"] == "zerodha")
     assert len(z["symbols"]) == 50 and "RELIANCE" in z["symbols"]
     assert "NIFTY50" not in z["symbols"]  # the benchmark is added automatically
     assert z["first_day"] and z["last_day"] < datetime.now().date().isoformat()
     assert z["available"] is False  # no Kite login in this test
+
+
+def test_mobile_login_returns_to_the_app(mock_data_with_kite: TestClient) -> None:
+    """A login started by the Android app (client=mobile) ends on the app's
+    deep link; the token exchange is still server-side and nothing secret is
+    in the redirect."""
+
+    c = mock_data_with_kite
+    fake = FakeKite(token=None)
+    fake.login_time = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%Y-%m-%d %H:%M:%S")
+    runtime = app.state.zerodha
+    assert runtime.client is not None
+    runtime.client._http = httpx.AsyncClient(
+        base_url="https://api.kite.trade",
+        transport=fake.transport(),
+        headers={"X-Kite-Version": "3"},
+    )
+    admin = _user(c, "ADMIN")
+    url = c.get("/api/v1/broker/zerodha/login?client=mobile", headers=admin).json()["login_url"]
+    state = parse_qs(parse_qs(urlparse(url).query)["redirect_params"][0])["state"][0]
+    r = c.get(
+        "/api/v1/broker/zerodha/callback",
+        params={"request_token": REQUEST_TOKEN, "status": "success", "state": state},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303 and r.headers["location"] == "gainzalgo://zerodha?result=connected"
+    _no_secrets(r.headers["location"], r.text)
+    forged = c.get(
+        "/api/v1/broker/zerodha/callback",
+        params={"request_token": REQUEST_TOKEN, "status": "success", "state": "forged"},
+        follow_redirects=False,
+    )
+    assert forged.headers["location"].startswith("http://frontend.test/settings?zerodha=error")

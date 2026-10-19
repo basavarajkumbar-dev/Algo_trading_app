@@ -296,6 +296,19 @@ class InstrumentResolver:
     def find_by_token(self, token: int) -> InstrumentRecord | None:
         return self._by_token.get(token)
 
+    def nse_equities(self) -> list[InstrumentRecord]:
+        """Every NSE cash-market record of type EQ (includes ETFs and the
+        non-EQ series Kite lists as SYMBOL-BE, SYMBOL-SM, ...; callers filter)."""
+
+        return sorted(
+            (
+                r
+                for r in self._by_token.values()
+                if r.segment == "NSE" and r.instrument_type == "EQ"
+            ),
+            key=lambda r: r.tradingsymbol,
+        )
+
     def resolve_nse_equity(self, symbol: str) -> InstrumentRecord:
         r = self._by_key.get(("NSE", symbol))
         if r is None or r.segment != "NSE" or r.instrument_type != "EQ":

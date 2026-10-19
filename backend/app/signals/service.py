@@ -19,6 +19,7 @@ import asyncio
 import time
 from collections.abc import Callable
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,6 +82,8 @@ class SignalService:
 
         self._task: asyncio.Task[None] | None = None
         self._scan_count = 0
+        # The UniverseReport behind the watchlist (set at startup by main.py).
+        self.universe_report: Any = None
         self._last_scan_at: datetime | None = None
         self._last_compute_ms: float | None = None
         self._last_error: str | None = None
@@ -132,6 +135,7 @@ class SignalService:
 
         started = time.perf_counter()
         now = utcnow()
+        scan_started_at = now
         try:
             benchmark_snapshot = snapshots.get(self._benchmark)
             market = market_context_from(
@@ -165,12 +169,35 @@ class SignalService:
             now=now,
             signals=signals,
         )
+        elapsed_ms = round((time.perf_counter() - started) * 1000, 1)
+        report = self.universe_report
+        self._scan = self._scan.model_copy(
+            update={
+                "universe": (
+                    report.model_dump(mode="json") if hasattr(report, "model_dump") else report
+                ),
+                "scan_started_at": scan_started_at,
+                "scan_finished_at": utcnow(),
+                "duration_ms": elapsed_ms,
+                "strategy_versions": self._strategy_versions(),
+            }
+        )
         self._signals = signals
         self._seen_strategy_refresh = current
-        self._last_compute_ms = round((time.perf_counter() - started) * 1000, 1)
+        self._last_compute_ms = elapsed_ms
         self._last_scan_at = now
         self._last_error = None
         self._scan_count += 1
+
+    def _strategy_versions(self) -> dict[str, str]:
+        router = getattr(self._strategies, "router", None)
+        if router is None:
+            return {}
+        return {
+            name.value: strategy.version_id
+            for name, strategy in router.strategies.items()
+            if router.enabled.get(name)
+        }
 
     def _apply_stale_guard(self, signals: list[TradingSignal], now: datetime) -> None:
         """Stale-data protection: a signal computed on data older than

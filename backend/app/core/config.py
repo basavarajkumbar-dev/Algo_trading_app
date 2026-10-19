@@ -281,6 +281,44 @@ class Settings(BaseSettings):
     )
     scanner_top_n: int = Field(default=10, ge=1, le=50, alias="SCANNER_TOP_N")
 
+    # --- Universes (scanner and backtests) --------------------------------
+    # Comma-separated universe ids (app.universe.registry), e.g.
+    # "NIFTY50" (default, unchanged), "NIFTY500", "NIFTY_BANK,NIFTY_MIDCAP150",
+    # "NSE_ALL_EQ". Applied at startup; the watchlist is the NIFTY 50 index
+    # plus the resolved symbols.
+    scanner_universes: str = Field(default="NIFTY50", alias="SCANNER_UNIVERSES")
+    # Capacity limit for the live watchlist. Symbols over it are excluded
+    # with an explicit reason shown by the scanner (never silently).
+    scanner_max_symbols: int = Field(default=200, ge=1, le=3000, alias="SCANNER_MAX_SYMBOLS")
+    # Most symbols one backtest may process (was a fixed 20).
+    backtest_max_symbols: int = Field(default=50, ge=1, le=2000, alias="BACKTEST_MAX_SYMBOLS")
+    universe_cache_dir: str = Field(default="/tmp/gainzalgo-universes", alias="UNIVERSE_CACHE_DIR")
+    universe_max_age_days: float = Field(default=7.0, gt=0, alias="UNIVERSE_MAX_AGE_DAYS")
+
+    # --- Mobile app -------------------------------------------------------------
+    # Deep-link scheme the Zerodha callback returns to for logins started
+    # from the Android app (must match the app's "scheme" in app.json).
+    mobile_app_scheme: str = Field(
+        default="gainzalgo", pattern="^[a-z][a-z0-9+.-]*$", alias="MOBILE_APP_SCHEME"
+    )
+
+    # --- Strategies -----------------------------------------------------------
+    # Added strategies to enable in the live/paper router (off by default):
+    # comma-separated from RANGE_TRADING, BREAKOUT_TRADING, VOLUME_TRADING,
+    # MA_CROSSOVER, or "ALL". The three original strategies are unaffected.
+    strategy_extra_enabled: str = Field(default="", alias="STRATEGY_EXTRA_ENABLED")
+
+    # --- API access ---------------------------------------------------------
+    # Require a signed-in user for every data endpoint (market, signals,
+    # trading, analytics, backtests, ...) and the market WebSocket. Unset:
+    # required when APP_ENV is production or staging, open in development
+    # (the existing default for local use).
+    api_require_auth: bool | None = Field(default=None, alias="API_REQUIRE_AUTH")
+    # Self-service sign-up (POST /auth/register, role TRADER). Unset: open in
+    # development, closed in production/staging, where accounts are created
+    # with `python -m app.scripts.create_user`.
+    allow_registration: bool | None = Field(default=None, alias="ALLOW_REGISTRATION")
+
     # --- Risk engine (Phase 8) --------------------------------------------
     # RISK_PER_TRADE, MAX_DAILY_LOSS and MAX_TRADES_PER_DAY above are the
     # percentage / count limits; these complete the RiskManager's set.
@@ -341,6 +379,42 @@ class Settings(BaseSettings):
             "http://127.0.0.1:3000",
         ]
     )
+
+    @property
+    def strategy_extra_ids(self) -> list[str]:
+        names = [n.strip().upper() for n in self.strategy_extra_enabled.split(",") if n.strip()]
+        if "ALL" in names:
+            return ["RANGE_TRADING", "BREAKOUT_TRADING", "VOLUME_TRADING", "MA_CROSSOVER"]
+        return names
+
+    @property
+    def scanner_universe_ids(self) -> list[str]:
+        return [u.strip().upper() for u in self.scanner_universes.split(",") if u.strip()]
+
+    def deployment_problems(self) -> list[str]:
+        """Reasons this configuration must not serve a production or staging
+        deployment. Empty in development."""
+        if self.app_env.lower() not in ("production", "staging"):
+            return []
+        problems: list[str] = []
+        for name, value in (("APP_SECRET", self.app_secret), ("JWT_SECRET", self.jwt_secret)):
+            if "insecure" in value or "change-me" in value or len(value) < 32:
+                problems.append(f"{name} is a placeholder or shorter than 32 characters")
+        if not self.effective_api_require_auth:
+            problems.append("API_REQUIRE_AUTH=false is not allowed outside development")
+        return problems
+
+    @property
+    def effective_allow_registration(self) -> bool:
+        if self.allow_registration is not None:
+            return self.allow_registration
+        return self.app_env.lower() not in ("production", "staging")
+
+    @property
+    def effective_api_require_auth(self) -> bool:
+        if self.api_require_auth is not None:
+            return self.api_require_auth
+        return self.app_env.lower() in ("production", "staging")
 
     @property
     def is_live_trading_possible(self) -> bool:

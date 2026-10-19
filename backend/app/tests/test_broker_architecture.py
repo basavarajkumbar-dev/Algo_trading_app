@@ -66,7 +66,13 @@ def test_only_the_zerodha_package_uses_http() -> None:
         for p in APP.rglob("*.py")
         if "tests" not in p.parts and any(n.startswith("httpx") for n in _imports(p))
     )
-    assert users == ["brokers/zerodha/adapter.py", "brokers/zerodha/kite_client.py"]
+    # universe/loader.py downloads the official NSE Indices constituent files
+    # (not a broker); every broker call still goes through the Zerodha package.
+    assert users == [
+        "brokers/zerodha/adapter.py",
+        "brokers/zerodha/kite_client.py",
+        "universe/loader.py",
+    ]
 
 
 def test_only_the_kite_ticker_opens_websockets_to_the_broker() -> None:

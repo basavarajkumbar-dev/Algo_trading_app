@@ -58,10 +58,17 @@ def test_options_describe_everything_the_form_needs(client: TestClient) -> None:
     body = client.get("/api/v1/backtests/options").json()
     assert [s["value"] for s in body["strategies"]] == [
         "ALL",
+        "ALL_EXTENDED",
         "TREND_CONTINUATION",
         "BREAKOUT_MOMENTUM",
         "MEAN_REVERSION",
+        "RANGE_TRADING",
+        "BREAKOUT_TRADING",
+        "VOLUME_TRADING",
+        "MA_CROSSOVER",
     ]
+    assert body["limits"]["max_symbols"] == 50  # BACKTEST_MAX_SYMBOLS (was a fixed 20)
+    assert {"NIFTY50", "NIFTY500", "NIFTY_BANK"} <= {u["id"] for u in body["universes"]}
     tc = next(s for s in body["strategies"] if s["value"] == "TREND_CONTINUATION")
     keys = {p["key"] for p in tc["parameters"]}
     assert {"min_pullback_percent", "min_score", "trailing_mode"} <= keys

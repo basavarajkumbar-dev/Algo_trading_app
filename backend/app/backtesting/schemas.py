@@ -13,7 +13,9 @@ from app.backtesting.metrics import BACKTEST_NOTE, BacktestMetrics, RobustnessRe
 from app.backtesting.parameters import StrategyChoice
 from app.execution.costs import CostModel
 
-MAX_SYMBOLS = 20
+# Hard ceiling of the request schema. The operative limit is the
+# BACKTEST_MAX_SYMBOLS setting (default 50), checked when a run is created.
+MAX_SYMBOLS = 2000
 MAX_DAYS = 250
 
 
@@ -73,7 +75,11 @@ class BacktestRequest(BaseModel):
     mode: BacktestMode = BacktestMode.HISTORICAL
     strategy: StrategyChoice = StrategyChoice.ALL
     version: str | None = None  # if given, must match the version the parameters produce
-    symbols: list[str] = Field(min_length=1, max_length=MAX_SYMBOLS)
+    symbols: list[str] = Field(default_factory=list, max_length=MAX_SYMBOLS)
+    # Universe ids (app.universe.registry). Resolved by the API into
+    # `symbols`; the full count report is kept in `universe_report`.
+    universes: list[str] = Field(default_factory=list, max_length=20)
+    universe_report: dict[str, Any] | None = None  # set by the server, not by clients
     start_date: date
     end_date: date
     timeframe: str = "5m"
@@ -105,6 +111,8 @@ class BacktestRequest(BaseModel):
 
     @model_validator(mode="after")
     def _dates(self) -> BacktestRequest:
+        if not self.symbols and not self.universes:
+            raise ValueError("give at least one symbol or universe")
         if self.end_date < self.start_date:
             raise ValueError("end_date is before start_date")
         if (self.end_date - self.start_date).days > MAX_DAYS * 7 // 5 + 7:
@@ -196,6 +204,9 @@ class BacktestOutcome(BaseModel):
     degradation: float | None = None  # OOS expectancy R / IS expectancy R
     null_control: BacktestMetrics | None = None
     strategy_versions: list[dict[str, Any]] = Field(default_factory=list)
+    # Requested / eligible / excluded / processed symbols and per-symbol
+    # data coverage (bars, missing, invalid, duplicate).
+    universe: dict[str, Any] = Field(default_factory=dict)
     data: dict[str, Any] = Field(default_factory=dict)
     replay: dict[str, Any] = Field(default_factory=dict)
     execution: dict[str, Any] = Field(default_factory=dict)

@@ -101,6 +101,42 @@ def make_source(req: BacktestRequest, data_dir: str | None) -> HistoricalDataSou
     return CsvHistorySource(Path(data_dir))
 
 
+def _universe_record(
+    req: BacktestRequest, source: HistoricalDataSource, replay: Any
+) -> dict[str, Any]:
+    """What the run was asked to cover and what it actually processed,
+    with per-symbol data coverage."""
+
+    report = dict(req.universe_report or {})
+    if not report:  # explicit symbols only
+        report = {
+            "requested_universes": [],
+            "requested_symbols": list(req.symbols),
+            "requested_count": len(req.symbols),
+            "duplicates_removed": 0,
+            "eligible_count": len(req.symbols),
+            "excluded": {},
+            "excluded_count": 0,
+            "processed": list(req.symbols),
+            "processed_count": len(req.symbols),
+            "limit": None,
+            "truncated": False,
+        }
+    coverage = {}
+    for s in req.symbols:
+        q = source.quality(s)
+        coverage[s] = {
+            "bars": q.bars,
+            "missing_bars": q.missing_bars,
+            "invalid_bars": q.invalid_bars,
+            "duplicate_bars": q.duplicate_bars,
+            "decisions": getattr(replay, "decisions_by_symbol", {}).get(s),
+        }
+    report["coverage"] = coverage
+    report["missing_bars_total"] = sum(c["missing_bars"] for c in coverage.values())
+    return report
+
+
 def _limits(req: BacktestRequest, holidays: list[date]) -> RiskLimits:
     r = req.risk
     return RiskLimits(
@@ -291,6 +327,19 @@ def run_backtest(
     )
     if replay.errors:
         warnings.append(f"{replay.errors} decision(s) failed to analyse and were skipped")
+    if replay.strategy_errors:
+        warnings.append(
+            f"{replay.strategy_errors} strategy evaluation(s) raised an error and were treated "
+            "as no setup"
+        )
+    if replay.scorer_errors:
+        warnings.append(f"{replay.scorer_errors} score component(s) raised and counted as 0")
+    idle = [s for s, n in replay.decisions_by_symbol.items() if n == 0]
+    if idle:
+        warnings.append(
+            f"{len(idle)} symbol(s) produced no decisions (not enough data): {', '.join(idle[:20])}"
+            + (" ..." if len(idle) > 20 else "")
+        )
 
     # Phase B
     tape = Tape({s: source.bars(s, req.start_date, req.end_date) for s in req.symbols})
@@ -645,6 +694,7 @@ def run_backtest(
         degradation=degradation,
         null_control=null_metrics,
         strategy_versions=[v.model_dump() for v in versions],
+        universe=_universe_record(req, source, replay),
         data={
             "kind": source.kind,
             "synthetic": source.synthetic,
@@ -657,6 +707,8 @@ def run_backtest(
         replay={
             "decisions": replay.decisions,
             "errors": replay.errors,
+            "strategy_errors": replay.strategy_errors,
+            "scorer_errors": replay.scorer_errors,
             "cache_hits": replay.cache_hits,
             "decision_times_with_signals": len(replay.signals),
         },
