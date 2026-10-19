@@ -4,7 +4,9 @@ steps run, and no order endpoint is touched."""
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -14,6 +16,8 @@ from app.brokers.zerodha.ticker import encode_quote
 from app.core.config import get_settings
 from app.tests.fake_kite import ACCESS_TOKEN, API_KEY, API_SECRET, FakeKite
 from app.tests.fake_kite_ws import FakeKiteWS
+
+IST = ZoneInfo("Asia/Kolkata")
 
 
 async def test_smoke_script_passes_on_fakes_and_sends_no_orders(
@@ -36,8 +40,13 @@ async def test_smoke_script_passes_on_fakes_and_sends_no_orders(
     for i, inst in enumerate(smoke.NIFTY_50_UNIVERSE):
         fake.ltp[f"NSE:{inst.symbol}"] = (1000 + i * 256 + 1, inst.reference_price)
     fake.ltp["NSE:NIFTY 50"] = (256265, 25000.0)
+    # the script asks for the last 7 days of wall-clock time: put the candle
+    # on the latest completed weekday (was a fixed date that aged out)
+    day = datetime.now(IST).date() - timedelta(days=1)
+    while day.weekday() >= 5:
+        day -= timedelta(days=1)
     fake.candles[(256265, "5minute")] = [
-        ["2026-10-02T09:15:00+0530", 25000, 25010, 24990, 25005, 0]
+        [f"{day.isoformat()}T09:15:00+0530", 25000, 25010, 24990, 25005, 0]
     ]
     ws = FakeKiteWS(api_key=API_KEY, token=ACCESS_TOKEN)
     await ws.start()

@@ -45,6 +45,12 @@ class HistoricalDataProvider(ABC):
     def __init__(self, *, session: SessionCalendar = NSE_SESSION) -> None:
         self.session = session
 
+    def _now(self) -> datetime:
+        """Current time; providers with an injected clock override this so
+        warm-up windows follow that clock (tests, replays), not wall time."""
+
+        return utcnow()
+
     @abstractmethod
     async def get_historical_candles(
         self, symbol: str, timeframe: Timeframe, start: datetime, end: datetime
@@ -65,7 +71,7 @@ class HistoricalDataProvider(ABC):
         """One session's candles (today's so far by default)."""
 
         tz = self.session.zone
-        day = day or utcnow().astimezone(tz).date()
+        day = day or self._now().astimezone(tz).date()
         open_ = datetime.combine(day, self.session.open, tzinfo=tz)
         close = datetime.combine(day, self.session.close, tzinfo=tz)
         return await self.get_historical_candles(symbol, timeframe, open_, close)
@@ -75,7 +81,7 @@ class HistoricalDataProvider(ABC):
     ) -> list[Candle]:
         """The last `limit` closed candles (warm-up)."""
 
-        now = now or utcnow()
+        now = now or self._now()
         per_session = -(-self.session.minutes // timeframe.minutes)
         sessions = -(-limit // per_session) + 1
         calendar_days = sessions * 7 // 5 + 7  # weekends and a few holidays

@@ -102,6 +102,9 @@ class ZerodhaHistoricalDataProvider(HistoricalDataProvider):
         self.rate_limited = 0
         self._trading_days: dict[tuple[date, date], list[date]] = {}
 
+    def _now(self) -> datetime:
+        return self._clock()
+
     def _token(self, symbol: str) -> int:
         try:
             return self.resolver.resolve_app_symbol(symbol).instrument_token
