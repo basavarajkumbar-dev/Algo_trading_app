@@ -10,8 +10,12 @@ arrives.
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.api.deps import websocket_allowed
+from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.market_data.service import MarketDataService
 
@@ -20,8 +24,32 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+AUTH_TIMEOUT_SECONDS = 10.0
+
+
+async def _authenticate(websocket: WebSocket) -> bool:
+    """When API_REQUIRE_AUTH is on, the client's first message must be
+    {"type": "auth", "token": "<access token>"} (sent within 10 s). The
+    token travels in the message, never in the URL, so it cannot end up in
+    access logs."""
+
+    settings = get_settings()
+    if not settings.effective_api_require_auth:
+        return True
+    try:
+        message = await asyncio.wait_for(websocket.receive_json(), AUTH_TIMEOUT_SECONDS)
+    except (TimeoutError, ValueError, KeyError, WebSocketDisconnect):
+        return False
+    token = message.get("token") if isinstance(message, dict) else None
+    return message.get("type") == "auth" and await websocket_allowed(token, settings)
+
+
 @router.websocket("/ws/market")
 async def market_websocket(websocket: WebSocket) -> None:
+    await websocket.accept()
+    if not await _authenticate(websocket):
+        await websocket.close(code=1008)  # 1008 = policy violation: sign in first
+        return
     service: MarketDataService | None = getattr(websocket.app.state, "market_data_service", None)
     if service is None:
         await websocket.close(code=1013)  # 1013 = Try Again Later

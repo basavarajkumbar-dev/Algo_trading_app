@@ -41,6 +41,11 @@ async def register(
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
+    if not settings.effective_allow_registration:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sign-up is closed on this server. Ask the administrator for an account.",
+        )
     try:
         user = await register_user(
             db, email=payload.email, password=payload.password, full_name=payload.full_name

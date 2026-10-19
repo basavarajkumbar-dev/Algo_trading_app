@@ -20,6 +20,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import read_access
 from app.brokers.health import BrokerHealthReport, broker_health, market_data_status
 from app.core.config import Settings, get_settings
 from app.database.models.system_event import SystemEvent
@@ -42,21 +43,25 @@ async def health(settings: Settings = Depends(get_settings)) -> SystemHealthResp
     return await get_system_health(settings)
 
 
-@router.get("/market-data")
+@router.get("/market-data", dependencies=[Depends(read_access)])
 async def market_data(request: Request) -> dict[str, Any]:
     if getattr(request.app.state, "market_data_service", None) is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Market data is not running.")
     return market_data_status(request.app.state)
 
 
-@router.get("/broker-health", response_model=BrokerHealthReport)
+@router.get(
+    "/broker-health", dependencies=[Depends(read_access)], response_model=BrokerHealthReport
+)
 async def broker_health_report(
     request: Request, settings: Settings = Depends(get_settings)
 ) -> BrokerHealthReport:
     return await broker_health(request.app.state, settings)
 
 
-@router.get("/components", response_model=ComponentHealthResponse)
+@router.get(
+    "/components", dependencies=[Depends(read_access)], response_model=ComponentHealthResponse
+)
 async def components(
     request: Request, settings: Settings = Depends(get_settings)
 ) -> ComponentHealthResponse:
@@ -80,7 +85,7 @@ class SystemEventList(BaseModel):
     total: int
 
 
-@router.get("/events", response_model=SystemEventList)
+@router.get("/events", dependencies=[Depends(read_access)], response_model=SystemEventList)
 async def events(
     limit: int = Query(default=30, ge=1, le=200),
     severity: str | None = Query(default=None, pattern="^(INFO|WARNING|CRITICAL)$"),

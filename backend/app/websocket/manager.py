@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import WebSocket
+from starlette.websockets import WebSocketState
 
 from app.core.logging import get_logger
 
@@ -23,7 +24,11 @@ class ConnectionManager:
         self._connections: set[WebSocket] = set()
 
     async def connect(self, websocket: WebSocket) -> None:
-        await websocket.accept()
+        if (
+            getattr(websocket, "client_state", WebSocketState.CONNECTING)
+            == WebSocketState.CONNECTING
+        ):
+            await websocket.accept()  # the endpoint may have accepted already (auth)
         self._connections.add(websocket)
 
     def disconnect(self, websocket: WebSocket) -> None:

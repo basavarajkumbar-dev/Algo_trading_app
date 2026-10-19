@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import { WS_BASE_URL } from "@/lib/api";
+import { getStoredTokens } from "@/lib/auth-storage";
 import { TRADING_EVENT_INVALIDATES, qk } from "@/lib/query-keys";
 import { useMarketStore } from "@/lib/stores/market-store";
 import type { WsMessage } from "@/types/market";
@@ -33,7 +34,14 @@ export function SocketBridge() {
       if (cancelled) return;
       setStatus(useMarketStore.getState().status === "closed" ? "reconnecting" : "connecting");
       socket = new WebSocket(`${WS_BASE_URL}/ws/market`);
-      socket.onopen = () => !cancelled && setStatus("open");
+      socket.onopen = () => {
+        if (cancelled) return;
+        // When the backend requires sign-in the first message carries the
+        // token (never the URL, which servers log); it is ignored otherwise.
+        const token = getStoredTokens().accessToken;
+        if (token) socket?.send(JSON.stringify({ type: "auth", token }));
+        setStatus("open");
+      };
       socket.onmessage = (event) => {
         if (cancelled) return;
         let message: WsMessage;

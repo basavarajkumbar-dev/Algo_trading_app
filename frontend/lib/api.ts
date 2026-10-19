@@ -1,3 +1,5 @@
+import { getStoredTokens } from "./auth-storage";
+
 /**
  * Base URL the *browser* uses to reach the backend.
  *
@@ -39,7 +41,11 @@ async function request<T>(
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (init.body) headers.set("Content-Type", "application/json");
-  if (options.accessToken) headers.set("Authorization", `Bearer ${options.accessToken}`);
+  // An explicit token wins; otherwise the signed-in user's stored token is
+  // sent, so data endpoints also work when the backend requires sign-in
+  // (API_REQUIRE_AUTH, the default in production).
+  const token = options.accessToken ?? getStoredTokens().accessToken;
+  if (token) headers.set("Authorization", `Bearer ${token}`);
 
   let response: Response;
   try {

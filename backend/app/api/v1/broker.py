@@ -33,13 +33,13 @@ No response contains the API secret, the access token or the request token.
 from __future__ import annotations
 
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.api.deps import require_role
+from app.api.deps import read_access, require_role
 from app.brokers.service import BrokerService
 from app.brokers.zerodha.auth import KiteLoginError
 from app.brokers.zerodha.exceptions import KiteError
@@ -87,7 +87,7 @@ def _http_error(exc: BrokerError) -> HTTPException:
     return HTTPException(status.HTTP_502_BAD_GATEWAY, f"Zerodha refused: {exc}")
 
 
-@router.get("/status")
+@router.get("/status", dependencies=[Depends(read_access)])
 async def broker_status(request: Request) -> dict[str, Any]:
     return {**_service(request).status(), "note": NOTE}
 
@@ -96,7 +96,7 @@ class EventList(BaseModel):
     items: list[OrderEvent]
 
 
-@router.get("/events", response_model=EventList)
+@router.get("/events", dependencies=[Depends(read_access)], response_model=EventList)
 async def events(request: Request, limit: int = Query(default=50, ge=1, le=500)) -> EventList:
     return EventList(items=_service(request).orders.events(limit))
 
@@ -247,17 +247,35 @@ def zerodha_safe_status(request: Request) -> dict[str, Any]:
     )
 
 
-@router.get("/zerodha/status")
+@router.get("/zerodha/status", dependencies=[Depends(read_access)])
 async def zerodha_status(request: Request) -> dict[str, Any]:
     return zerodha_safe_status(request)
+
+
+def _mobile_states(request: Request) -> set[str]:
+    states: set[str] | None = getattr(request.app.state, "zerodha_mobile_states", None)
+    if states is None:
+        states = set()
+        request.app.state.zerodha_mobile_states = states
+    return states
+
+
+def _state_of(login_url: str) -> str | None:
+    params = parse_qs(urlparse(login_url).query).get("redirect_params", [""])[0]
+    return parse_qs(params).get("state", [None])[0]
 
 
 @router.get("/zerodha/login", response_model=None)
 async def zerodha_login(
     request: Request,
     redirect: bool = Query(default=False),
+    client: str = Query(default="web", pattern="^(web|mobile)$"),
     _: Any = Depends(_admin),
 ) -> dict[str, str] | RedirectResponse:
+    """`client=mobile`: after the login the callback returns to the app
+    (<MOBILE_APP_SCHEME>://zerodha?result=...) instead of the website. The
+    token exchange is the same: server-side, the secret never leaves here."""
+
     rt = _runtime(request)
     if not rt.configured:
         raise HTTPException(
@@ -265,15 +283,23 @@ async def zerodha_login(
             "Zerodha is not configured (KITE_API_KEY / KITE_API_SECRET on the backend).",
         )
     url = rt.auth.get_login_url()
+    if client == "mobile":
+        state = _state_of(url)
+        if state:
+            _mobile_states(request).add(state)
     if redirect:
         return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
     return {"login_url": url}
 
 
-def _frontend(result: str, reason: str | None = None) -> RedirectResponse:
+def _frontend(result: str, reason: str | None = None, *, mobile: bool = False) -> RedirectResponse:
     query = {"zerodha": result}
     if reason:
         query["reason"] = reason
+    if mobile:
+        scheme = get_settings().mobile_app_scheme
+        query = {"result": result, **({"reason": reason} if reason else {})}
+        return RedirectResponse(f"{scheme}://zerodha?{urlencode(query)}", status_code=303)
     base = get_settings().frontend_url.rstrip("/")
     return RedirectResponse(f"{base}/settings?{urlencode(query)}", status_code=303)
 
@@ -290,18 +316,21 @@ async def zerodha_callback(
     proof that an admin started this login."""
 
     rt = _runtime(request)
+    mobile = bool(state) and state in _mobile_states(request)
+    if mobile:
+        _mobile_states(request).discard(state or "")
     if not rt.configured:
-        return _frontend("error", "not_configured")
+        return _frontend("error", "not_configured", mobile=mobile)
     try:
         await rt.auth.handle_request_token(request_token, status=status_, state=state)
     except KiteLoginError as exc:
         reason = (
             "state" if "state" in str(exc).lower() or "expired" in str(exc).lower() else "login"
         )
-        return _frontend("error", reason)
+        return _frontend("error", reason, mobile=mobile)
     except KiteError:
-        return _frontend("error", "token_exchange")
-    return _frontend("connected")
+        return _frontend("error", "token_exchange", mobile=mobile)
+    return _frontend("connected", mobile=mobile)
 
 
 @router.post("/zerodha/logout")

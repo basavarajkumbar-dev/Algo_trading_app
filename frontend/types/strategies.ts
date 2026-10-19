@@ -6,7 +6,14 @@
 import type { MarketRegime } from "@/types/intelligence";
 import type { TimeframeValue } from "@/types/market";
 
-export type StrategyName = "TREND_CONTINUATION" | "BREAKOUT_MOMENTUM" | "MEAN_REVERSION";
+export type StrategyName =
+  | "TREND_CONTINUATION"
+  | "BREAKOUT_MOMENTUM"
+  | "MEAN_REVERSION"
+  | "RANGE_TRADING"
+  | "BREAKOUT_TRADING"
+  | "VOLUME_TRADING"
+  | "MA_CROSSOVER";
 export type TradeDirection = "LONG" | "SHORT" | "NONE";
 export type FeatureValue = number | string | boolean | null;
 

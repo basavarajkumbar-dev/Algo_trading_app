@@ -2,7 +2,16 @@
 import type { GroupStats } from "@/types/dashboard";
 
 export type BacktestMode = "HISTORICAL" | "OUT_OF_SAMPLE" | "WALK_FORWARD";
-export type StrategyChoice = "ALL" | "TREND_CONTINUATION" | "BREAKOUT_MOMENTUM" | "MEAN_REVERSION";
+export type StrategyChoice =
+  | "ALL"
+  | "ALL_EXTENDED"
+  | "TREND_CONTINUATION"
+  | "BREAKOUT_MOMENTUM"
+  | "MEAN_REVERSION"
+  | "RANGE_TRADING"
+  | "BREAKOUT_TRADING"
+  | "VOLUME_TRADING"
+  | "MA_CROSSOVER";
 export type RunStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
 export type ParamValue = number | string;
 

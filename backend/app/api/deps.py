@@ -56,3 +56,51 @@ def require_role(*allowed_roles: UserRole):
         return user
 
     return _check
+
+
+async def _user_for_token(token: str, settings: Settings) -> User | None:
+    from app.database.session import async_session_factory
+
+    try:
+        async with async_session_factory() as db:
+            try:
+                return await get_user_from_access_token(db, access_token=token, settings=settings)
+            except InvalidCredentialsError:
+                return None
+    except InvalidCredentialsError:
+        return None
+    except Exception as exc:  # noqa: BLE001 - the database is needed to verify a session
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Cannot verify the session right now (database unavailable).",
+        ) from exc
+
+
+async def read_access(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    """Data endpoints: open in development (the existing behaviour), a valid
+    access token required when API_REQUIRE_AUTH is on (default in
+    production/staging). Write endpoints keep their own role checks."""
+
+    if not settings.effective_api_require_auth:
+        return
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if await _user_for_token(credentials.credentials, settings) is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired access token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+async def websocket_allowed(token: str | None, settings: Settings) -> bool:
+    if not settings.effective_api_require_auth:
+        return True
+    return bool(token) and await _user_for_token(token or "", settings) is not None
