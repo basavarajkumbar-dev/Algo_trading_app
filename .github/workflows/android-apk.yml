@@ -124,7 +124,7 @@ jobs:
             echo "::warning::No signing secrets: signing with a throw-away key (test install only)."
             KS_PASS="$(openssl rand -hex 16)"; KEY_PASS="$KS_PASS"; KEY_ALIAS=ci-test
             keytool -genkeypair -keystore "$KS" -storepass "$KS_PASS" -keypass "$KEY_PASS" \
-              -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 30 -dname "CN=GainzAlgo CI test" >/dev/null
+              -alias "$KEY_ALIAS" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=GainzAlgo CI test" >/dev/null
             echo "kind=test" >> "$GITHUB_OUTPUT"
           fi
           "$BT/zipalign" -f -p 4 "$IN" "$RUNNER_TEMP/aligned.apk"
