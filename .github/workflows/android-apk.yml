@@ -59,6 +59,8 @@ jobs:
           NODE_ENV: development
 
       - name: Type-check, lint and test
+        env:
+          NODE_ENV: test
         run: |
           npx tsc --noEmit
           npx eslint . --max-warnings 0
@@ -78,7 +80,21 @@ jobs:
 
       - name: Build release APK
         working-directory: mobile/android
-        run: ./gradlew assembleRelease --no-daemon
+        # phones are ARM; leaving out the x86 emulator ABIs keeps the APK small
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
+      - name: Show the build error
+        if: failure()
+        run: |
+          # surface the cause as annotations (readable without downloading logs)
+          for f in "$RUNNER_TEMP/gradle.log"; do
+            [ -f "$f" ] || continue
+            grep -E "FAILURE|What went wrong|error:|Error:|Exception|Could not" "$f" | head -40 | while IFS= read -r line; do
+              echo "::error::${line:0:900}"
+            done
+          done
 
       - name: Sign
         id: sign
@@ -137,5 +153,21 @@ jobs:
             mobile/GainzAlgo-Pro-Max.apk.sha256
           body: |
             GainzAlgo Pro Max Android build ${{ github.ref_name }}.
+            PAPER mode is the default. Live trading stays off unless enabled on the backend.
+            Verify: `sha256sum -c GainzAlgo-Pro-Max.apk.sha256`.
+
+      - name: Publish a test-signed pre-release (tags only, no signing secrets)
+        if: startsWith(github.ref, 'refs/tags/v') && steps.sign.outputs.kind == 'test'
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          name: ${{ github.ref_name }} (test-signed)
+          files: |
+            mobile/GainzAlgo-Pro-Max.apk
+            mobile/GainzAlgo-Pro-Max.apk.sha256
+          body: |
+            TEST-SIGNED build of GainzAlgo Pro Max ${{ github.ref_name }} — for installing and trying the app.
+            It is signed with a throw-away key made for this build, so a later release-signed version cannot
+            update it: uninstall this one first. For release builds add the ANDROID_KEYSTORE_* secrets.
             PAPER mode is the default. Live trading stays off unless enabled on the backend.
             Verify: `sha256sum -c GainzAlgo-Pro-Max.apk.sha256`.
