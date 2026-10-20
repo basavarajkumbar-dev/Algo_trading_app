@@ -17,6 +17,9 @@ on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+    # every change to the app on main also produces an installable APK
+    branches: [main]
+    paths: ["mobile/**", ".github/workflows/android-apk.yml"]
   pull_request:
     paths: ["mobile/**", ".github/workflows/android-apk.yml"]
 
@@ -156,17 +159,20 @@ jobs:
             PAPER mode is the default. Live trading stays off unless enabled on the backend.
             Verify: `sha256sum -c GainzAlgo-Pro-Max.apk.sha256`.
 
-      - name: Publish a test-signed pre-release (tags only, no signing secrets)
-        if: startsWith(github.ref, 'refs/tags/v') && steps.sign.outputs.kind == 'test'
+      - name: Publish a test-signed pre-release (main or tags, no signing secrets)
+        if: github.event_name == 'push' && steps.sign.outputs.kind == 'test'
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          name: ${{ github.ref_name }} (test-signed)
+          make_latest: false
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v1.0.0-build.{0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v1.0.0-build.{0}', github.run_number) }} (test-signed)
           files: |
             mobile/GainzAlgo-Pro-Max.apk
             mobile/GainzAlgo-Pro-Max.apk.sha256
           body: |
-            TEST-SIGNED build of GainzAlgo Pro Max ${{ github.ref_name }} — for installing and trying the app.
+            TEST-SIGNED build of GainzAlgo Pro Max (commit ${{ github.sha }}) — for installing and trying the app.
             It is signed with a throw-away key made for this build, so a later release-signed version cannot
             update it: uninstall this one first. For release builds add the ANDROID_KEYSTORE_* secrets.
             PAPER mode is the default. Live trading stays off unless enabled on the backend.
