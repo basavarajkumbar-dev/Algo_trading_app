@@ -53,8 +53,15 @@ APK is built by GitHub Actions: `.github/workflows/android-apk.yml`
    `GainzAlgo-Pro-Max.apk` and its SHA-256. Pushing a tag `v1.0.0` also
    attaches a release-signed APK to a GitHub Release.
 
-Without the signing secrets the workflow still builds, but signs with a
-throw-away key (test installs only; never attached to a release).
+Every push to `main` that changes `mobile/` (or the workflow) also builds
+the APK. Without the signing secrets it is signed with a throw-away key and
+published as a **pre-release** named `v1.0.0-build.N (test-signed)` — fine for
+installing and trying the app, but a later release-signed APK cannot update it
+(uninstall it first). With the secrets set, the build is release-signed.
+
+Built APK (verified after download): package `com.basavarajkumbar.gainzalgo`,
+version 1.0.0 (1), Android 7.0+ (minSdk 24, targetSdk 36), ARM 64/32-bit,
+permission INTERNET only, APK signature schemes v1+v2+v3.
 
 Install: copy the APK to the phone, allow "install unknown apps" for the file
 manager, open it. Updates must be signed with the same keystore.
